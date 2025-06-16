@@ -20,7 +20,7 @@ import AdminLayout from "../layout/AdminLayout";
 import List from "../page/admin/List";
 import AdminFeedback from "../page/admin/AdminFeedback";
 import AdminPage from "../page/admin/AdminPage";
-import Admincommunity from "../page/admin/Admincommunity";
+import AdminCommunity from "../page/admin/AdminCommunity";
 import AdminPayment from "../page/admin/AdminPayment";
 import AdminProfile from "../page/admin/AdminProfile";
 
@@ -92,10 +92,10 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        
+
         <Route index element={<AdminPage />} />
         <Route path="list" element={<List />} />
-        <Route path="community" element={<Admincommunity />} />
+        <Route path="community" element={<AdminCommunity />} />
         <Route path="feedback" element={<AdminFeedback />} />
         <Route path="payment" element={<AdminPayment />} />
         <Route path="profile" element={<AdminProfile />} />

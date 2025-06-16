@@ -17,13 +17,13 @@ export default function NavBar() {
 
   return (
     <>
-      {/* Top bar - Đã thay đổi màu sắc phù hợp với trang home */}
+      {/* Top bar - Chủ đề màu mới */}
       <div
         style={{
-          background: "linear-gradient(90deg, #111 60%, #000 100%)",
+          background: "linear-gradient(90deg, #F2EFE7 60%, #9ACBD0 100%)",
           padding: "1.2rem 0 0.8rem 0",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-          borderBottom: "1px solid #333"
+          boxShadow: "0 2px 8px rgba(0,106,113,0.07)",
+          borderBottom: "1px solid #9ACBD0"
         }}
       >
         <div
@@ -37,7 +37,7 @@ export default function NavBar() {
             gap: 32,
           }}
         >
-          {/* Logo - Cập nhật style */}
+          {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 220 }}>
             <img
               src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
@@ -47,18 +47,18 @@ export default function NavBar() {
                 height: 38,
                 borderRadius: "50%",
                 background: "#fff",
-                border: "2px solid #d4af37" // Thêm viền vàng
+                border: "2px solid #48A6A7"
               }}
             />
             <Link to="/" style={{ textDecoration: "none" }}>
               <span
                 style={{
-                  color: "#d4af37", // Màu vàng sang trọng
+                  color: "#006A71",
                   fontWeight: "bold",
                   fontSize: "1.25rem",
                   letterSpacing: 1,
                   whiteSpace: "nowrap",
-                  textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                  textShadow: "0 2px 4px rgba(0,106,113,0.07)"
                 }}
               >
                 Cai Nghiện Thuốc Lá
@@ -66,7 +66,7 @@ export default function NavBar() {
             </Link>
           </div>
 
-          {/* Search bar - Tối giản hóa */}
+          {/* Search bar */}
           <div style={{
             flex: 1,
             display: "flex",
@@ -76,15 +76,15 @@ export default function NavBar() {
           }}>
             <div
               style={{
-                background: "rgba(255,255,255,0.1)",
+                background: "#E6F4F4",
                 borderRadius: 24,
                 display: "flex",
                 alignItems: "center",
                 padding: "0.3rem 1.2rem",
                 minWidth: 260,
                 width: "100%",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                border: "1px solid #333",
+                boxShadow: "0 2px 8px rgba(0,106,113,0.06)",
+                border: "1px solid #9ACBD0",
                 transition: "all 0.3s",
               }}
             >
@@ -97,14 +97,14 @@ export default function NavBar() {
                   background: "transparent",
                   fontSize: "1rem",
                   flex: 1,
-                  color: "#fff",
+                  color: "#006A71",
                   padding: "0.3rem 0",
                 }}
               />
               <span style={{
                 fontSize: 18,
                 marginLeft: 10,
-                color: "#d4af37",
+                color: "#48A6A7",
                 cursor: "pointer",
                 transition: "transform 0.2s"
               }}
@@ -115,7 +115,7 @@ export default function NavBar() {
             </div>
           </div>
 
-          {/* Tài khoản - Cập nhật màu sắc */}
+          {/* Tài khoản */}
           <div style={{
             display: "flex",
             alignItems: "center",
@@ -125,7 +125,7 @@ export default function NavBar() {
           }}>
             <span style={{
               fontSize: 26,
-              color: "#d4af37",
+              color: "#48A6A7",
               marginRight: 4,
               transition: "transform 0.2s",
               cursor: "pointer"
@@ -139,27 +139,19 @@ export default function NavBar() {
                 <Link
                   to={role === "admin" ? "/admin/profile" : "/member/profile"}
                   style={{
-                    color: "#d4af37",
+                    color: "#006A71",
                     fontWeight: 700,
                     fontSize: "1.05rem",
-                    background: "rgba(212, 175, 55, 0.1)",
+                    background: "#9ACBD0",
                     padding: "0.5rem 1.2rem",
                     borderRadius: 20,
                     minWidth: 120,
                     textAlign: "center",
                     textDecoration: "none",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                    boxShadow: "0 2px 8px rgba(0,106,113,0.06)",
                     whiteSpace: "nowrap",
-                    border: "1px solid rgba(212, 175, 55, 0.3)",
+                    border: "1px solid #48A6A7",
                     transition: "all 0.2s",
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.background = "rgba(212, 175, 55, 0.2)";
-                    e.currentTarget.style.boxShadow = "0 2px 12px rgba(212, 175, 55, 0.3)";
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = "rgba(212, 175, 55, 0.1)";
-                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
                   }}
                 >
                   {email}
@@ -170,23 +162,15 @@ export default function NavBar() {
                     color: "#fff",
                     fontWeight: 700,
                     fontSize: "1.05rem",
-                    background: "rgba(239, 83, 80, 0.7)",
+                    background: "#48A6A7",
                     padding: "0.5rem 1.2rem",
                     borderRadius: 20,
-                    border: "1px solid rgba(239, 83, 80, 0.5)",
+                    border: "1px solid #006A71",
                     cursor: "pointer",
                     marginLeft: 6,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                    boxShadow: "0 2px 8px rgba(0,106,113,0.06)",
                     transition: "all 0.2s",
                     whiteSpace: "nowrap",
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.background = "rgba(239, 83, 80, 0.9)";
-                    e.currentTarget.style.boxShadow = "0 2px 12px rgba(239, 83, 80, 0.4)";
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = "rgba(239, 83, 80, 0.7)";
-                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
                   }}
                 >
                   Đăng xuất
@@ -197,25 +181,17 @@ export default function NavBar() {
                 <Link
                   to="/login"
                   style={{
-                    color: "#d4af37",
+                    color: "#006A71",
                     fontWeight: 600,
                     fontSize: "1.05rem",
                     textDecoration: "none",
-                    background: "rgba(212, 175, 55, 0.1)",
+                    background: "#9ACBD0",
                     padding: "0.5rem 1.2rem",
                     borderRadius: 20,
                     marginRight: 6,
                     transition: "all 0.2s",
                     whiteSpace: "nowrap",
-                    border: "1px solid rgba(212, 175, 55, 0.3)",
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.background = "rgba(212, 175, 55, 0.2)";
-                    e.currentTarget.style.boxShadow = "0 2px 12px rgba(212, 175, 55, 0.3)";
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = "rgba(212, 175, 55, 0.1)";
-                    e.currentTarget.style.boxShadow = "none";
+                    border: "1px solid #48A6A7",
                   }}
                 >
                   Đăng nhập
@@ -227,20 +203,12 @@ export default function NavBar() {
                     fontWeight: 600,
                     fontSize: "1.05rem",
                     textDecoration: "none",
-                    background: "rgba(212, 175, 55, 0.7)",
+                    background: "#48A6A7",
                     padding: "0.5rem 1.2rem",
                     borderRadius: 20,
                     transition: "all 0.2s",
                     whiteSpace: "nowrap",
-                    border: "1px solid rgba(212, 175, 55, 0.5)",
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.background = "rgba(212, 175, 55, 0.9)";
-                    e.currentTarget.style.boxShadow = "0 2px 12px rgba(212, 175, 55, 0.4)";
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = "rgba(212, 175, 55, 0.7)";
-                    e.currentTarget.style.boxShadow = "none";
+                    border: "1px solid #006A71",
                   }}
                 >
                   Đăng ký
@@ -251,20 +219,19 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* Nav menu - Cập nhật phong cách tối giản */}
+      {/* Nav menu - Chủ đề màu mới */}
       <nav
         style={{
-          background: "rgba(0,0,0,0.8)",
+          background: "#F2EFE7",
           padding: "0.7rem 0",
           display: "flex",
           justifyContent: "center",
           gap: "1.5rem",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          boxShadow: "0 4px 12px rgba(0,106,113,0.06)",
           position: "sticky",
           top: 0,
           zIndex: 1000,
-          backdropFilter: "blur(8px)",
-          borderBottom: "1px solid rgba(212, 175, 55, 0.2)"
+          borderBottom: "1px solid #9ACBD0"
         }}
       >
         {navItems.map((item) => (
@@ -272,34 +239,34 @@ export default function NavBar() {
             key={item.to}
             to={item.to}
             style={{
-              color: location.pathname === item.to ? "#d4af37" : "#fff",
+              color: location.pathname === item.to ? "#006A71" : "#48A6A7",
               fontWeight: 600,
               borderRadius: 8,
               padding: "0.5rem 1.5rem",
               textDecoration: "none",
               fontSize: "1.05rem",
               background:
-                location.pathname === item.to ? "rgba(212, 175, 55, 0.1)" : "transparent",
+                location.pathname === item.to ? "#9ACBD0" : "transparent",
               boxShadow:
                 location.pathname === item.to
-                  ? "0 2px 12px rgba(212, 175, 55, 0.2)"
+                  ? "0 2px 12px rgba(72,166,167,0.15)"
                   : "none",
               border:
                 location.pathname === item.to
-                  ? "1px solid rgba(212, 175, 55, 0.3)"
+                  ? "1px solid #48A6A7"
                   : "1px solid transparent",
               transition: "all 0.2s",
               position: "relative",
             }}
             onMouseOver={e => {
               if (location.pathname !== item.to) {
-                e.currentTarget.style.color = "#d4af37";
-                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                e.currentTarget.style.color = "#006A71";
+                e.currentTarget.style.background = "#E6F4F4";
               }
             }}
             onMouseOut={e => {
               if (location.pathname !== item.to) {
-                e.currentTarget.style.color = "#fff";
+                e.currentTarget.style.color = "#48A6A7";
                 e.currentTarget.style.background = "transparent";
               }
             }}
@@ -313,7 +280,7 @@ export default function NavBar() {
                 transform: "translateX(-50%)",
                 width: "60%",
                 height: 2,
-                background: "#d4af37",
+                background: "#006A71",
                 borderRadius: 2
               }} />
             )}

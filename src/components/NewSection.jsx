@@ -1,75 +1,129 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+
+// Bảng màu chủ đề
+const COLORS = {
+  background: "#F2EFE7",
+  primary: "#9ACBD0",
+  secondary: "#48A6A7",
+  accent: "#006A71",
+  text: "#006A71",
+  white: "#fff",
+  light: "#E6F4F4",
+};
+
+// Dữ liệu 3 tin tức mẫu cho NewSection.jsx
+const news = [
+  {
+    id: 1,
+    title: "Bộ Y tế phát động chiến dịch quốc gia cai thuốc lá",
+    summary: "Chiến dịch mới nhằm nâng cao nhận thức cộng đồng về tác hại của thuốc lá và hỗ trợ người dân bỏ thuốc.",
+    date: "16/06/2025"
+  },
+  {
+    id: 2,
+    title: "Nghiên cứu: Cai thuốc lá giúp cải thiện sức khỏe tim mạch",
+    summary: "Các chuyên gia khuyến nghị bỏ thuốc lá càng sớm càng tốt để giảm nguy cơ mắc bệnh tim mạch và đột quỵ.",
+    date: "15/06/2025"
+  },
+  {
+    id: 3,
+    title: "Câu chuyện thành công: 100 ngày không thuốc lá",
+    summary: "Anh Nguyễn Văn A chia sẻ hành trình vượt qua cơn nghiện thuốc lá và truyền cảm hứng cho cộng đồng.",
+    date: "14/06/2025"
+  }
+];
 
 export default function NewSection() {
-  const articles = [
-    {
-      title: "Những lợi ích sức khỏe sau khi bỏ thuốc lá",
-      summary: "Sau khi bỏ thuốc, cơ thể bắt đầu phục hồi ngay từ ngày đầu tiên. Hãy khám phá những thay đổi tích cực mà bạn sẽ trải qua.",
-      img: "https://th.bing.com/th/id/R.28c2b879dd3e42c6bf23d1b4d9863926?rik=r6uIPabG%2b5tZeg&pid=ImgRaw&r=0",
-      link: "#"
-    },
-    {
-      title: "Phương pháp cai thuốc hiệu quả nhất",
-      summary: "Từ liệu pháp thay thế nicotine đến phương pháp tâm lý – đâu là lựa chọn tốt nhất để giúp bạn từ bỏ thói quen hút thuốc?",
-      img: "https://th.bing.com/th/id/OIP.SSkTmX-oq3PPeDcMhmYy2wHaDj?rs=1&pid=ImgDetMain",
-      link: "#"
-    },
-    {
-      title: "Câu chuyện thành công: 100 ngày không thuốc lá",
-      summary: "Những người đã cai thuốc chia sẻ trải nghiệm của họ, từ những thử thách ban đầu cho đến cảm giác nhẹ nhõm khi bỏ thuốc.",
-      img: "https://th.bing.com/th/id/OIP.8o8ur3HxBMFomcS_fhOhJwHaHn?w=736&h=757&rs=1&pid=ImgDetMain",
-      link: "#"
-    }
-  ];
+  const [articles, setArticles] = useState([]);
+
+  useEffect(() => {
+    // fetch("https://localhost:7133/api/Platform/info")
+    //   .then(res => res.json())
+    //   .then(data => {
+    //     // Lấy các trường news từ API và chuyển thành mảng bài viết
+    //     const news = [];
+    //     for (let i = 1; i <= 3; i++) {
+    //       if (data[`news${i}_Title`]) {
+    //         news.push({
+    //           title: data[`news${i}_Title`],
+    //           summary: data[`news${i}_Content`] || "",
+    //           link: data[`news${i}_Link`] || "#"
+    //         });
+    //       }
+    //     }
+    //     setArticles(news);
+    //   })
+    //   .catch(() => setArticles([]));
+    setArticles(news);
+  }, []);
 
   return (
     <section
       id="tin-tuc"
       style={{
-        fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
-        maxWidth: "900px",
-        margin: "3rem auto",
-        background: "#111",
-        padding: "2rem",
-        borderRadius: "16px",
-        boxShadow: "0 0 15px rgba(255, 255, 255, 0.05)",
-        border: "1px solid rgba(212, 175, 55, 0.2)",
+        width: "100%",
+        minHeight: "50vh",
+        background: COLORS.background,
+        padding: "2.5rem 0",
+        display: "flex",
+        justifyContent: "center",
       }}
     >
-      <h2 style={{
-        color: "#d4af37",
-        fontWeight: 800,
-        fontSize: "2rem",
-        textAlign: "center",
-        marginBottom: "2rem",
-      }}>
-        Tin Tức Về Cai Thuốc Lá
-      </h2>
-
-      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", justifyContent: "center" }}>
-        {articles.map((article, index) => (
-          <div
-            key={index}
-            style={{
-              flex: "1 1 280px",
-              maxWidth: "300px",
-              background: "#1a1a1a",
-              borderRadius: "12px",
-              padding: "1.5rem",
-              textAlign: "center",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
-            }}
-          >
-            <img
-              src={article.img}
-              alt={article.title}
-              style={{ width: "100%", borderRadius: "8px", marginBottom: "1rem" }}
-            />
-            <h3 style={{ color: "#d4af37", fontSize: "1.1rem", fontWeight: 700 }}>{article.title}</h3>
-            <p style={{ color: "#fff", fontSize: "0.95rem", marginBottom: "1rem", lineHeight: "1.5" }}>{article.summary}</p>
-            <a href={article.link} style={{ color: "#d4af37", fontWeight: "bold", textDecoration: "none" }}>Xem chi tiết</a>
-          </div>
-        ))}
+      <div
+        style={{
+          maxWidth: 800,
+          width: "100%",
+          background: COLORS.white,
+          borderRadius: 20,
+          boxShadow: "0 6px 32px rgba(72,166,167,0.13)",
+          border: `2px solid ${COLORS.primary}`,
+          padding: "2.2rem 2rem",
+        }}
+      >
+        <h2
+          style={{
+            color: COLORS.accent,
+            fontWeight: 900,
+            fontSize: "2rem",
+            marginBottom: 24,
+            letterSpacing: 1,
+            textAlign: "center",
+            textShadow: "0 2px 8px #9ACBD033",
+            userSelect: "none",
+          }}
+        >
+          📰 Tin tức mới nhất
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {articles.length === 0 && (
+            <div style={{ color: COLORS.secondary, textAlign: "center", fontWeight: 600 }}>
+              Chưa có tin tức nào.
+            </div>
+          )}
+          {articles.map((article, index) => (
+            <div
+              key={index}
+              style={{
+                background: COLORS.light,
+                borderRadius: 14,
+                border: `1.5px solid ${COLORS.primary}`,
+                boxShadow: "0 2px 8px #9ACBD022",
+                padding: "1.3rem 1.1rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontWeight: 700, color: COLORS.accent, fontSize: "1.13rem" }}>
+                {article.title}
+              </div>
+              <div style={{ color: COLORS.text, fontSize: "1.07rem" }}>
+                {article.summary}
+              </div>
+              <a href={article.link} style={{ color: COLORS.accent, fontWeight: "bold", textDecoration: "none" }}>Xem chi tiết</a>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

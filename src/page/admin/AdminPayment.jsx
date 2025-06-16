@@ -122,6 +122,29 @@ const initialPackages = [
   },
 ];
 
+const COLORS = {
+  background: "#F2EFE7",
+  card: "#fff",
+  tableBg: "#E6F4F4",
+  tableRow: "#fff",
+  tableRowAlt: "#E6F4F4",
+  thBg: "#9ACBD0",
+  thText: "#006A71",
+  tdText: "#006A71",
+  border: "#9ACBD0",
+  accent: "#006A71",
+  primary: "#48A6A7",
+  gold: "#bfa917",
+  goldBg: "#fffbe8",
+  goldBorder: "#f3d46e",
+  btn: "#48A6A7",
+  btnHover: "#006A71",
+  danger: "#e74c3c",
+  dangerHover: "#c0392b",
+  success: "#27ae60",
+  warning: "#e67e22",
+};
+
 export default function AdminPayment() {
   const [transactions] = useState(initialTransactions);
   const [search, setSearch] = useState("");
@@ -199,20 +222,21 @@ export default function AdminPayment() {
       style={{
         maxWidth: 1200,
         margin: "40px auto",
-        background: "#fafdff",
+        background: COLORS.card,
         borderRadius: 18,
         padding: 40,
-        boxShadow: "0 6px 32px #2d98da22",
+        boxShadow: "0 6px 32px #9ACBD022",
         minHeight: 500,
       }}
     >
       <h2
         style={{
-          color: "#2d98da",
+          color: COLORS.accent,
           marginBottom: 32,
           fontWeight: 800,
           fontSize: "2rem",
           textAlign: "center",
+          letterSpacing: 0.5,
         }}
       >
         Quản lý giao dịch thanh toán
@@ -226,12 +250,14 @@ export default function AdminPayment() {
           style={{
             padding: "9px 16px",
             borderRadius: 8,
-            border: "1.5px solid #2d98da55",
+            border: `1.5px solid ${COLORS.primary}`,
             fontSize: 15,
             minWidth: 220,
             outline: "none",
             marginRight: 0,
-            background: "#fff",
+            background: COLORS.tableBg,
+            color: COLORS.accent,
+            fontWeight: 600,
           }}
         />
       </div>
@@ -241,20 +267,20 @@ export default function AdminPayment() {
             width: "100%",
             borderCollapse: "separate",
             borderSpacing: 0,
-            background: "#fff",
+            background: COLORS.tableBg,
             borderRadius: 12,
             overflow: "hidden",
-            boxShadow: "0 2px 12px #2d98da11",
+            boxShadow: "0 2px 12px #9ACBD011",
           }}
         >
           <thead>
-            <tr style={{ background: "#eaf6ff" }}>
-              <th style={{ padding: 16, borderBottom: "2px solid #2d98da22", fontWeight: 700 }}>STT</th>
-              <th style={{ padding: 16, borderBottom: "2px solid #2d98da22", fontWeight: 700 }}>Tên người dùng</th>
-              <th style={{ padding: 16, borderBottom: "2px solid #2d98da22", fontWeight: 700 }}>Email</th>
-              <th style={{ padding: 16, borderBottom: "2px solid #2d98da22", fontWeight: 700 }}>Gói</th>
-              <th style={{ padding: 16, borderBottom: "2px solid #2d98da22", fontWeight: 700 }}>Số tiền</th>
-              <th style={{ padding: 16, borderBottom: "2px solid #2d98da22", fontWeight: 700 }}>Ngày</th>
+            <tr style={{ background: COLORS.thBg }}>
+              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>STT</th>
+              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Tên người dùng</th>
+              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Email</th>
+              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Gói</th>
+              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Số tiền</th>
+              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Ngày</th>
             </tr>
           </thead>
           <tbody>
@@ -262,22 +288,22 @@ export default function AdminPayment() {
               <tr
                 key={t.id}
                 style={{
-                  background: idx % 2 === 0 ? "#f8fbff" : "#fff",
+                  background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt,
                 }}
               >
-                <td style={{ padding: 14, borderBottom: "1px solid #e3eaf3", textAlign: "center" }}>{idx + 1}</td>
-                <td style={{ padding: 14, borderBottom: "1px solid #e3eaf3" }}>{t.user}</td>
-                <td style={{ padding: 14, borderBottom: "1px solid #e3eaf3" }}>{t.email}</td>
-                <td style={{ padding: 14, borderBottom: "1px solid #e3eaf3" }}>
+                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, textAlign: "center", color: COLORS.tdText }}>{idx + 1}</td>
+                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.tdText }}>{t.user}</td>
+                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.tdText }}>{t.email}</td>
+                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
                   <span
                     style={{
                       background:
                         t.package === "Gói Plus"
-                          ? "#2d98da"
+                          ? COLORS.primary
                           : t.package === "Gói Pro"
-                            ? "#7c4dff"
-                            : "#aaa",
-                      color: "#fff",
+                            ? COLORS.gold
+                            : "#bbb",
+                      color: t.package === "Gói Basic" ? COLORS.accent : "#fff",
                       padding: "4px 14px",
                       borderRadius: 16,
                       fontWeight: 600,
@@ -287,10 +313,10 @@ export default function AdminPayment() {
                     {t.package}
                   </span>
                 </td>
-                <td style={{ padding: 14, borderBottom: "1px solid #e3eaf3", color: "#27ae60", fontWeight: 700 }}>
+                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.success, fontWeight: 700 }}>
                   {t.amount.toLocaleString()}₫
                 </td>
-                <td style={{ padding: 14, borderBottom: "1px solid #e3eaf3" }}>{t.date}</td>
+                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.tdText }}>{t.date}</td>
               </tr>
             ))}
           </tbody>
@@ -300,20 +326,21 @@ export default function AdminPayment() {
       {/* Quản lý gói */}
       <h2
         style={{
-          color: "#2d98da",
+          color: COLORS.accent,
           margin: "48px 0 24px 0",
           fontWeight: 800,
           fontSize: "1.5rem",
           textAlign: "center",
+          letterSpacing: 0.5,
         }}
       >
         Quản lý gói thành viên
       </h2>
       <div style={{
         marginBottom: 32,
-        background: "#fff",
+        background: COLORS.card,
         borderRadius: 14,
-        boxShadow: "0 2px 12px #2d98da11",
+        boxShadow: "0 2px 12px #9ACBD011",
         padding: 28,
       }}>
         <form
@@ -327,7 +354,7 @@ export default function AdminPayment() {
           }}
         >
           <div style={{ minWidth: 220 }}>
-            <label style={{ fontWeight: 700, color: "#2d98da" }}>Tên gói</label>
+            <label style={{ fontWeight: 700, color: COLORS.accent }}>Tên gói</label>
             <input
               name="name"
               value={form.name}
@@ -336,16 +363,18 @@ export default function AdminPayment() {
               style={{
                 padding: "9px 14px",
                 borderRadius: 8,
-                border: "1.5px solid #2d98da55",
+                border: `1.5px solid ${COLORS.primary}`,
                 fontSize: 15,
                 width: "100%",
                 marginTop: 6,
-                background: "#fafdff",
+                background: COLORS.tableBg,
+                color: COLORS.accent,
+                fontWeight: 600,
               }}
             />
           </div>
           <div style={{ minWidth: 180 }}>
-            <label style={{ fontWeight: 700, color: "#2d98da" }}>Giá</label>
+            <label style={{ fontWeight: 700, color: COLORS.accent }}>Giá</label>
             <input
               name="price"
               value={form.price}
@@ -354,16 +383,18 @@ export default function AdminPayment() {
               style={{
                 padding: "9px 14px",
                 borderRadius: 8,
-                border: "1.5px solid #2d98da55",
+                border: `1.5px solid ${COLORS.primary}`,
                 fontSize: 15,
                 width: "100%",
                 marginTop: 6,
-                background: "#fafdff",
+                background: COLORS.tableBg,
+                color: COLORS.accent,
+                fontWeight: 600,
               }}
             />
           </div>
           <div style={{ flex: 1, minWidth: 260 }}>
-            <label style={{ fontWeight: 700, color: "#2d98da" }}>Tính năng (mỗi dòng 1 tính năng)</label>
+            <label style={{ fontWeight: 700, color: COLORS.accent }}>Tính năng (mỗi dòng 1 tính năng)</label>
             <textarea
               name="features"
               value={form.features}
@@ -374,10 +405,12 @@ export default function AdminPayment() {
                 width: "100%",
                 padding: "9px 14px",
                 borderRadius: 8,
-                border: "1.5px solid #2d98da55",
+                border: `1.5px solid ${COLORS.primary}`,
                 fontSize: 15,
                 marginTop: 6,
-                background: "#fafdff",
+                background: COLORS.tableBg,
+                color: COLORS.accent,
+                fontWeight: 600,
                 resize: "vertical",
               }}
             />
@@ -386,7 +419,7 @@ export default function AdminPayment() {
             <button
               type="submit"
               style={{
-                background: "#2d98da",
+                background: COLORS.primary,
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
@@ -395,8 +428,10 @@ export default function AdminPayment() {
                 fontSize: 16,
                 cursor: "pointer",
                 minWidth: 90,
-                boxShadow: "0 2px 8px #2d98da22"
+                boxShadow: "0 2px 8px #9ACBD022"
               }}
+              onMouseOver={e => e.currentTarget.style.background = COLORS.accent}
+              onMouseOut={e => e.currentTarget.style.background = COLORS.primary}
             >
               {showEdit ? "Lưu" : "Thêm"}
             </button>
@@ -409,7 +444,7 @@ export default function AdminPayment() {
                   setForm({ name: "", price: "", features: "" });
                 }}
                 style={{
-                  background: "#aaa",
+                  background: "#bbb",
                   color: "#fff",
                   border: "none",
                   borderRadius: 8,
@@ -431,28 +466,28 @@ export default function AdminPayment() {
               width: "100%",
               borderCollapse: "separate",
               borderSpacing: 0,
-              background: "#fafdff",
+              background: COLORS.tableBg,
               borderRadius: 12,
               overflow: "hidden",
-              boxShadow: "0 2px 12px #2d98da11",
+              boxShadow: "0 2px 12px #9ACBD011",
             }}
           >
             <thead>
-              <tr style={{ background: "#eaf6ff" }}>
-                <th style={{ padding: 14, fontWeight: 700, color: "#2d98da" }}>STT</th>
-                <th style={{ padding: 14, fontWeight: 700, color: "#2d98da" }}>Tên gói</th>
-                <th style={{ padding: 14, fontWeight: 700, color: "#2d98da" }}>Giá</th>
-                <th style={{ padding: 14, fontWeight: 700, color: "#2d98da" }}>Tính năng</th>
-                <th style={{ padding: 14, fontWeight: 700, color: "#2d98da" }}>Tác vụ</th>
+              <tr style={{ background: COLORS.thBg }}>
+                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>STT</th>
+                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Tên gói</th>
+                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Giá</th>
+                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Tính năng</th>
+                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Tác vụ</th>
               </tr>
             </thead>
             <tbody>
               {packages.map((pkg, idx) => (
-                <tr key={pkg.id} style={{ background: idx % 2 === 0 ? "#f8fbff" : "#fff" }}>
-                  <td style={{ padding: 12 }}>{idx + 1}</td>
-                  <td style={{ padding: 12 }}>{pkg.name}</td>
-                  <td style={{ padding: 12 }}>{pkg.price}</td>
-                  <td style={{ padding: 12 }}>
+                <tr key={pkg.id} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
+                  <td style={{ padding: 12, color: COLORS.tdText }}>{idx + 1}</td>
+                  <td style={{ padding: 12, color: COLORS.tdText }}>{pkg.name}</td>
+                  <td style={{ padding: 12, color: COLORS.tdText }}>{pkg.price}</td>
+                  <td style={{ padding: 12, color: COLORS.tdText }}>
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
                       {pkg.features.map((f, i) => (
                         <li key={i}>{f}</li>
@@ -463,7 +498,7 @@ export default function AdminPayment() {
                     <button
                       onClick={() => handleEditPackage(pkg)}
                       style={{
-                        background: "#7c4dff",
+                        background: COLORS.gold,
                         color: "#fff",
                         border: "none",
                         borderRadius: 7,
@@ -471,15 +506,17 @@ export default function AdminPayment() {
                         fontWeight: 600,
                         marginRight: 8,
                         cursor: "pointer",
-                        boxShadow: "0 2px 8px #7c4dff22"
+                        boxShadow: "0 2px 8px #bfa91722"
                       }}
+                      onMouseOver={e => e.currentTarget.style.background = COLORS.accent}
+                      onMouseOut={e => e.currentTarget.style.background = COLORS.gold}
                     >
                       Sửa
                     </button>
                     <button
                       onClick={() => handleDeletePackage(pkg.id)}
                       style={{
-                        background: "#e74c3c",
+                        background: COLORS.danger,
                         color: "#fff",
                         border: "none",
                         borderRadius: 7,
@@ -488,6 +525,8 @@ export default function AdminPayment() {
                         cursor: "pointer",
                         boxShadow: "0 2px 8px #e74c3c22"
                       }}
+                      onMouseOver={e => e.currentTarget.style.background = COLORS.dangerHover}
+                      onMouseOut={e => e.currentTarget.style.background = COLORS.danger}
                     >
                       Xóa
                     </button>

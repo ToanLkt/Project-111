@@ -1,16 +1,26 @@
 import React, { useState } from "react";
 
 export default function MemberProfile() {
+  // Bảng màu chủ đề
+  const COLORS = {
+    background: "#F2EFE7",
+    primary: "#9ACBD0",
+    secondary: "#48A6A7",
+    accent: "#006A71",
+    text: "#006A71",
+    white: "#fff",
+    light: "#E6F4F4",
+  };
+
   const initialUser = {
     avatar: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
     name: "Lương Khánh Toàn",
-    title: "Danh hiệu",
+    title: "Chủ tịch FPT",
     desc: "Mèo meo",
     email: "meomeo@gmail.com",
     phone: "0123 456 789",
     package: "Gói Premium",
-    goal:
-      "Mục tiêu của tui ở đây nè.",
+    goal: "Mục tiêu của tui ở đây nè.",
   };
 
   const [user, setUser] = useState(initialUser);
@@ -43,9 +53,9 @@ export default function MemberProfile() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#f7f7fa",
+        background: COLORS.background,
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        color: "#222",
+        color: COLORS.text,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -56,16 +66,16 @@ export default function MemberProfile() {
         style={{
           width: "100%",
           maxWidth: 650,
-          background: "#fff",
+          background: COLORS.white,
           borderRadius: 16,
-          boxShadow: "0 4px 24px rgba(44,130,201,0.07)",
+          boxShadow: "0 4px 24px rgba(72,166,167,0.10)",
           padding: "2.2rem 2rem 1.5rem 2rem",
-          border: "1.5px solid #f3d46e",
+          border: `1.5px solid ${COLORS.primary}`,
         }}
       >
         <h2
           style={{
-            color: "#bfa917",
+            color: COLORS.accent,
             textAlign: "center",
             marginBottom: 28,
             fontWeight: 800,
@@ -87,22 +97,22 @@ export default function MemberProfile() {
                 height: 120,
                 objectFit: "cover",
                 borderRadius: "50%",
-                background: "#fffbe8",
-                border: "3px solid #bfa917",
-                boxShadow: "0 2px 8px rgba(243,212,110,0.13)",
+                background: COLORS.light,
+                border: `3px solid ${COLORS.secondary}`,
+                boxShadow: "0 2px 8px rgba(72,166,167,0.13)",
                 marginBottom: 10,
               }}
             />
             <div
               style={{
-                background: "#fffbe8",
-                color: "#bfa917",
+                background: COLORS.light,
+                color: COLORS.secondary,
                 borderRadius: 8,
                 padding: "6px 16px",
                 fontWeight: 600,
                 fontSize: 15,
                 textAlign: "center",
-                border: "1.5px solid #f3d46e",
+                border: `1.5px solid ${COLORS.primary}`,
                 marginTop: 8,
               }}
             >
@@ -123,12 +133,12 @@ export default function MemberProfile() {
                       fontSize: 22,
                       padding: "6px 10px",
                       borderRadius: 8,
-                      border: "1.5px solid #f3d46e",
+                      border: `1.5px solid ${COLORS.primary}`,
                       fontWeight: 700,
                       marginBottom: 8,
                       width: "100%",
-                      background: "#fffbe8",
-                      color: "#222",
+                      background: COLORS.light,
+                      color: COLORS.text,
                       outline: "none",
                     }}
                   />
@@ -144,17 +154,17 @@ export default function MemberProfile() {
                     marginLeft: "auto",
                     padding: "7px 20px",
                     fontSize: 15,
-                    background: "linear-gradient(90deg, #f3d46e 60%, #bfa917 100%)",
-                    color: "#222",
+                    background: `linear-gradient(90deg, ${COLORS.secondary} 60%, ${COLORS.accent} 100%)`,
+                    color: COLORS.white,
                     border: "none",
                     borderRadius: 8,
                     cursor: "pointer",
                     fontWeight: 700,
-                    boxShadow: "0 2px 8px rgba(191,169,23,0.10)",
+                    boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
                     transition: "background 0.3s",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#bfa917")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "linear-gradient(90deg, #f3d46e 60%, #bfa917 100%)")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = COLORS.accent)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = `linear-gradient(90deg, ${COLORS.secondary} 60%, ${COLORS.accent} 100%)`)}
                 >
                   Chỉnh sửa
                 </button>
@@ -194,7 +204,7 @@ export default function MemberProfile() {
               )}
             </div>
 
-            <div style={{ color: "#444", margin: "10px 0 2px 0", fontSize: 16 }}>
+            <div style={{ color: COLORS.secondary, margin: "10px 0 2px 0", fontSize: 16 }}>
               {isEditing ? (
                 <textarea
                   name="desc"
@@ -204,9 +214,9 @@ export default function MemberProfile() {
                     width: "100%",
                     padding: 8,
                     borderRadius: 8,
-                    border: "1.5px solid #f3d46e",
-                    background: "#fffbe8",
-                    color: "#222",
+                    border: `1.5px solid ${COLORS.primary}`,
+                    background: COLORS.light,
+                    color: COLORS.text,
                     fontSize: 15,
                     outline: "none",
                   }}
@@ -216,7 +226,7 @@ export default function MemberProfile() {
               )}
             </div>
 
-            <div style={{ margin: "8px 0", color: "#222", fontSize: 15 }}>
+            <div style={{ margin: "8px 0", color: COLORS.text, fontSize: 15 }}>
               <div>
                 Email:{" "}
                 {isEditing ? (
@@ -227,10 +237,10 @@ export default function MemberProfile() {
                     style={{
                       padding: 6,
                       borderRadius: 8,
-                      border: "1.5px solid #f3d46e",
+                      border: `1.5px solid ${COLORS.primary}`,
                       width: "60%",
-                      background: "#fffbe8",
-                      color: "#222",
+                      background: COLORS.light,
+                      color: COLORS.text,
                       outline: "none",
                     }}
                   />
@@ -248,10 +258,10 @@ export default function MemberProfile() {
                     style={{
                       padding: 6,
                       borderRadius: 8,
-                      border: "1.5px solid #f3d46e",
+                      border: `1.5px solid ${COLORS.primary}`,
                       width: "60%",
-                      background: "#fffbe8",
-                      color: "#222",
+                      background: COLORS.light,
+                      color: COLORS.text,
                       outline: "none",
                     }}
                   />
@@ -260,21 +270,21 @@ export default function MemberProfile() {
                 )}
               </div>
               <div>
-                Gói đăng ký: <span style={{ color: "#bfa917", fontWeight: 600 }}>{user.package}</span>
+                Gói đăng ký: <span style={{ color: COLORS.secondary, fontWeight: 600 }}>{user.package}</span>
               </div>
             </div>
 
             <div style={{ margin: "18px 0 0 0" }}>
               <div
                 style={{
-                  border: "1.5px solid #f3d46e",
+                  border: `1.5px solid ${COLORS.primary}`,
                   borderRadius: 12,
                   padding: 16,
-                  background: "#fffbe8",
-                  boxShadow: "0 2px 8px rgba(243,212,110,0.07)",
+                  background: COLORS.light,
+                  boxShadow: "0 2px 8px rgba(72,166,167,0.07)",
                 }}
               >
-                <b style={{ color: "#bfa917" }}>🎯 Mục tiêu</b>
+                <b style={{ color: COLORS.secondary }}>🎯 Mục tiêu</b>
                 {isEditing ? (
                   <textarea
                     name="goal"
@@ -285,10 +295,10 @@ export default function MemberProfile() {
                       marginTop: 8,
                       padding: 10,
                       borderRadius: 8,
-                      border: "1.5px solid #f3d46e",
+                      border: `1.5px solid ${COLORS.primary}`,
                       fontSize: 16,
-                      background: "#fff",
-                      color: "#222",
+                      background: COLORS.white,
+                      color: COLORS.text,
                       outline: "none",
                     }}
                   />

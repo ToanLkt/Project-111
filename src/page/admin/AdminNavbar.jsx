@@ -14,14 +14,33 @@ export default function AdminNavbar() {
         { to: "/admin/payment", label: "Thanh toán" },
     ];
 
+    // Bảng màu chủ đề mới
+    const COLORS = {
+        navbarBg: "#E6F4F4",
+        menuBg: "#9ACBD0",
+        accent: "#006A71",
+        primary: "#48A6A7",
+        text: "#006A71",
+        white: "#fff",
+        active: "#F2EFE7",
+        border: "#9ACBD0",
+        shadow: "0 2px 8px rgba(72,166,167,0.08)",
+        gold: "#bfa917",
+        goldBg: "#fffbe8",
+        goldBorder: "#f3d46e",
+        danger: "#e74c3c",
+        dangerHover: "#c0392b",
+    };
+
     return (
         <>
             {/* Navbar top */}
             <div
                 style={{
-                    background: "#111",
+                    background: COLORS.navbarBg,
                     padding: "1.2rem 0 0.8rem 0",
-                    borderBottom: "1.5px solid #222",
+                    borderBottom: `1.5px solid ${COLORS.border}`,
+                    boxShadow: COLORS.shadow,
                 }}
             >
                 <div
@@ -44,14 +63,14 @@ export default function AdminNavbar() {
                                 width: 38,
                                 height: 38,
                                 borderRadius: "50%",
-                                background: "#fffbe8",
-                                border: "2px solid #bfa917",
+                                background: COLORS.goldBg,
+                                border: `2px solid ${COLORS.primary}`,
                             }}
                         />
                         <Link to="/admin" style={{ textDecoration: "none" }}>
                             <span
                                 style={{
-                                    color: "#bfa917",
+                                    color: COLORS.accent,
                                     fontWeight: "bold",
                                     fontSize: "1.25rem",
                                     letterSpacing: 1,
@@ -72,22 +91,22 @@ export default function AdminNavbar() {
                     }}>
                         <div
                             style={{
-                                background: "#fffbe8",
+                                background: COLORS.white,
                                 borderRadius: 24,
                                 display: "flex",
                                 alignItems: "center",
                                 padding: "0.3rem 1.2rem",
                                 minWidth: 260,
                                 width: "100%",
-                                boxShadow: "0 2px 8px rgba(243,212,110,0.07)",
-                                border: "1.5px solid #f3d46e",
+                                boxShadow: COLORS.shadow,
+                                border: `1.5px solid ${COLORS.primary}`,
                             }}
                         >
                             <span
                                 style={{
                                     fontSize: 20,
                                     marginRight: 10,
-                                    color: "#bfa917",
+                                    color: COLORS.primary,
                                 }}
                             >
                                 ☰
@@ -101,14 +120,14 @@ export default function AdminNavbar() {
                                     background: "transparent",
                                     fontSize: "1rem",
                                     flex: 1,
-                                    color: "#222",
+                                    color: COLORS.text,
                                 }}
                             />
                             <span
                                 style={{
                                     fontSize: 18,
                                     marginLeft: 10,
-                                    color: "#bfa917",
+                                    color: COLORS.primary,
                                     cursor: "pointer",
                                 }}
                             >
@@ -124,23 +143,23 @@ export default function AdminNavbar() {
                         minWidth: 220,
                         justifyContent: "flex-end",
                     }}>
-                        <span style={{ fontSize: 26, color: "#bfa917", marginRight: 4 }}>👤</span>
+                        <span style={{ fontSize: 26, color: COLORS.primary, marginRight: 4 }}>👤</span>
                         {email && (
                             <>
                                 <Link
                                     to="/admin/profile"
                                     style={{
-                                        color: "#bfa917",
+                                        color: COLORS.accent,
                                         fontWeight: 700,
                                         fontSize: "1.08rem",
-                                        background: "#fffbe8",
+                                        background: COLORS.white,
                                         padding: "0.5rem 1.2rem",
                                         borderRadius: 20,
                                         minWidth: 120,
                                         textAlign: "center",
-                                        boxShadow: "0 2px 8px #f3d46e22",
+                                        boxShadow: "0 2px 8px #9ACBD022",
                                         whiteSpace: "nowrap",
-                                        border: "1.5px solid #f3d46e",
+                                        border: `1.5px solid ${COLORS.primary}`,
                                         textDecoration: "none",
                                         display: "inline-block",
                                         cursor: "pointer"
@@ -151,10 +170,10 @@ export default function AdminNavbar() {
                                 <button
                                     onClick={logout}
                                     style={{
-                                        color: "#fff",
+                                        color: COLORS.white,
                                         fontWeight: 700,
                                         fontSize: "1.08rem",
-                                        background: "#e74c3c",
+                                        background: COLORS.danger,
                                         padding: "0.5rem 1.2rem",
                                         borderRadius: 20,
                                         border: "none",
@@ -164,8 +183,8 @@ export default function AdminNavbar() {
                                         transition: "background 0.18s",
                                         whiteSpace: "nowrap",
                                     }}
-                                    onMouseOver={e => e.currentTarget.style.background = "#c0392b"}
-                                    onMouseOut={e => e.currentTarget.style.background = "#e74c3c"}
+                                    onMouseOver={e => e.currentTarget.style.background = COLORS.dangerHover}
+                                    onMouseOut={e => e.currentTarget.style.background = COLORS.danger}
                                 >
                                     Đăng xuất
                                 </button>
@@ -177,13 +196,13 @@ export default function AdminNavbar() {
             {/* Thanh menu */}
             <nav
                 style={{
-                    background: "#181c24",
+                    background: COLORS.menuBg,
                     padding: "0.7rem 0",
                     display: "flex",
                     justifyContent: "center",
                     gap: "2.5rem",
-                    boxShadow: "0 2px 8px rgba(44,130,201,0.04)",
-                    borderBottom: "1.5px solid #222",
+                    boxShadow: COLORS.shadow,
+                    borderBottom: `1.5px solid ${COLORS.primary}`,
                 }}
             >
                 {navItems.map((item) => (
@@ -191,21 +210,21 @@ export default function AdminNavbar() {
                         key={item.to}
                         to={item.to}
                         style={{
-                            color: location.pathname === item.to ? "#bfa917" : "#fff",
+                            color: location.pathname === item.to ? COLORS.accent : COLORS.white,
                             fontWeight: 700,
                             borderRadius: 8,
                             padding: "0.5rem 1.5rem",
                             textDecoration: "none",
                             fontSize: "1.08rem",
                             background:
-                                location.pathname === item.to ? "#fffbe8" : "transparent",
+                                location.pathname === item.to ? COLORS.active : "transparent",
                             boxShadow:
                                 location.pathname === item.to
-                                    ? "0 2px 8px rgba(243,212,110,0.07)"
+                                    ? "0 2px 8px #9ACBD022"
                                     : "none",
                             border:
                                 location.pathname === item.to
-                                    ? "2px solid #bfa917"
+                                    ? `2px solid ${COLORS.accent}`
                                     : "2px solid transparent",
                             transition: "all 0.18s",
                         }}

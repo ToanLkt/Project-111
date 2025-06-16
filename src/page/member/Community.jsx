@@ -10,9 +10,11 @@ export default function Community() {
             time: "2 giờ trước",
             content: "Mình đã bỏ thuốc được 1 tuần rồi, mình cảm thấy nhớ thuốc quá!",
             image: "",
-            likes: 10,
+            likes: 5,
             liked: false,
-            comments: [{ author: "Bạch Tấn Phú", text: "Gáng đi em" }],
+            comments: [
+                { author: "Bạch Tấn Phú", text: "Gắng lên bạn nhé!" }
+            ],
         },
     ]);
     const [content, setContent] = useState("");
@@ -78,33 +80,35 @@ export default function Community() {
         <div
             style={{
                 minHeight: "100vh",
-                background: "#f7f7fa",
+                background: "#F2EFE7",
                 padding: "2rem 0",
                 fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-                color: "#222",
+                color: "#006A71",
             }}
         >
             <div
                 style={{
-                    maxWidth: 650,
+                    maxWidth: 700,
                     margin: "0 auto",
                     background: "#fff",
-                    borderRadius: 16,
-                    boxShadow: "0 4px 24px rgba(44,130,201,0.07)",
-                    padding: "2.2rem 2rem 1.5rem 2rem",
-                    marginBottom: 36,
-                    border: "1.5px solid #f3d46e",
+                    borderRadius: 18,
+                    boxShadow: "0 6px 32px rgba(72,166,167,0.13)",
+                    padding: "2.5rem 2.2rem 1.7rem 2.2rem",
+                    marginBottom: 38,
+                    border: "2px solid #9ACBD0",
+                    position: "relative",
                 }}
             >
                 <h2
                     style={{
-                        color: "#bfa917",
+                        color: "#006A71",
                         textAlign: "center",
-                        marginBottom: 22,
-                        fontWeight: 800,
-                        fontSize: "2rem",
+                        marginBottom: 26,
+                        fontWeight: 900,
+                        fontSize: "2.1rem",
                         userSelect: "none",
-                        letterSpacing: 0.5,
+                        letterSpacing: 1,
+                        textShadow: "0 2px 8px rgba(72,166,167,0.08)",
                     }}
                 >
                     Cộng đồng chia sẻ
@@ -118,20 +122,20 @@ export default function Community() {
                         rows={4}
                         style={{
                             width: "100%",
-                            borderRadius: 10,
-                            border: "1.5px solid #f3d46e",
-                            padding: "0.95rem",
-                            fontSize: "1.1rem",
-                            marginBottom: 14,
+                            borderRadius: 12,
+                            border: "1.7px solid #9ACBD0",
+                            padding: "1.1rem",
+                            fontSize: "1.13rem",
+                            marginBottom: 16,
                             resize: "vertical",
-                            backgroundColor: "#fffbe8",
-                            color: "#222",
+                            backgroundColor: "#E6F4F4",
+                            color: "#006A71",
                             outline: "none",
-                            boxShadow: "0 1px 6px rgba(243,212,110,0.07)",
+                            boxShadow: "0 2px 8px rgba(154,203,208,0.10)",
                             transition: "border-color 0.3s",
                         }}
-                        onFocus={e => (e.target.style.borderColor = "#bfa917")}
-                        onBlur={e => (e.target.style.borderColor = "#f3d46e")}
+                        onFocus={e => (e.target.style.borderColor = "#48A6A7")}
+                        onBlur={e => (e.target.style.borderColor = "#9ACBD0")}
                     />
 
                     {image && (
@@ -146,35 +150,36 @@ export default function Community() {
                                 src={image}
                                 alt="preview"
                                 style={{
-                                    maxWidth: 180,
-                                    borderRadius: 14,
-                                    boxShadow: "0 4px 12px rgba(243,212,110,0.18)",
+                                    maxWidth: 200,
+                                    borderRadius: 16,
+                                    boxShadow: "0 4px 16px rgba(154,203,208,0.18)",
                                     userSelect: "none",
                                 }}
                             />
                         </div>
                     )}
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                         <label
                             style={{
-                                background: "#fffbe8",
-                                color: "#bfa917",
-                                borderRadius: 8,
-                                padding: "0.5rem 1.2rem",
+                                background: "#E6F4F4",
+                                color: "#48A6A7",
+                                borderRadius: 10,
+                                padding: "0.55rem 1.3rem",
                                 fontWeight: 600,
                                 cursor: "pointer",
                                 userSelect: "none",
-                                border: "1.5px solid #bfa917",
+                                border: "1.7px solid #48A6A7",
                                 transition: "background-color 0.3s, color 0.3s",
+                                fontSize: "1rem",
                             }}
                             onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = "#f3d46e";
-                                e.currentTarget.style.color = "#222";
+                                e.currentTarget.style.backgroundColor = "#9ACBD0";
+                                e.currentTarget.style.color = "#006A71";
                             }}
                             onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = "#fffbe8";
-                                e.currentTarget.style.color = "#bfa917";
+                                e.currentTarget.style.backgroundColor = "#E6F4F4";
+                                e.currentTarget.style.color = "#48A6A7";
                             }}
                         >
                             📷 Ảnh
@@ -189,19 +194,20 @@ export default function Community() {
                         <button
                             type="submit"
                             style={{
-                                background: "linear-gradient(90deg, #f3d46e 60%, #bfa917 100%)",
-                                color: "#222",
+                                background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                                color: "#fff",
                                 border: "none",
-                                borderRadius: 8,
-                                padding: "0.6rem 1.8rem",
-                                fontWeight: 700,
-                                fontSize: "1.1rem",
+                                borderRadius: 10,
+                                padding: "0.7rem 2rem",
+                                fontWeight: 800,
+                                fontSize: "1.13rem",
                                 cursor: "pointer",
-                                boxShadow: "0 2px 8px rgba(191,169,23,0.10)",
+                                boxShadow: "0 2px 10px rgba(72,166,167,0.13)",
                                 transition: "background 0.3s",
+                                letterSpacing: 0.5,
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "#bfa917")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(90deg, #f3d46e 60%, #bfa917 100%)")}
+                            onMouseEnter={e => (e.currentTarget.style.background = "#006A71")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)")}
                         >
                             Đăng bài
                         </button>
@@ -210,16 +216,33 @@ export default function Community() {
             </div>
 
             {/* Danh sách bài viết */}
-            <div style={{ maxWidth: 650, margin: "0 auto" }}>
-                {posts.map((post) => (
-                    <Post
-                        key={post.id}
-                        post={post}
-                        onLike={() => handleLike(post.id)}
-                        onReport={() => handleReport(post.id)}
-                        onComment={(text) => handleComment(post.id, text)}
-                    />
-                ))}
+            <div style={{ maxWidth: 700, margin: "0 auto" }}>
+                {posts.length === 0 ? (
+                    <div
+                        style={{
+                            background: "#E6F4F4",
+                            color: "#48A6A7",
+                            borderRadius: 14,
+                            padding: "2.2rem 1.5rem",
+                            textAlign: "center",
+                            fontWeight: 600,
+                            fontSize: "1.15rem",
+                            boxShadow: "0 2px 8px rgba(154,203,208,0.10)",
+                        }}
+                    >
+                        Hãy là người đầu tiên chia sẻ cảm nghĩ hoặc kinh nghiệm của bạn!
+                    </div>
+                ) : (
+                    posts.map((post) => (
+                        <Post
+                            key={post.id}
+                            post={post}
+                            onLike={() => handleLike(post.id)}
+                            onReport={() => handleReport(post.id)}
+                            onComment={(text) => handleComment(post.id, text)}
+                        />
+                    ))
+                )}
             </div>
 
             <Footer />

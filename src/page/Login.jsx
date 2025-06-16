@@ -53,13 +53,12 @@ export default function Login() {
         <div
             style={{
                 minHeight: "100vh",
-                backgroundColor: "#fff",
+                background: "linear-gradient(120deg, #F2EFE7 60%, #9ACBD0 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 padding: 20,
-                fontFamily:
-                    "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
             }}
         >
             {/* Toast notification */}
@@ -88,14 +87,14 @@ export default function Login() {
             <form
                 onSubmit={handleSubmit}
                 style={{
-                    backgroundColor: "#fff",
-                    border: "1px solid #ccc",
-                    borderRadius: 10,
+                    background: "#fff",
+                    border: "1px solid #9ACBD0",
+                    borderRadius: 16,
                     padding: "2.5rem 2rem",
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-                    maxWidth: 380,
+                    boxShadow: "0 6px 24px rgba(72,166,167,0.10)",
+                    maxWidth: 400,
                     width: "100%",
-                    color: "#222",
+                    color: "#006A71",
                 }}
             >
                 <h2
@@ -103,7 +102,8 @@ export default function Login() {
                         textAlign: "center",
                         marginBottom: 24,
                         fontWeight: "700",
-                        color: "#000",
+                        color: "#006A71",
+                        letterSpacing: 1,
                     }}
                 >
                     Đăng nhập
@@ -126,7 +126,7 @@ export default function Login() {
                 {error && (
                     <div
                         style={{
-                            color: "#d32f2f",
+                            color: "#e74c3c",
                             marginBottom: 16,
                             textAlign: "center",
                             fontWeight: "600",
@@ -142,7 +142,7 @@ export default function Login() {
                         display: "block",
                         marginBottom: 6,
                         fontWeight: "600",
-                        color: "#000",
+                        color: "#006A71",
                     }}
                 >
                     Email
@@ -157,15 +157,17 @@ export default function Login() {
                     style={{
                         width: "100%",
                         padding: "0.7rem",
-                        borderRadius: 6,
-                        border: "1px solid #888",
+                        borderRadius: 8,
+                        border: "1.5px solid #9ACBD0",
                         marginBottom: 20,
                         fontSize: "1rem",
-                        color: "#222",
+                        color: "#006A71",
                         outline: "none",
+                        background: "#F2EFE7",
+                        transition: "border-color 0.2s",
                     }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "#000")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "#888")}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = "#48A6A7")}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = "#9ACBD0")}
                 />
 
                 <label
@@ -174,7 +176,7 @@ export default function Login() {
                         display: "block",
                         marginBottom: 6,
                         fontWeight: "600",
-                        color: "#000",
+                        color: "#006A71",
                     }}
                 >
                     Mật khẩu
@@ -190,14 +192,16 @@ export default function Login() {
                         style={{
                             width: "100%",
                             padding: "0.7rem",
-                            borderRadius: 6,
-                            border: "1px solid #888",
+                            borderRadius: 8,
+                            border: "1.5px solid #9ACBD0",
                             fontSize: "1rem",
-                            color: "#222",
+                            color: "#006A71",
                             outline: "none",
+                            background: "#F2EFE7",
+                            transition: "border-color 0.2s",
                         }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = "#000")}
-                        onBlur={(e) => (e.currentTarget.style.borderColor = "#888")}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = "#48A6A7")}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = "#9ACBD0")}
                     />
                     <span
                         onClick={() => setShowPass(!showPass)}
@@ -208,7 +212,7 @@ export default function Login() {
                             top: "50%",
                             transform: "translateY(-50%)",
                             cursor: "pointer",
-                            color: "#555",
+                            color: "#48A6A7",
                             userSelect: "none",
                             fontSize: 18,
                         }}
@@ -227,13 +231,13 @@ export default function Login() {
                     <a
                         href="/forgot-password"
                         style={{
-                            color: "#000",
+                            color: "#48A6A7",
                             textDecoration: "none",
                             fontWeight: "600",
                             transition: "color 0.3s",
                         }}
-                        onMouseOver={(e) => (e.currentTarget.style.color = "#555")}
-                        onMouseOut={(e) => (e.currentTarget.style.color = "#000")}
+                        onMouseOver={(e) => (e.currentTarget.style.color = "#006A71")}
+                        onMouseOut={(e) => (e.currentTarget.style.color = "#48A6A7")}
                     >
                         Quên mật khẩu?
                     </a>
@@ -243,18 +247,20 @@ export default function Login() {
                     type="submit"
                     style={{
                         width: "100%",
-                        backgroundColor: "#000",
+                        background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                         color: "#fff",
                         border: "none",
-                        borderRadius: 6,
+                        borderRadius: 8,
                         padding: "0.75rem",
                         fontWeight: "700",
                         fontSize: "1.1rem",
                         cursor: "pointer",
-                        transition: "background-color 0.3s",
+                        transition: "background 0.3s",
+                        marginBottom: 10,
+                        boxShadow: "0 2px 8px rgba(72,166,167,0.08)",
                     }}
-                    onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#333")}
-                    onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#000")}
+                    onMouseOver={(e) => (e.currentTarget.style.background = "#006A71")}
+                    onMouseOut={(e) => (e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)")}
                 >
                     Đăng nhập
                 </button>
@@ -263,7 +269,7 @@ export default function Login() {
                     style={{
                         textAlign: "center",
                         margin: "20px 0 16px",
-                        color: "#666",
+                        color: "#48A6A7",
                         fontWeight: "500",
                     }}
                 >
@@ -275,10 +281,10 @@ export default function Login() {
                     onClick={handleGoogleLogin}
                     style={{
                         width: "100%",
-                        backgroundColor: "#fff",
-                        color: "#000",
-                        border: "1px solid #000",
-                        borderRadius: 6,
+                        background: "#fff",
+                        color: "#006A71",
+                        border: "1.5px solid #9ACBD0",
+                        borderRadius: 8,
                         padding: "0.65rem",
                         fontWeight: "600",
                         fontSize: "1rem",
@@ -288,15 +294,15 @@ export default function Login() {
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 10,
-                        transition: "background-color 0.3s, color 0.3s",
+                        transition: "background 0.3s, color 0.3s",
                     }}
                     onMouseOver={(e) => {
-                        e.currentTarget.style.backgroundColor = "#000";
+                        e.currentTarget.style.background = "#9ACBD0";
                         e.currentTarget.style.color = "#fff";
                     }}
                     onMouseOut={(e) => {
-                        e.currentTarget.style.backgroundColor = "#fff";
-                        e.currentTarget.style.color = "#000";
+                        e.currentTarget.style.background = "#fff";
+                        e.currentTarget.style.color = "#006A71";
                     }}
                 >
                     <img
@@ -314,10 +320,10 @@ export default function Login() {
                     onClick={handleFacebookLogin}
                     style={{
                         width: "100%",
-                        backgroundColor: "#000",
+                        background: "#48A6A7",
                         color: "#fff",
                         border: "none",
-                        borderRadius: 6,
+                        borderRadius: 8,
                         padding: "0.65rem",
                         fontWeight: "600",
                         fontSize: "1rem",
@@ -326,10 +332,11 @@ export default function Login() {
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 10,
-                        transition: "background-color 0.3s",
+                        transition: "background 0.3s",
+                        marginBottom: 8,
                     }}
-                    onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#333")}
-                    onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#000")}
+                    onMouseOver={(e) => (e.currentTarget.style.background = "#006A71")}
+                    onMouseOut={(e) => (e.currentTarget.style.background = "#48A6A7")}
                 >
                     <img
                         src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/facebook/facebook-original.svg"
@@ -345,7 +352,7 @@ export default function Login() {
                     style={{
                         marginTop: 28,
                         fontSize: 14,
-                        color: "#444",
+                        color: "#006A71",
                         textAlign: "center",
                     }}
                 >
@@ -353,13 +360,13 @@ export default function Login() {
                     <a
                         href="/register"
                         style={{
-                            color: "#000",
+                            color: "#48A6A7",
                             fontWeight: "600",
                             textDecoration: "none",
                             transition: "color 0.3s",
                         }}
-                        onMouseOver={(e) => (e.currentTarget.style.color = "#555")}
-                        onMouseOut={(e) => (e.currentTarget.style.color = "#000")}
+                        onMouseOver={(e) => (e.currentTarget.style.color = "#006A71")}
+                        onMouseOut={(e) => (e.currentTarget.style.color = "#48A6A7")}
                     >
                         Đăng ký
                     </a>
@@ -368,10 +375,14 @@ export default function Login() {
                 <div
                     style={{
                         marginTop: 24,
-                        color: "#888",
+                        color: "#48A6A7",
                         fontSize: 13,
                         userSelect: "none",
                         lineHeight: 1.4,
+                        background: "#F2EFE7",
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                        textAlign: "center",
                     }}
                 >
                     <div>

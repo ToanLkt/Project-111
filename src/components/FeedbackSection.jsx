@@ -1,24 +1,58 @@
 import React from "react";
 
+const feedbacks = [
+  {
+    fullName: "Nguyễn Văn A",
+    feedback_content: "Trang web rất hữu ích, mình đã cai thuốc thành công nhờ các tài liệu và sự hỗ trợ từ cộng đồng!",
+    feedback_date: "2025-06-16",
+    feedback_rating: 5,
+  },
+  {
+    fullName: "Trần Thị B",
+    feedback_content: "Giao diện thân thiện, dễ sử dụng. Mình rất thích tính năng theo dõi tiến trình.",
+    feedback_date: "2025-06-15",
+    feedback_rating: 4,
+  },
+  {
+    fullName: "Lê Văn C",
+    feedback_content: "Cảm ơn đội ngũ phát triển đã tạo ra một nền tảng ý nghĩa cho cộng đồng.",
+    feedback_date: "2025-06-14",
+    feedback_rating: 5,
+  },
+];
+
+const COLORS = {
+  background: "#F2EFE7",
+  card: "#fff",
+  cardAlt: "#E6F4F4",
+  accent: "#006A71",
+  border: "#9ACBD0",
+  gold: "#bfa917",
+  goldBg: "#fffbe8",
+  goldText: "#bfa917",
+  icon: "#8e44ad",
+};
+
 export default function FeedbackSection() {
   return (
     <section
       style={{
         maxWidth: "1100px",
         margin: "0 auto 4rem auto",
-        background: "#111",
+        background: COLORS.background,
         padding: "3rem 2rem",
         borderRadius: "20px",
-        boxShadow: "0 0 20px rgba(255, 255, 255, 0.05)",
+        boxShadow: "0 0 20px #9ACBD022",
       }}
     >
       <h2
         style={{
-          color: "#d4af37",
+          color: COLORS.accent,
           fontWeight: 800,
           fontSize: "2rem",
           marginBottom: "2rem",
           textAlign: "center",
+          letterSpacing: 0.5,
         }}
       >
         Phản hồi từ người dùng
@@ -26,53 +60,114 @@ export default function FeedbackSection() {
       <div
         style={{
           display: "flex",
-          flexDirection: "row",
-          gap: "2rem",
           flexWrap: "wrap",
+          gap: "2rem",
           justifyContent: "center",
         }}
       >
-        {[
-          {
-            name: "Nguyễn Văn A",
-            text: "Nhờ website này, tôi đã bỏ thuốc thành công sau 10 năm hút thuốc. Cảm ơn đội ngũ rất nhiều!",
-            avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-          },
-          {
-            name: "Trần Thị B",
-            text: "Các tài liệu và cộng đồng hỗ trợ rất hữu ích, tôi cảm thấy không còn đơn độc trên hành trình này.",
-            avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-          },
-          {
-            name: "Lê Văn C",
-            text: "Gói hỗ trợ chuyên sâu giúp tôi vượt qua những lúc khó khăn nhất. Rất đáng để thử!",
-            avatar: "https://randomuser.me/api/portraits/men/65.jpg",
-          },
-        ].map((fb, index) => (
+        {feedbacks.length === 0 && (
+          <div style={{ color: COLORS.accent, textAlign: "center" }}>
+            Chưa có phản hồi nào.
+          </div>
+        )}
+        {feedbacks.map((fb, index) => (
           <div
             key={index}
             style={{
-              flex: 1,
-              minWidth: 260,
-              background: "#1a1a1a",
+              width: 320,
+              background: COLORS.cardAlt,
               borderRadius: "16px",
-              padding: "1.5rem",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-              color: "#fff",
+              padding: "2rem 1.5rem",
+              boxShadow: "0 4px 16px #9ACBD022",
+              color: COLORS.accent,
               display: "flex",
               flexDirection: "column",
+              alignItems: "center",
               justifyContent: "space-between",
+              minHeight: 240,
+              border: `2px solid ${COLORS.border}`,
+              position: "relative",
             }}
           >
-            <p style={{ marginBottom: "1rem", lineHeight: 1.6 }}>"{fb.text}"</p>
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "1rem" }}>
-              <img
-                src={fb.avatar}
-                alt={fb.name}
-                style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #d4af37" }}
-              />
-              <strong style={{ fontSize: "1rem", color: "#d4af37" }}>{fb.name}</strong>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                marginBottom: "1.2rem",
+                width: "100%",
+              }}
+            >
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  background: COLORS.accent,
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: 26,
+                  border: `2px solid ${COLORS.border}`,
+                  marginBottom: 10,
+                }}
+              >
+                {fb.fullName ? fb.fullName[0].toUpperCase() : "?"}
+              </div>
+              <strong
+                style={{
+                  fontSize: "1.08rem",
+                  color: COLORS.accent,
+                  marginBottom: 2,
+                  fontWeight: 700,
+                  letterSpacing: 0.2,
+                }}
+              >
+                {fb.fullName}
+              </strong>
+              <span
+                style={{
+                  fontSize: "0.97rem",
+                  color: "#48A6A7",
+                  marginBottom: 2,
+                }}
+              >
+                {fb.feedback_date
+                  ? new Date(fb.feedback_date).toLocaleDateString("vi-VN")
+                  : ""}
+              </span>
+              <span
+                style={{
+                  fontSize: "1rem",
+                  color: COLORS.goldText,
+                  marginBottom: 2,
+                  fontWeight: 600,
+                  background: COLORS.goldBg,
+                  borderRadius: 8,
+                  padding: "2px 12px",
+                  letterSpacing: 0.2,
+                  marginTop: 2,
+                }}
+              >
+                Đánh giá: <b>{fb.feedback_rating} ★</b>
+              </span>
             </div>
+            <p
+              style={{
+                margin: 0,
+                fontStyle: "italic",
+                color: COLORS.accent,
+                fontSize: "1.08rem",
+                textAlign: "center",
+                lineHeight: 1.6,
+                flex: 1,
+                fontWeight: 500,
+              }}
+            >
+              "{fb.feedback_content}"
+            </p>
           </div>
         ))}
       </div>

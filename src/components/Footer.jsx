@@ -6,10 +6,10 @@ export default function Footer() {
             id="lienhe"
             style={{
                 marginTop: "2rem",
-                color: "#ddd",
+                color: "#006A71",
                 padding: "2.5rem 0 1rem 0",
-                background: "#111",
-                borderTop: "1px solid #333",
+                background: "#F2EFE7",
+                borderTop: "1px solid #9ACBD0",
             }}
         >
             <div
@@ -30,11 +30,11 @@ export default function Footer() {
                         <img
                             src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
                             alt="Logo"
-                            style={{ width: 38, height: 38, borderRadius: "50%", background: "#000" }}
+                            style={{ width: 38, height: 38, borderRadius: "50%", background: "#fff", border: "2px solid #48A6A7" }}
                         />
                         <span
                             style={{
-                                color: "#d4af37",
+                                color: "#006A71",
                                 fontWeight: "bold",
                                 fontSize: "1.3rem",
                                 letterSpacing: 1,
@@ -43,22 +43,22 @@ export default function Footer() {
                             Cai Nghiện Thuốc Lá
                         </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: "1rem", color: "#ccc" }}>
+                    <p style={{ margin: 0, fontSize: "1rem", color: "#48A6A7" }}>
                         Nền tảng hỗ trợ cộng đồng bỏ thuốc lá, cung cấp tài liệu, chuyên gia và các công cụ theo dõi tiến trình.
                     </p>
-                    <div style={{ marginTop: 12, fontSize: "0.97rem", color: "#aaa" }}>
+                    <div style={{ marginTop: 12, fontSize: "0.97rem", color: "#48A6A7" }}>
                         <span style={{ fontWeight: 500 }}>Giờ làm việc:</span> 8:00 - 21:00 (T2 - CN)
                     </div>
                 </div>
 
                 {/* Contact */}
                 <div style={{ flex: "1 1 180px", minWidth: 180 }}>
-                    <h5 style={{ color: "#d4af37", marginBottom: 10, fontWeight: 700 }}>Liên hệ</h5>
-                    <p style={{ margin: 0, fontSize: "1rem", color: "#ccc" }}>
+                    <h5 style={{ color: "#006A71", marginBottom: 10, fontWeight: 700 }}>Liên hệ</h5>
+                    <p style={{ margin: 0, fontSize: "1rem", color: "#48A6A7" }}>
                         <span style={{ fontWeight: 500 }}>Email:</span>{" "}
                         <a
                             href="mailto:hotro@cainghienthuocla.vn"
-                            style={{ color: "#d4af37", textDecoration: "none" }}
+                            style={{ color: "#48A6A7", textDecoration: "none", fontWeight: 600 }}
                         >
                             hotro@cainghienthuocla.vn
                         </a>
@@ -78,7 +78,7 @@ export default function Footer() {
                                 src="https://cdn-icons-png.flaticon.com/512/733/733547.png"
                                 alt="fb"
                                 width={22}
-                                style={{ filter: "brightness(0) invert(1)" }}
+                                style={{ filter: "none" }}
                             />
                         </a>
                         <a
@@ -91,7 +91,7 @@ export default function Footer() {
                                 src="https://cdn-icons-png.flaticon.com/512/5968/5968841.png"
                                 alt="zalo"
                                 width={22}
-                                style={{ filter: "brightness(0) invert(1)" }}
+                                style={{ filter: "none" }}
                             />
                         </a>
                         <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
@@ -99,7 +99,7 @@ export default function Footer() {
                                 src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png"
                                 alt="yt"
                                 width={22}
-                                style={{ filter: "brightness(0) invert(1)" }}
+                                style={{ filter: "none" }}
                             />
                         </a>
                     </div>
@@ -107,7 +107,7 @@ export default function Footer() {
 
                 {/* Quick Links */}
                 <div style={{ flex: "1 1 140px", minWidth: 140 }}>
-                    <h5 style={{ color: "#d4af37", marginBottom: 10, fontWeight: 700 }}>Liên kết nhanh</h5>
+                    <h5 style={{ color: "#006A71", marginBottom: 10, fontWeight: 700 }}>Liên kết nhanh</h5>
                     <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "1rem" }}>
                         <li style={{ marginBottom: 8 }}>
                             <a href="/" style={linkStyle}>
@@ -134,7 +134,7 @@ export default function Footer() {
 
                 {/* Newsletter */}
                 <div style={{ flex: "1 1 220px", minWidth: 200 }}>
-                    <h5 style={{ color: "#d4af37", marginBottom: 10, fontWeight: 700 }}>Nhận tin mới</h5>
+                    <h5 style={{ color: "#006A71", marginBottom: 10, fontWeight: 700 }}>Nhận tin mới</h5>
                     <form onSubmit={(e) => e.preventDefault()} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         <input
                             type="email"
@@ -142,34 +142,37 @@ export default function Footer() {
                             style={{
                                 padding: "0.5rem",
                                 borderRadius: 6,
-                                border: "1px solid #444",
+                                border: "1px solid #9ACBD0",
                                 outline: "none",
                                 fontSize: "1rem",
-                                color: "#eee",
-                                background: "#222",
+                                color: "#006A71",
+                                background: "#fff",
                             }}
                         />
                         <button
                             type="submit"
                             style={{
-                                background: "#d4af37",
-                                color: "#000",
+                                background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                                color: "#fff",
                                 border: "none",
                                 borderRadius: 6,
                                 padding: "0.5rem",
                                 fontWeight: 600,
                                 cursor: "pointer",
+                                transition: "background 0.2s",
                             }}
+                            onMouseOver={e => e.currentTarget.style.background = "#006A71"}
+                            onMouseOut={e => e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)"}
                         >
                             Đăng ký nhận tin
                         </button>
                     </form>
-                    <div style={{ fontSize: "0.95rem", color: "#aaa", marginTop: 8 }}>
+                    <div style={{ fontSize: "0.95rem", color: "#48A6A7", marginTop: 8 }}>
                         Nhận thông tin, tài liệu và ưu đãi mới nhất từ chúng tôi.
                     </div>
                 </div>
             </div>
-            <div style={{ marginTop: "2.5rem", fontSize: "0.97rem", color: "#aaa", textAlign: "center" }}>
+            <div style={{ marginTop: "2.5rem", fontSize: "0.97rem", color: "#48A6A7", textAlign: "center" }}>
                 &copy; {new Date().getFullYear()} Cai Nghiện Thuốc Lá. All rights reserved.
             </div>
         </footer>
@@ -177,7 +180,7 @@ export default function Footer() {
 }
 
 const linkStyle = {
-    color: "#d4af37",
+    color: "#48A6A7",
     textDecoration: "none",
     fontWeight: "bold",
     transition: "color 0.2s",

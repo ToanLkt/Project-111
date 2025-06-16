@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import IntroSection from "../components/IntroSection";
 import RoadmapSection from "../components/RoadmapSection";
 import ExpertSection from "../components/NewSection";
@@ -7,13 +7,24 @@ import Footer from "../components/Footer";
 import MembershipPackage from "../components/MembershipPackage";
 
 export default function Home() {
+  const [message, setMessage] = useState("Từng Khoảnh Khắc, Một Hơi Thở Tự Do");
+
+  useEffect(() => {
+    fetch("https://localhost:7133/api/Platform/info")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.message) setMessage(data.message);
+      })
+      .catch(() => setMessage("Từng Khoảnh Khắc, Một Hơi Thở Tự Do"));
+  }, []);
+
   return (
     <div
       style={{
         fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
         minHeight: "100vh",
-        background: "#000",
-        color: "#fff",
+        background: "#F2EFE7", // Nền sáng
+        color: "#006A71",      // Text xanh đậm
       }}
     >
       {/* Hero Section */}
@@ -23,28 +34,36 @@ export default function Home() {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "4rem 8%",
-          background: "#111",
+          background: "linear-gradient(90deg, #F2EFE7 60%, #9ACBD0 100%)",
           position: "relative",
         }}
       >
         {/* Left Text Section */}
         <div style={{ maxWidth: "50%", zIndex: 2 }}>
-          <h1 style={{ fontSize: "2.8rem", fontWeight: 700, marginBottom: "1rem" }}>
-            Từng Khoảnh Khắc, Một Hơi Thở Tự Do
+          <h1 style={{ fontSize: "2.8rem", fontWeight: 700, marginBottom: "1rem", color: "#006A71" }}>
+            {message}
           </h1>
-          <p style={{ fontSize: "1.2rem", marginBottom: "2rem", lineHeight: 1.6 }}>
-            Trải nghiệm hành trình bỏ thuốc với chúng tôi - nhẹ nhàng, hiệu quả và đầy cảm hứng.
-          </p>
+
           <div style={{ display: "flex", gap: "1rem" }}>
             <a
               href="#gioithieu"
               style={{
                 padding: "0.8rem 1.5rem",
-                border: "2px solid #fff",
+                border: "2px solid #48A6A7",
                 color: "#fff",
+                background: "#48A6A7",
                 borderRadius: "30px",
                 fontWeight: "bold",
                 textDecoration: "none",
+                transition: "background 0.2s, color 0.2s",
+              }}
+              onMouseOver={e => {
+                e.currentTarget.style.background = "#006A71";
+                e.currentTarget.style.color = "#fff";
+              }}
+              onMouseOut={e => {
+                e.currentTarget.style.background = "#48A6A7";
+                e.currentTarget.style.color = "#fff";
               }}
             >
               Tìm hiểu thêm
@@ -57,7 +76,12 @@ export default function Home() {
           <img
             src="https://png.pngtree.com/thumb_back/fh260/background/20240720/pngtree-take-deep-breaths-reminder-note-image_15902731.jpg"
             alt="Quit Smoking Support"
-            style={{ width: "100%", borderRadius: "20px", opacity: 0.9, boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)" }}
+            style={{
+              width: "100%",
+              borderRadius: "20px",
+              opacity: 0.95,
+              boxShadow: "0 4px 16px rgba(0, 106, 113, 0.13)"
+            }}
           />
         </div>
 
@@ -69,8 +93,8 @@ export default function Home() {
             left: 0,
             width: "100%",
             height: "100%",
-            backgroundImage: "url('https://www.statnews.com/wp-content/uploads/2023/01/AdobeStock_562452567-768x432.jpeg')",
-            opacity: 0.5,
+            backgroundImage: "url('https://wallpaperaccess.com/full/415986.jpg')",
+            opacity: 1,
             backgroundSize: "cover",
             backgroundPosition: "center",
             zIndex: 0,
@@ -87,6 +111,10 @@ export default function Home() {
           margin: "2rem 0",
           flexWrap: "wrap",
           fontSize: "1.1rem",
+          background: "#E6F4F4",
+          borderRadius: "16px",
+          boxShadow: "0 2px 8px rgba(72,166,167,0.08)",
+          padding: "1rem 0",
         }}
       >
         {[
@@ -100,9 +128,20 @@ export default function Home() {
             key={item.href}
             href={item.href}
             style={{
-              color: "#d4af37",
+              color: "#006A71",
               textDecoration: "none",
               fontWeight: "bold",
+              padding: "0.5rem 1.2rem",
+              borderRadius: "8px",
+              transition: "background 0.2s, color 0.2s",
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.background = "#9ACBD0";
+              e.currentTarget.style.color = "#fff";
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#006A71";
             }}
           >
             {item.label}
