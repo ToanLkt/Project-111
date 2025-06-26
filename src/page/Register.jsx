@@ -7,13 +7,43 @@ export default function Register() {
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [repassword, setRepassword] = useState("");
+    const [birthday, setBirthday] = useState("");
+    const [sex, setSex] = useState("true");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Xử lý đăng ký ở đây
-        // Nếu thành công:
-        navigate("/");
+        setError("");
+        if (password !== repassword) {
+            setError("Mật khẩu nhập lại không khớp.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    fullName: name,
+                    phoneNumber: phone,
+                    birthday,
+                    sex: sex === "true" || sex === true
+                })
+            });
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(err);
+            }
+            // Đăng ký thành công
+            navigate("/login");
+        } catch (err) {
+            setError("Đăng ký thất bại: " + err.message);
+        }
+        setLoading(false);
     };
 
     return (
@@ -61,37 +91,157 @@ export default function Register() {
             >
                 <h2 style={{ color: "#d4af37", textAlign: "center", marginBottom: 24 }}>Tạo tài khoản</h2>
 
-                {[
-                    { label: "Họ và tên", type: "text", value: name, onChange: setName, placeholder: "Nhập họ và tên" },
-                    { label: "Email", type: "email", value: email, onChange: setEmail, placeholder: "Nhập email" },
-                    { label: "Số điện thoại", type: "tel", value: phone, onChange: setPhone, placeholder: "Nhập số điện thoại" },
-                    { label: "Mật khẩu", type: "password", value: password, onChange: setPassword, placeholder: "Nhập mật khẩu" },
-                    { label: "Nhập lại mật khẩu", type: "password", value: repassword, onChange: setRepassword, placeholder: "Nhập lại mật khẩu" }
-                ].map(({ label, type, value, onChange, placeholder }, i) => (
-                    <div key={i} style={{ marginBottom: 16 }}>
-                        <label style={{ fontWeight: 500, color: "#f1f2f6" }}>{label}</label>
-                        <input
-                            type={type}
-                            required
-                            value={value}
-                            onChange={(e) => onChange(e.target.value)}
-                            placeholder={placeholder}
-                            style={{
-                                width: "100%",
-                                padding: "0.75rem",
-                                borderRadius: 6,
-                                border: "1px solid #444",
-                                marginTop: 6,
-                                fontSize: "1rem",
-                                background: "#111",
-                                color: "#fff"
-                            }}
-                        />
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Họ và tên</label>
+                    <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Nhập họ và tên"
+                        style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: 6,
+                            border: "1px solid #444",
+                            marginTop: 6,
+                            fontSize: "1rem",
+                            background: "#111",
+                            color: "#fff"
+                        }}
+                    />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Email</label>
+                    <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="Nhập email"
+                        style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: 6,
+                            border: "1px solid #444",
+                            marginTop: 6,
+                            fontSize: "1rem",
+                            background: "#111",
+                            color: "#fff"
+                        }}
+                    />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Số điện thoại</label>
+                    <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        placeholder="Nhập số điện thoại"
+                        style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: 6,
+                            border: "1px solid #444",
+                            marginTop: 6,
+                            fontSize: "1rem",
+                            background: "#111",
+                            color: "#fff"
+                        }}
+                    />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Ngày sinh</label>
+                    <input
+                        type="date"
+                        required
+                        value={birthday}
+                        onChange={e => setBirthday(e.target.value)}
+                        placeholder="Ngày sinh"
+                        style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: 6,
+                            border: "1px solid #444",
+                            marginTop: 6,
+                            fontSize: "1rem",
+                            background: "#111",
+                            color: "#fff"
+                        }}
+                    />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Giới tính</label>
+                    <select
+                        required
+                        value={sex}
+                        onChange={e => setSex(e.target.value)}
+                        style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: 6,
+                            border: "1px solid #444",
+                            marginTop: 6,
+                            fontSize: "1rem",
+                            background: "#111",
+                            color: "#fff"
+                        }}
+                    >
+                        <option value="true">Nam</option>
+                        <option value="false">Nữ</option>
+                    </select>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Mật khẩu</label>
+                    <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Nhập mật khẩu"
+                        style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: 6,
+                            border: "1px solid #444",
+                            marginTop: 6,
+                            fontSize: "1rem",
+                            background: "#111",
+                            color: "#fff"
+                        }}
+                    />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Nhập lại mật khẩu</label>
+                    <input
+                        type="password"
+                        required
+                        value={repassword}
+                        onChange={e => setRepassword(e.target.value)}
+                        placeholder="Nhập lại mật khẩu"
+                        style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: 6,
+                            border: "1px solid #444",
+                            marginTop: 6,
+                            fontSize: "1rem",
+                            background: "#111",
+                            color: "#fff"
+                        }}
+                    />
+                </div>
+
+                {error && (
+                    <div style={{ color: "#ff7675", fontWeight: 600, marginBottom: 12, textAlign: "center" }}>
+                        {error}
                     </div>
-                ))}
+                )}
 
                 <button
                     type="submit"
+                    disabled={loading}
                     style={{
                         width: "100%",
                         background: "linear-gradient(90deg, #d4af37 0%, #bfa233 100%)",
@@ -101,11 +251,11 @@ export default function Register() {
                         padding: "0.75rem",
                         fontWeight: 600,
                         fontSize: "1.05rem",
-                        cursor: "pointer",
+                        cursor: loading ? "not-allowed" : "pointer",
                         marginTop: 8
                     }}
                 >
-                    Đăng ký
+                    {loading ? "Đang đăng ký..." : "Đăng ký"}
                 </button>
 
                 <div style={{ textAlign: "center", marginTop: 16, fontSize: "0.95rem" }}>

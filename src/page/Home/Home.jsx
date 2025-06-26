@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
-import IntroSection from "../components/IntroSection";
-import RoadmapSection from "../components/RoadmapSection";
-import ExpertSection from "../components/NewSection";
-import FeedbackSection from "../components/FeedbackSection";
-import Footer from "../components/Footer";
-import MembershipPackage from "../components/MembershipPackage";
+import IntroSection from "../../components/IntroSection";
+import RoadmapSection from "../../components/RoadmapSection";
+import ExpertSection from "../../components/NewSection";
+import FeedbackSection from "../../components/FeedbackSection";
+import Footer from "../../components/Footer";
+import MembershipPackage from "../../components/MembershipPackage";
 
 export default function Home() {
   const [message, setMessage] = useState("Từng Khoảnh Khắc, Một Hơi Thở Tự Do");
 
   useEffect(() => {
-    fetch("https://localhost:7133/api/Platform/info")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.message) setMessage(data.message);
-      })
-      .catch(() => setMessage("Từng Khoảnh Khắc, Một Hơi Thở Tự Do"));
+    // fetch("https://localhost:7133/api/Platform/info")
+    //   .then((res) => res.json())
+    //   .then((data) => {
+    //     if (data && data.message) setMessage(data.message);
+    //   })
+    //   .catch(() => setMessage("Từng Khoảnh Khắc, Một Hơi Thở Tự Do"));
   }, []);
 
   return (
@@ -23,8 +23,8 @@ export default function Home() {
       style={{
         fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
         minHeight: "100vh",
-        background: "#F2EFE7", // Nền sáng
-        color: "#006A71",      // Text xanh đậm
+        background: "#F2EFE7",
+        color: "#006A71",
       }}
     >
       {/* Hero Section */}

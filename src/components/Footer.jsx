@@ -47,20 +47,20 @@ export default function Footer() {
                         Nền tảng hỗ trợ cộng đồng bỏ thuốc lá, cung cấp tài liệu, chuyên gia và các công cụ theo dõi tiến trình.
                     </p>
                     <div style={{ marginTop: 12, fontSize: "0.97rem", color: "#48A6A7" }}>
-                        <span style={{ fontWeight: 500 }}>Giờ làm việc:</span> 8:00 - 21:00 (T2 - CN)
+                        <span style={{ fontWeight: 500 }}>Giờ làm việc:</span> 8:00 - 15:00 (T2 - CN)
                     </div>
                 </div>
 
                 {/* Contact */}
-                <div style={{ flex: "1 1 180px", minWidth: 180 }}>
+                <div style={{ flex: "1 1 180px", minWidth: 180, marginRight: 40 }}>
                     <h5 style={{ color: "#006A71", marginBottom: 10, fontWeight: 700 }}>Liên hệ</h5>
-                    <p style={{ margin: 0, fontSize: "1rem", color: "#48A6A7" }}>
+                    <p style={{ margin: 4, fontSize: "1rem", color: "#48A6A7" }}>
                         <span style={{ fontWeight: 500 }}>Email:</span>{" "}
                         <a
-                            href="mailto:hotro@cainghienthuocla.vn"
+                            href="mailto:smokingcessation0206@gmail.com"
                             style={{ color: "#48A6A7", textDecoration: "none", fontWeight: 600 }}
                         >
-                            hotro@cainghienthuocla.vn
+                            smokingcessation0206@gmail.com
                         </a>
                         <br />
                         <span style={{ fontWeight: 500 }}>Điện thoại:</span> 0123 456 789

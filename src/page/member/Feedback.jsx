@@ -1,56 +1,63 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Rating from "./Rating";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../AuthContext/AuthContext";
 
-const sampleFeedbacks = [
-    {
-        name: "Nguyễn Văn A",
-        comment: "Trang web rất hữu ích, mình đã cai thuốc thành công nhờ các tài liệu và sự hỗ trợ từ cộng đồng!",
-        time: "16/06/2025",
-        rating: 5,
-    },
-    {
-        name: "Trần Thị B",
-        comment: "Giao diện thân thiện, dễ sử dụng. Mình rất thích tính năng theo dõi tiến trình.",
-        time: "15/06/2025",
-        rating: 4,
-    },
-    {
-        name: "Lê Văn C",
-        comment: "Cảm ơn đội ngũ phát triển đã tạo ra một nền tảng ý nghĩa cho cộng đồng.",
-        time: "14/06/2025",
-        rating: 5,
-    },
-];
-
-export default function feedback() {
-    const [feedbacks, setFeedbacks] = useState(sampleFeedbacks);
+export default function Feedback() {
+    const [feedbacks, setFeedbacks] = useState([]);
     const [comment, setComment] = useState("");
     const [rating, setRating] = useState(5);
     const [success, setSuccess] = useState(false);
-    const { user } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [starFilter, setStarFilter] = useState(0); // Thêm state lọc số sao
+    const { user, token } = useAuth();
 
-    const handleSubmit = (e) => {
+    // Lấy danh sách feedback từ API
+    useEffect(() => {
+        setLoading(true);
+        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Feedback")
+            .then(res => res.ok ? res.json() : [])
+            .then(data => Array.isArray(data) ? setFeedbacks(data.reverse()) : setFeedbacks([]))
+            .catch(() => setFeedbacks([]))
+            .finally(() => setLoading(false));
+    }, []);
+
+    // Gửi feedback mới lên API
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!comment.trim()) return;
-        const today = new Date();
-        const newFeedback = {
-            name: user?.fullName || "Ẩn danh",
-            comment,
-            time: today.toLocaleDateString("vi-VN"),
-            rating,
-        };
-        setFeedbacks(prev => [newFeedback, ...prev].slice(0, 3));
-        setComment("");
-        setRating(5);
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 2500);
+        try {
+            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Feedback", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    comment,
+                    rating,
+                }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const newFeedback = await res.json();
+            setFeedbacks(prev => [newFeedback, ...prev]);
+            setComment("");
+            setRating(5);
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 2500);
+        } catch {
+            alert("Gửi feedback thất bại!");
+        }
     };
 
-    // Lấy 3 phản hồi nổi bật nhất (rating cao nhất, nếu bằng nhau thì lấy mới nhất)
-    const topFeedbacks = [...feedbacks]
-        .sort((a, b) => b.rating - a.rating || new Date(b.time) - new Date(a.time))
+    // Lọc feedback theo số sao (nếu chọn)
+    const filteredFeedbacks = starFilter > 0
+        ? feedbacks.filter(fb => fb.feedback_rating === starFilter)
+        : feedbacks;
+
+    // Lấy 3 phản hồi nổi bật nhất từ danh sách đã lọc
+    const topFeedbacks = [...filteredFeedbacks]
+        .sort((a, b) => b.feedback_rating - a.feedback_rating || new Date(b.feedback_date) - new Date(a.feedback_date))
         .slice(0, 3);
 
     return (
@@ -152,16 +159,43 @@ export default function feedback() {
                 </form>
 
                 <h3 style={{ color: "#48A6A7", fontSize: "1.15rem", marginBottom: 16, fontWeight: 700 }}>
-                    🌟 3 Phản hồi nổi bật nhất
+                    🌟 Phản hồi của người dùng
                 </h3>
 
+                {/* Bộ lọc số sao */}
+                <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+                    <span>Lọc theo số sao:</span>
+                    {[0, 5, 4, 3, 2, 1].map(star => (
+                        <button
+                            key={star}
+                            type="button"
+                            onClick={() => setStarFilter(star)}
+                            style={{
+                                background: starFilter === star ? "#48A6A7" : "#E6F4F4",
+                                color: starFilter === star ? "#fff" : "#006A71",
+                                border: "1px solid #9ACBD0",
+                                borderRadius: 6,
+                                padding: "2px 10px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                fontSize: 15,
+                            }}
+                        >
+                            {star === 0 ? "Tất cả" : `${star}★`}
+                        </button>
+                    ))}
+                </div>
+
                 <div style={{ maxHeight: 400, overflowY: "auto", paddingRight: 6 }}>
-                    {topFeedbacks.length === 0 && (
+                    {loading && (
+                        <div style={{ color: "#aaa", textAlign: "center" }}>Đang tải feedback...</div>
+                    )}
+                    {!loading && topFeedbacks.length === 0 && (
                         <div style={{ color: "#aaa", textAlign: "center" }}>Chưa có feedback nào.</div>
                     )}
                     {topFeedbacks.map((fb, idx) => (
                         <div
-                            key={idx}
+                            key={fb.id || idx}
                             style={{
                                 background: "#E6F4F4",
                                 borderRadius: 12,
@@ -189,10 +223,12 @@ export default function feedback() {
                                         fontSize: 16,
                                     }}
                                 >
-                                    {fb.name ? fb.name[0].toUpperCase() : "?"}
+                                    {(fb.fullName || "Ẩn danh")[0].toUpperCase()}
                                 </span>
-                                <span style={{ fontWeight: 600 }}>{fb.name}</span>
-                                <span style={{ color: "#48A6A7", fontSize: 13, marginLeft: 10 }}>{fb.time || ""}</span>
+                                <span style={{ fontWeight: 600 }}>{fb.fullName || "Ẩn danh"}</span>
+                                <span style={{ color: "#48A6A7", fontSize: 13, marginLeft: 10 }}>
+                                    {fb.feedback_date ? new Date(fb.feedback_date).toLocaleDateString("vi-VN") : ""}
+                                </span>
                                 {idx === 0 && (
                                     <span style={{
                                         marginLeft: 10,
@@ -208,8 +244,8 @@ export default function feedback() {
                                     </span>
                                 )}
                             </div>
-                            <Rating value={fb.rating} readOnly size={20} />
-                            <div style={{ marginTop: 6, fontSize: "1rem", color: "#006A71" }}>{fb.comment}</div>
+                            <Rating value={fb.feedback_rating} readOnly size={20} />
+                            <div style={{ marginTop: 6, fontSize: "1rem", color: "#006A71" }}>{fb.feedback_content}</div>
                         </div>
                     ))}
                 </div>

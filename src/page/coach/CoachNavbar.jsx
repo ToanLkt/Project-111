@@ -2,19 +2,19 @@ import React from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../../AuthContext/AuthContext";
 
-export default function AdminNavbar() {
+export default function CoachNavbar() {
     const location = useLocation();
-    const { email, logout } = useAuth(); // Lấy email và logout từ context
+    const { email, logout } = useAuth();
 
     const navItems = [
-        { to: "/admin", label: "Trang chủ" },
-        { to: "/admin/list", label: "Danh sách" },
-        { to: "/admin/community", label: "Cộng đồng" },
-        { to: "/admin/feedback", label: "Phản hồi" },
-        { to: "/admin/payment", label: "Thanh toán" },
+        { to: "/coachpage", label: "Trang chủ" },
+        { to: "/coachpage/community", label: "Cộng đồng" },
+        { to: "/coachpage/members", label: "Quản lý học viên" },
+        { to: "/coachpage/schedule", label: "Lịch trình" },
+        { to: "/coachpage/statistics", label: "Thống kê" },
+        // Thêm các mục khác nếu cần
     ];
 
-    // Bảng màu chủ đề mới
     const COLORS = {
         navbarBg: "#E6F4F4",
         menuBg: "#9ACBD0",
@@ -57,8 +57,8 @@ export default function AdminNavbar() {
                     {/* Logo bên trái */}
                     <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 220 }}>
                         <img
-                            src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                            alt="Logo"
+                            src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png"
+                            alt="Coach"
                             style={{
                                 width: 38,
                                 height: 38,
@@ -67,7 +67,7 @@ export default function AdminNavbar() {
                                 border: `2px solid ${COLORS.primary}`,
                             }}
                         />
-                        <Link to="/admin" style={{ textDecoration: "none" }}>
+                        <Link to="/coachpage" style={{ textDecoration: "none" }}>
                             <span
                                 style={{
                                     color: COLORS.accent,
@@ -77,7 +77,7 @@ export default function AdminNavbar() {
                                     whiteSpace: "nowrap",
                                 }}
                             >
-                                Cai Nghiện Thuốc Lá
+                                Coach Dashboard
                             </span>
                         </Link>
                     </div>
@@ -143,23 +143,23 @@ export default function AdminNavbar() {
                         minWidth: 220,
                         justifyContent: "flex-end",
                     }}>
-                        <span style={{ fontSize: 26, color: "#48A6A7", marginRight: 4 }}>👤</span>
+                        <span style={{ fontSize: 26, color: COLORS.primary, marginRight: 4 }}>👤</span>
                         {email && (
                             <>
                                 <Link
-                                    to="/admin/profile"
+                                    to="/coachpage/profile"
                                     style={{
-                                        color: "#006A71",
+                                        color: COLORS.accent,
                                         fontWeight: 700,
                                         fontSize: "1.08rem",
-                                        background: "#fff",
+                                        background: COLORS.white,
                                         padding: "0.5rem 1.2rem",
                                         borderRadius: 20,
                                         minWidth: 120,
                                         textAlign: "center",
                                         boxShadow: "0 2px 8px #9ACBD022",
                                         whiteSpace: "nowrap",
-                                        border: "1.5px solid #48A6A7",
+                                        border: `1.5px solid ${COLORS.primary}`,
                                         textDecoration: "none",
                                         display: "inline-block",
                                         cursor: "pointer"
@@ -170,10 +170,10 @@ export default function AdminNavbar() {
                                 <button
                                     onClick={logout}
                                     style={{
-                                        color: "#fff",
+                                        color: COLORS.white,
                                         fontWeight: 700,
                                         fontSize: "1.08rem",
-                                        background: "#e74c3c",
+                                        background: COLORS.danger,
                                         padding: "0.5rem 1.2rem",
                                         borderRadius: 20,
                                         border: "none",
@@ -183,8 +183,8 @@ export default function AdminNavbar() {
                                         transition: "background 0.18s",
                                         whiteSpace: "nowrap",
                                     }}
-                                    onMouseOver={e => e.currentTarget.style.background = "#c0392b"}
-                                    onMouseOut={e => e.currentTarget.style.background = "#e74c3c"}
+                                    onMouseOver={e => e.currentTarget.style.background = COLORS.dangerHover}
+                                    onMouseOut={e => e.currentTarget.style.background = COLORS.danger}
                                 >
                                     Đăng xuất
                                 </button>
@@ -215,21 +215,24 @@ export default function AdminNavbar() {
                             borderRadius: 8,
                             padding: "0.5rem 1.5rem",
                             textDecoration: "none",
-                            fontSize: "1.08rem",
-                            background:
-                                location.pathname === item.to ? COLORS.active : "transparent",
-                            boxShadow:
-                                location.pathname === item.to
-                                    ? "0 2px 8px #9ACBD022"
-                                    : "none",
-                            border:
-                                location.pathname === item.to
-                                    ? `2px solid ${COLORS.accent}`
-                                    : "2px solid transparent",
-                            transition: "all 0.18s",
+                            position: "relative",
+                            display: "inline-block",
                         }}
                     >
                         {item.label}
+                        {location.pathname === item.to && (
+                            <span
+                                style={{
+                                    position: "absolute",
+                                    width: "100%",
+                                    height: 2,
+                                    bottom: -2,
+                                    left: 0,
+                                    background: COLORS.accent,
+                                    borderRadius: 2,
+                                }}
+                            />
+                        )}
                     </Link>
                 ))}
             </nav>

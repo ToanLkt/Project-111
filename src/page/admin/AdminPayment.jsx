@@ -1,126 +1,5 @@
-import React, { useState } from "react";
-
-const initialTransactions = [
-  {
-    id: 1,
-    user: "Nguyễn Văn A",
-    email: "member1@gmail.com",
-    amount: 199000,
-    package: "Gói Pro",
-    date: "2024-05-01",
-    note: "Thanh toán thành công",
-  },
-  {
-    id: 2,
-    user: "Trần Thị B",
-    email: "member2@gmail.com",
-    amount: 399000,
-    package: "Gói Plus",
-    date: "2024-05-10",
-    note: "Chờ xác nhận",
-  },
-  {
-    id: 3,
-    user: "Lê Văn C",
-    email: "member3@gmail.com",
-    amount: 0,
-    package: "Gói Basic",
-    date: "2024-05-15",
-    note: "Miễn phí",
-  },
-  {
-    id: 4,
-    user: "Phạm Thị D",
-    email: "member4@gmail.com",
-    amount: 199000,
-    package: "Gói Pro",
-    date: "2024-06-01",
-    note: "Thanh toán thành công",
-  },
-  {
-    id: 5,
-    user: "Ngô Minh E",
-    email: "member5@gmail.com",
-    amount: 399000,
-    package: "Gói Plus",
-    date: "2024-06-02",
-    note: "Chờ xác nhận",
-  },
-  {
-    id: 6,
-    user: "Đặng Thị F",
-    email: "member6@gmail.com",
-    amount: 0,
-    package: "Gói Basic",
-    date: "2024-06-03",
-    note: "Miễn phí",
-  },
-  {
-    id: 7,
-    user: "Vũ Văn G",
-    email: "member7@gmail.com",
-    amount: 199000,
-    package: "Gói Pro",
-    date: "2024-06-04",
-    note: "Thanh toán thành công",
-  },
-  {
-    id: 8,
-    user: "Nguyễn Thị H",
-    email: "member8@gmail.com",
-    amount: 399000,
-    package: "Gói Plus",
-    date: "2024-06-05",
-    note: "Chờ xác nhận",
-  },
-  {
-    id: 9,
-    user: "Phan Văn I",
-    email: "member9@gmail.com",
-    amount: 0,
-    package: "Gói Basic",
-    date: "2024-06-06",
-    note: "Miễn phí",
-  },
-  {
-    id: 10,
-    user: "Trịnh Thị K",
-    email: "member10@gmail.com",
-    amount: 199000,
-    package: "Gói Pro",
-    date: "2024-06-07",
-    note: "Thanh toán thành công",
-  },
-];
-
-const initialPackages = [
-  {
-    id: 1,
-    name: "Gói Basic",
-    price: "Miễn phí 1 tháng",
-    features: ["✔️ Documentation", "✔️ Community Access"],
-  },
-  {
-    id: 2,
-    name: "Gói Pro",
-    price: "199.000đ/tháng",
-    features: [
-      "✔️ All basic features",
-      "✔️ Expert consultation",
-      "✔️ Personalized roadmap",
-    ],
-  },
-  {
-    id: 3,
-    name: "Gói Plus",
-    price: "299.000đ/tháng",
-    features: [
-      "✔️ All advanced features",
-      "✔️ 24/7 Support",
-      "✔️ Personal progress tracking",
-    ],
-  },
-];
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../AuthContext/AuthContext";
 
 const COLORS = {
   background: "#F2EFE7",
@@ -146,81 +25,101 @@ const COLORS = {
 };
 
 export default function AdminPayment() {
-  const [transactions] = useState(initialTransactions);
-  const [search, setSearch] = useState("");
-
-  // State quản lý gói
-  const [packages, setPackages] = useState(initialPackages);
+  const [packages, setPackages] = useState([]);
   const [showEdit, setShowEdit] = useState(false);
   const [editPkg, setEditPkg] = useState(null);
-  const [form, setForm] = useState({ name: "", price: "", features: "" });
+  const [form, setForm] = useState({
+    packageMembershipId: "",
+    category: "",
+    price: "",
+    description: "",
+    duration: "",
+  });
+  const { token } = useAuth();
 
-  // Lọc giao dịch theo gói
-  const filtered = transactions.filter((t) =>
-    t.package.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Xử lý form gói
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Thêm gói mới
-  const handleAddPackage = (e) => {
-    e.preventDefault();
-    setPackages([
-      ...packages,
-      {
-        id: Date.now(),
-        name: form.name,
-        price: form.price,
-        features: form.features.split("\n").filter(Boolean),
-      },
-    ]);
-    setForm({ name: "", price: "", features: "" });
-  };
-
-  // Xóa gói
-  const handleDeletePackage = (id) => {
-    setPackages(packages.filter((p) => p.id !== id));
-  };
+  // Lấy danh sách gói từ API (GET all)
+  useEffect(() => {
+    async function fetchPackages() {
+      try {
+        const res = await fetch(
+          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        setPackages(Array.isArray(data) ? data : []);
+      } catch {
+        setPackages([]);
+      }
+    }
+    if (token) fetchPackages();
+  }, [token]);
 
   // Sửa gói
   const handleEditPackage = (pkg) => {
     setEditPkg(pkg);
     setForm({
-      name: pkg.name,
-      price: pkg.price,
-      features: pkg.features.join("\n"),
+      packageMembershipId: pkg.package_membership_ID,
+      category: pkg.category || "",
+      price: pkg.price || "",
+      description: pkg.description || "",
+      duration: pkg.duration || "",
     });
     setShowEdit(true);
   };
 
+  // Xử lý form
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
   // Lưu chỉnh sửa gói
-  const handleSaveEdit = (e) => {
+  const handleSaveEdit = async (e) => {
     e.preventDefault();
-    setPackages((prev) =>
-      prev.map((p) =>
-        p.id === editPkg.id
-          ? {
-            ...p,
-            name: form.name,
-            price: form.price,
-            features: form.features.split("\n").filter(Boolean),
-          }
-          : p
-      )
-    );
-    setShowEdit(false);
-    setEditPkg(null);
-    setForm({ name: "", price: "", features: "" });
+    if (!editPkg) return;
+    try {
+      const res = await fetch(
+        `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership/${form.packageMembershipId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            packageMembershipId: Number(form.packageMembershipId),
+            category: form.category,
+            price: Number(form.price),
+            description: form.description,
+            duration: Number(form.duration),
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("Cập nhật gói thất bại");
+      const updated = await res.json();
+      setPackages((prev) =>
+        prev.map((p) =>
+          p.package_membership_ID === updated.package_membership_ID ? updated : p
+        )
+      );
+      setShowEdit(false);
+      setEditPkg(null);
+      setForm({
+        packageMembershipId: "",
+        category: "",
+        price: "",
+        description: "",
+        duration: "",
+      });
+    } catch (err) {
+      alert("Cập nhật gói thất bại!");
+    }
   };
 
   return (
     <div
       style={{
-        maxWidth: 1200,
+        maxWidth: 900,
         margin: "40px auto",
         background: COLORS.card,
         borderRadius: 18,
@@ -239,101 +138,6 @@ export default function AdminPayment() {
           letterSpacing: 0.5,
         }}
       >
-        Quản lý giao dịch thanh toán
-      </h2>
-      <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
-        <input
-          type="text"
-          placeholder="Tìm kiếm theo gói..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{
-            padding: "9px 16px",
-            borderRadius: 8,
-            border: `1.5px solid ${COLORS.primary}`,
-            fontSize: 15,
-            minWidth: 220,
-            outline: "none",
-            marginRight: 0,
-            background: COLORS.tableBg,
-            color: COLORS.accent,
-            fontWeight: 600,
-          }}
-        />
-      </div>
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "separate",
-            borderSpacing: 0,
-            background: COLORS.tableBg,
-            borderRadius: 12,
-            overflow: "hidden",
-            boxShadow: "0 2px 12px #9ACBD011",
-          }}
-        >
-          <thead>
-            <tr style={{ background: COLORS.thBg }}>
-              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>STT</th>
-              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Tên người dùng</th>
-              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Email</th>
-              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Gói</th>
-              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Số tiền</th>
-              <th style={{ padding: 16, borderBottom: `2px solid ${COLORS.border}`, fontWeight: 700, color: COLORS.thText }}>Ngày</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((t, idx) => (
-              <tr
-                key={t.id}
-                style={{
-                  background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt,
-                }}
-              >
-                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, textAlign: "center", color: COLORS.tdText }}>{idx + 1}</td>
-                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.tdText }}>{t.user}</td>
-                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.tdText }}>{t.email}</td>
-                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}` }}>
-                  <span
-                    style={{
-                      background:
-                        t.package === "Gói Plus"
-                          ? COLORS.primary
-                          : t.package === "Gói Pro"
-                            ? COLORS.gold
-                            : "#bbb",
-                      color: t.package === "Gói Basic" ? COLORS.accent : "#fff",
-                      padding: "4px 14px",
-                      borderRadius: 16,
-                      fontWeight: 600,
-                      fontSize: 14,
-                    }}
-                  >
-                    {t.package}
-                  </span>
-                </td>
-                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.success, fontWeight: 700 }}>
-                  {t.amount.toLocaleString()}₫
-                </td>
-                <td style={{ padding: 14, borderBottom: `1px solid ${COLORS.border}`, color: COLORS.tdText }}>{t.date}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Quản lý gói */}
-      <h2
-        style={{
-          color: COLORS.accent,
-          margin: "48px 0 24px 0",
-          fontWeight: 800,
-          fontSize: "1.5rem",
-          textAlign: "center",
-          letterSpacing: 0.5,
-        }}
-      >
         Quản lý gói thành viên
       </h2>
       <div style={{
@@ -343,105 +147,134 @@ export default function AdminPayment() {
         boxShadow: "0 2px 12px #9ACBD011",
         padding: 28,
       }}>
-        <form
-          onSubmit={showEdit ? handleSaveEdit : handleAddPackage}
-          style={{
-            display: "flex",
-            gap: 24,
-            alignItems: "flex-end",
-            flexWrap: "wrap",
-            marginBottom: 24,
-          }}
-        >
-          <div style={{ minWidth: 220 }}>
-            <label style={{ fontWeight: 700, color: COLORS.accent }}>Tên gói</label>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleFormChange}
-              required
-              style={{
-                padding: "9px 14px",
-                borderRadius: 8,
-                border: `1.5px solid ${COLORS.primary}`,
-                fontSize: 15,
-                width: "100%",
-                marginTop: 6,
-                background: COLORS.tableBg,
-                color: COLORS.accent,
-                fontWeight: 600,
-              }}
-            />
-          </div>
-          <div style={{ minWidth: 180 }}>
-            <label style={{ fontWeight: 700, color: COLORS.accent }}>Giá</label>
-            <input
-              name="price"
-              value={form.price}
-              onChange={handleFormChange}
-              required
-              style={{
-                padding: "9px 14px",
-                borderRadius: 8,
-                border: `1.5px solid ${COLORS.primary}`,
-                fontSize: 15,
-                width: "100%",
-                marginTop: 6,
-                background: COLORS.tableBg,
-                color: COLORS.accent,
-                fontWeight: 600,
-              }}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <label style={{ fontWeight: 700, color: COLORS.accent }}>Tính năng (mỗi dòng 1 tính năng)</label>
-            <textarea
-              name="features"
-              value={form.features}
-              onChange={handleFormChange}
-              required
-              rows={3}
-              style={{
-                width: "100%",
-                padding: "9px 14px",
-                borderRadius: 8,
-                border: `1.5px solid ${COLORS.primary}`,
-                fontSize: 15,
-                marginTop: 6,
-                background: COLORS.tableBg,
-                color: COLORS.accent,
-                fontWeight: 600,
-                resize: "vertical",
-              }}
-            />
-          </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
-            <button
-              type="submit"
-              style={{
-                background: COLORS.primary,
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 28px",
-                fontWeight: 700,
-                fontSize: 16,
-                cursor: "pointer",
-                minWidth: 90,
-                boxShadow: "0 2px 8px #9ACBD022"
-              }}
-              onMouseOver={e => e.currentTarget.style.background = COLORS.accent}
-              onMouseOut={e => e.currentTarget.style.background = COLORS.primary}
-            >
-              {showEdit ? "Lưu" : "Thêm"}
-            </button>
-            {showEdit && (
+        {showEdit && (
+          <form
+            onSubmit={handleSaveEdit}
+            style={{
+              display: "flex",
+              gap: 24,
+              alignItems: "flex-end",
+              flexWrap: "wrap",
+              marginBottom: 24,
+              marginTop: 24,
+            }}
+          >
+            <div style={{ minWidth: 120 }}>
+              <label style={{ fontWeight: 700, color: COLORS.accent }}>Tên gói</label>
+              <input
+                name="category"
+                value={form.category}
+                onChange={handleFormChange}
+                required
+                style={{
+                  padding: "9px 14px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${COLORS.primary}`,
+                  fontSize: 15,
+                  width: "100%",
+                  marginTop: 6,
+                  background: COLORS.tableBg,
+                  color: COLORS.accent,
+                  fontWeight: 600,
+                }}
+              />
+            </div>
+            <div style={{ minWidth: 100 }}>
+              <label style={{ fontWeight: 700, color: COLORS.accent }}>Giá</label>
+              <input
+                name="price"
+                type="number"
+                value={form.price}
+                onChange={handleFormChange}
+                required
+                style={{
+                  padding: "9px 14px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${COLORS.primary}`,
+                  fontSize: 15,
+                  width: "100%",
+                  marginTop: 6,
+                  background: COLORS.tableBg,
+                  color: COLORS.accent,
+                  fontWeight: 600,
+                }}
+              />
+            </div>
+            <div style={{ minWidth: 100 }}>
+              <label style={{ fontWeight: 700, color: COLORS.accent }}>Thời hạn (ngày)</label>
+              <input
+                name="duration"
+                type="number"
+                value={form.duration}
+                onChange={handleFormChange}
+                required
+                style={{
+                  padding: "9px 14px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${COLORS.primary}`,
+                  fontSize: 15,
+                  width: "100%",
+                  marginTop: 6,
+                  background: COLORS.tableBg,
+                  color: COLORS.accent,
+                  fontWeight: 600,
+                }}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <label style={{ fontWeight: 700, color: COLORS.accent }}>Mô tả</label>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleFormChange}
+                required
+                rows={2}
+                style={{
+                  width: "100%",
+                  padding: "9px 14px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${COLORS.primary}`,
+                  fontSize: 15,
+                  marginTop: 6,
+                  background: COLORS.tableBg,
+                  color: COLORS.accent,
+                  fontWeight: 600,
+                  resize: "vertical",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 12, marginTop: 18 }}>
+              <button
+                type="submit"
+                style={{
+                  background: COLORS.primary,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "10px 28px",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  cursor: "pointer",
+                  minWidth: 90,
+                  boxShadow: "0 2px 8px #9ACBD022"
+                }}
+                onMouseOver={e => e.currentTarget.style.background = COLORS.accent}
+                onMouseOut={e => e.currentTarget.style.background = COLORS.primary}
+              >
+                Lưu
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   setShowEdit(false);
                   setEditPkg(null);
-                  setForm({ name: "", price: "", features: "" });
+                  setForm({
+                    packageMembershipId: "",
+                    category: "",
+                    price: "",
+                    description: "",
+                    duration: "",
+                  });
                 }}
                 style={{
                   background: "#bbb",
@@ -457,9 +290,9 @@ export default function AdminPayment() {
               >
                 Hủy
               </button>
-            )}
-          </div>
-        </form>
+            </div>
+          </form>
+        )}
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -477,23 +310,19 @@ export default function AdminPayment() {
                 <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>STT</th>
                 <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Tên gói</th>
                 <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Giá</th>
-                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Tính năng</th>
+                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Thời hạn</th>
+                <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Mô tả</th>
                 <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Tác vụ</th>
               </tr>
             </thead>
             <tbody>
               {packages.map((pkg, idx) => (
-                <tr key={pkg.id} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
+                <tr key={pkg.package_membership_ID || idx} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
                   <td style={{ padding: 12, color: COLORS.tdText }}>{idx + 1}</td>
-                  <td style={{ padding: 12, color: COLORS.tdText }}>{pkg.name}</td>
+                  <td style={{ padding: 12, color: COLORS.tdText }}>{pkg.category}</td>
                   <td style={{ padding: 12, color: COLORS.tdText }}>{pkg.price}</td>
-                  <td style={{ padding: 12, color: COLORS.tdText }}>
-                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                      {pkg.features.map((f, i) => (
-                        <li key={i}>{f}</li>
-                      ))}
-                    </ul>
-                  </td>
+                  <td style={{ padding: 12, color: COLORS.tdText }}>{pkg.duration}</td>
+                  <td style={{ padding: 12, color: COLORS.tdText }}>{pkg.description}</td>
                   <td style={{ padding: 12 }}>
                     <button
                       onClick={() => handleEditPackage(pkg)}
@@ -513,29 +342,12 @@ export default function AdminPayment() {
                     >
                       Sửa
                     </button>
-                    <button
-                      onClick={() => handleDeletePackage(pkg.id)}
-                      style={{
-                        background: COLORS.danger,
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 7,
-                        padding: "7px 18px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        boxShadow: "0 2px 8px #e74c3c22"
-                      }}
-                      onMouseOver={e => e.currentTarget.style.background = COLORS.dangerHover}
-                      onMouseOut={e => e.currentTarget.style.background = COLORS.danger}
-                    >
-                      Xóa
-                    </button>
                   </td>
                 </tr>
               ))}
               {packages.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: 18, color: "#888" }}>
+                  <td colSpan={6} style={{ textAlign: "center", padding: 18, color: "#888" }}>
                     Không có gói nào.
                   </td>
                 </tr>

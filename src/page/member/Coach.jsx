@@ -51,6 +51,18 @@ export default function Coach() {
         setLoading(false);
     };
 
+    useEffect(() => {
+        // Chỉ nhúng 1 lần
+        if (document.getElementById("tawkto-script")) return;
+        const s1 = document.createElement("script");
+        s1.id = "tawkto-script";
+        s1.async = true;
+        s1.src = "https://embed.tawk.to/6851314053810b190ffa3974/1ituigpc0";
+        s1.charset = "UTF-8";
+        s1.setAttribute("crossorigin", "*");
+        document.body.appendChild(s1);
+    }, []);
+
     return (
         <div style={{
             minHeight: "100vh",

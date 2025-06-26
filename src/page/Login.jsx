@@ -2,11 +2,6 @@ import React, { useState } from "react";
 import { useAuth } from "../AuthContext/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const demoAccounts = [
-    { email: "admin@gmail.com", password: "admin123", role: "admin" },
-    { email: "member@gmail.com", password: "member123", role: "member" },
-];
-
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -17,22 +12,23 @@ export default function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const found = demoAccounts.find(
-            (acc) => acc.email === email && acc.password === password
-        );
-        if (found) {
-            login(found.role, found.email);
+        setError("");
+        setSuccess("");
+        setShowToast(false);
+        try {
+            const role = await login(email, password); // Gọi API login từ context
             setSuccess("Đăng nhập thành công!");
-            setError("");
             setShowToast(true);
             setTimeout(() => {
                 setShowToast(false);
-                if (found.role === "admin") navigate("/admin");
+                if (role === "admin") navigate("/admin");
+                else if (role === "coach") navigate("/coachpage");
+                else if (role === "member") navigate("/member");
                 else navigate("/");
             }, 1200);
-        } else {
+        } catch (err) {
             setError("Email hoặc mật khẩu không đúng!");
             setSuccess("");
             setShowToast(true);
@@ -40,13 +36,8 @@ export default function Login() {
         }
     };
 
-    const handleGoogleLogin = () => {
-        window.location.href =
-            "https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fwww.google.com%2F&ec=futura_exp_og_so_72776762_e&hl=vi&ifkv=AdBytiPDDUDuhc3aUIIzRrV7C8e9PgpgAWB6DVfyE6-zUhHOgySrIIYAI010MGrgvQA_wYeVeKMM&passive=true&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S-1372533706%3A1748515862076999";
-    };
-
     const handleFacebookLogin = () => {
-        window.location.href = "https://www.facebook.com/login.php";
+        alert("Chức năng đăng nhập Facebook chưa được hỗ trợ.");
     };
 
     return (
@@ -265,7 +256,8 @@ export default function Login() {
                     Đăng nhập
                 </button>
 
-                <div
+                {/* XÓA ĐĂNG NHẬP GOOGLE */}
+                {/* <div
                     style={{
                         textAlign: "center",
                         margin: "20px 0 16px",
@@ -275,45 +267,14 @@ export default function Login() {
                 >
                     hoặc
                 </div>
-
-                <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    style={{
-                        width: "100%",
-                        background: "#fff",
-                        color: "#006A71",
-                        border: "1.5px solid #9ACBD0",
-                        borderRadius: 8,
-                        padding: "0.65rem",
-                        fontWeight: "600",
-                        fontSize: "1rem",
-                        cursor: "pointer",
-                        marginBottom: 12,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 10,
-                        transition: "background 0.3s, color 0.3s",
+                <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => {
+                        setError("Đăng nhập Google thất bại!");
+                        setShowToast(true);
+                        setTimeout(() => setShowToast(false), 1500);
                     }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.background = "#9ACBD0";
-                        e.currentTarget.style.color = "#fff";
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.background = "#fff";
-                        e.currentTarget.style.color = "#006A71";
-                    }}
-                >
-                    <img
-                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
-                        alt="google"
-                        width={22}
-                        height={22}
-                        style={{ borderRadius: "50%" }}
-                    />
-                    Đăng nhập với Google
-                </button>
+                /> */}
 
                 <button
                     type="button"
@@ -370,26 +331,6 @@ export default function Login() {
                     >
                         Đăng ký
                     </a>
-                </div>
-
-                <div
-                    style={{
-                        marginTop: 24,
-                        color: "#48A6A7",
-                        fontSize: 13,
-                        userSelect: "none",
-                        lineHeight: 1.4,
-                        background: "#F2EFE7",
-                        borderRadius: 8,
-                        padding: "10px 12px",
-                        textAlign: "center",
-                    }}
-                >
-                    <div>
-                        <b>Tài khoản mẫu:</b>
-                    </div>
-                    <div>Admin: admin@gmail.com / admin123</div>
-                    <div>Member: member@gmail.com / member123</div>
                 </div>
             </form>
         </div>

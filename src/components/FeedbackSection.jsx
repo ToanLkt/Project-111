@@ -1,175 +1,107 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
-const feedbacks = [
-  {
-    fullName: "Nguyễn Văn A",
-    feedback_content: "Trang web rất hữu ích, mình đã cai thuốc thành công nhờ các tài liệu và sự hỗ trợ từ cộng đồng!",
-    feedback_date: "2025-06-16",
-    feedback_rating: 5,
-  },
-  {
-    fullName: "Trần Thị B",
-    feedback_content: "Giao diện thân thiện, dễ sử dụng. Mình rất thích tính năng theo dõi tiến trình.",
-    feedback_date: "2025-06-15",
-    feedback_rating: 4,
-  },
-  {
-    fullName: "Lê Văn C",
-    feedback_content: "Cảm ơn đội ngũ phát triển đã tạo ra một nền tảng ý nghĩa cho cộng đồng.",
-    feedback_date: "2025-06-14",
-    feedback_rating: 5,
-  },
-];
-
+// Bảng màu chủ đề
 const COLORS = {
   background: "#F2EFE7",
-  card: "#fff",
-  cardAlt: "#E6F4F4",
+  primary: "#9ACBD0",
+  secondary: "#48A6A7",
   accent: "#006A71",
-  border: "#9ACBD0",
-  gold: "#bfa917",
-  goldBg: "#fffbe8",
-  goldText: "#bfa917",
-  icon: "#8e44ad",
+  text: "#006A71",
+  white: "#fff",
+  light: "#E6F4F4",
 };
 
 export default function FeedbackSection() {
+  const [feedbacks, setFeedbacks] = useState([]);
+
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      try {
+        const res = await fetch(
+          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Feedback"
+        );
+        const data = await res.json();
+        setFeedbacks(Array.isArray(data) ? data : []);
+      } catch {
+        setFeedbacks([]);
+      }
+    };
+    fetchFeedbacks();
+  }, []);
+
   return (
     <section
+      id="feedback"
       style={{
-        maxWidth: "1100px",
-        margin: "0 auto 4rem auto",
+        width: "100%",
+        minHeight: "40vh",
         background: COLORS.background,
-        padding: "3rem 2rem",
-        borderRadius: "20px",
-        boxShadow: "0 0 20px #9ACBD022",
+        padding: "2.5rem 0",
+        display: "flex",
+        justifyContent: "center",
       }}
     >
-      <h2
-        style={{
-          color: COLORS.accent,
-          fontWeight: 800,
-          fontSize: "2rem",
-          marginBottom: "2rem",
-          textAlign: "center",
-          letterSpacing: 0.5,
-        }}
-      >
-        Phản hồi từ người dùng
-      </h2>
       <div
         style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "2rem",
-          justifyContent: "center",
+          maxWidth: 800,
+          width: "100%",
+          background: COLORS.white,
+          borderRadius: 20,
+          boxShadow: "0 6px 32px rgba(72,166,167,0.13)",
+          border: `2px solid ${COLORS.primary}`,
+          padding: "2.2rem 2rem",
         }}
       >
-        {feedbacks.length === 0 && (
-          <div style={{ color: COLORS.accent, textAlign: "center" }}>
-            Chưa có phản hồi nào.
-          </div>
-        )}
-        {feedbacks.map((fb, index) => (
-          <div
-            key={index}
-            style={{
-              width: 320,
-              background: COLORS.cardAlt,
-              borderRadius: "16px",
-              padding: "2rem 1.5rem",
-              boxShadow: "0 4px 16px #9ACBD022",
-              color: COLORS.accent,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "space-between",
-              minHeight: 240,
-              border: `2px solid ${COLORS.border}`,
-              position: "relative",
-            }}
-          >
+        <h2
+          style={{
+            color: COLORS.accent,
+            fontWeight: 900,
+            fontSize: "2rem",
+            marginBottom: 24,
+            letterSpacing: 1,
+            textAlign: "center",
+            textShadow: "0 2px 8px #9ACBD033",
+            userSelect: "none",
+          }}
+        >
+          💬 Phản hồi từ người dùng
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {feedbacks.length === 0 && (
+            <div style={{ color: COLORS.secondary, textAlign: "center", fontWeight: 600 }}>
+              Chưa có phản hồi nào.
+            </div>
+          )}
+          {feedbacks.map((fb, idx) => (
             <div
+              key={idx}
               style={{
+                background: COLORS.light,
+                borderRadius: 14,
+                border: `1.5px solid ${COLORS.primary}`,
+                boxShadow: "0 2px 8px #9ACBD022",
+                padding: "1.3rem 1.1rem",
                 display: "flex",
                 flexDirection: "column",
-                alignItems: "center",
-                marginBottom: "1.2rem",
-                width: "100%",
+                gap: 8,
               }}
             >
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: "50%",
-                  background: COLORS.accent,
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 700,
-                  fontSize: 26,
-                  border: `2px solid ${COLORS.border}`,
-                  marginBottom: 10,
-                }}
-              >
-                {fb.fullName ? fb.fullName[0].toUpperCase() : "?"}
-              </div>
-              <strong
-                style={{
-                  fontSize: "1.08rem",
-                  color: COLORS.accent,
-                  marginBottom: 2,
-                  fontWeight: 700,
-                  letterSpacing: 0.2,
-                }}
-              >
+              <div style={{ fontWeight: 700, color: COLORS.accent, fontSize: "1.13rem" }}>
                 {fb.fullName}
-              </strong>
-              <span
-                style={{
-                  fontSize: "0.97rem",
-                  color: "#48A6A7",
-                  marginBottom: 2,
-                }}
-              >
-                {fb.feedback_date
-                  ? new Date(fb.feedback_date).toLocaleDateString("vi-VN")
-                  : ""}
-              </span>
-              <span
-                style={{
-                  fontSize: "1rem",
-                  color: COLORS.goldText,
-                  marginBottom: 2,
-                  fontWeight: 600,
-                  background: COLORS.goldBg,
-                  borderRadius: 8,
-                  padding: "2px 12px",
-                  letterSpacing: 0.2,
-                  marginTop: 2,
-                }}
-              >
-                Đánh giá: <b>{fb.feedback_rating} ★</b>
-              </span>
+              </div>
+              <div style={{ color: COLORS.text, fontSize: "1.07rem" }}>
+                {fb.feedback_content}
+              </div>
+              <div style={{ color: COLORS.secondary, fontSize: "0.98rem" }}>
+                {new Date(fb.feedback_date).toLocaleDateString()}
+                {"  "}
+                <span style={{ marginLeft: 12 }}>
+                  Đánh giá: {"⭐".repeat(fb.feedback_rating)}
+                </span>
+              </div>
             </div>
-            <p
-              style={{
-                margin: 0,
-                fontStyle: "italic",
-                color: COLORS.accent,
-                fontSize: "1.08rem",
-                textAlign: "center",
-                lineHeight: 1.6,
-                flex: 1,
-                fontWeight: 500,
-              }}
-            >
-              "{fb.feedback_content}"
-            </p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

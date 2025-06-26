@@ -30,7 +30,7 @@ export default function Plan() {
     const [cigarettesToday, setCigarettesToday] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const quitProgress = 80;
-    const quitStartDate = "2025-03-01T00:00:00";
+    const quitStartDate = "2025-06-15T00:00:00";
     const timer = useQuitTimer(quitStartDate);
     const achievements = [
         "1 tuần không hút thuốc",
@@ -156,7 +156,7 @@ export default function Plan() {
                         textAlign: "center"
                     }}>
                         <div style={{ fontWeight: 600, color: "#48A6A7", marginBottom: 18, fontSize: "1.15rem" }}>
-                            Thời gian bạn đã cai thuốc
+                            Thời gian bạn cai thuốc
                         </div>
                         <div style={{
                             display: "flex",
@@ -214,7 +214,7 @@ export default function Plan() {
                                     setCigarettesToday(e.target.value);
                                     setSubmitted(false);
                                 }}
-                                placeholder="Số điếu đã hút"
+                                placeholder="Số điếu"
                                 style={{
                                     width: 100,
                                     padding: "0.5rem",

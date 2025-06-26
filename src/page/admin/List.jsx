@@ -1,16 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Footer from "../../components/Footer";
-
-// Demo dữ liệu member và coach
-const initialMembers = [
-    { id: 1, name: "Nguyễn Văn A", email: "member1@gmail.com", membership: "Gói Pro", active: true },
-    { id: 2, name: "Trần Thị B", email: "member2@gmail.com", membership: "Gói Cơ bản", active: true },
-];
-
-const initialCoaches = [
-    { id: 1, name: "Lê Văn C", email: "coach1@gmail.com", active: true },
-    { id: 2, name: "Phạm Thị D", email: "coach2@gmail.com", active: true },
-];
+import { useAuth } from "../../AuthContext/AuthContext";
 
 // Bảng màu đồng bộ
 const COLORS = {
@@ -66,79 +56,143 @@ const tdStyle = {
 };
 
 export default function List() {
-    const [members, setMembers] = useState(initialMembers);
-    const [coaches, setCoaches] = useState(initialCoaches);
+    const { token } = useAuth();
+    const [members, setMembers] = useState([]);
+    const [coaches, setCoaches] = useState([]);
+    const [searchMember, setSearchMember] = useState("");
+    const [searchCoach, setSearchCoach] = useState("");
+    const [loadingMember, setLoadingMember] = useState(true);
+    const [loadingCoach, setLoadingCoach] = useState(true);
 
     // State cho modal thêm coach
     const [showAddCoach, setShowAddCoach] = useState(false);
     const [coachForm, setCoachForm] = useState({
-        name: "",
-        dob: "",
-        gender: "",
-        phone: "",
         email: "",
         password: "",
+        fullName: "",
+        phoneNumber: "",
+        birthday: "",
+        sex: "true"
     });
+    const [addingCoach, setAddingCoach] = useState(false);
+    const [addCoachError, setAddCoachError] = useState("");
 
-    // State search
-    const [searchMember, setSearchMember] = useState("");
-    const [searchCoach, setSearchCoach] = useState("");
+    // Lấy danh sách member
+    useEffect(() => {
+        if (!token) return;
+        setLoadingMember(true);
+        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("Unauthorized");
+                return res.json();
+            })
+            .then(data => {
+                setMembers(Array.isArray(data) ? data : []);
+                setLoadingMember(false);
+            })
+            .catch(() => {
+                setMembers([]);
+                setLoadingMember(false);
+            });
+    }, [token]);
 
+    // Lấy danh sách coach
+    useEffect(() => {
+        if (!token) return;
+        setLoadingCoach(true);
+        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("Unauthorized");
+                return res.json();
+            })
+            .then(data => {
+                setCoaches(Array.isArray(data) ? data : []);
+                setLoadingCoach(false);
+            })
+            .catch(() => {
+                setCoaches([]);
+                setLoadingCoach(false);
+            });
+    }, [token, addingCoach]);
+
+    // Lọc member
+    const filteredMembers = members.filter(m =>
+        (m.fullName || "").toLowerCase().includes(searchMember.toLowerCase()) ||
+        (m.email || "").toLowerCase().includes(searchMember.toLowerCase())
+    );
+
+    // Lọc coach
+    const filteredCoaches = coaches.filter(c =>
+        (c.fullName || "").toLowerCase().includes(searchCoach.toLowerCase()) ||
+        (c.email || "").toLowerCase().includes(searchCoach.toLowerCase())
+    );
+
+    // Helper để hiển thị trạng thái
+    const renderStatus = (status) => {
+        if (!status) return "";
+        if (typeof status === "boolean") return status ? "Hoạt động" : "Tạm khóa";
+        if (typeof status === "string") {
+            if (status.toLowerCase() === "active") return "Hoạt động";
+            if (status.toLowerCase() === "inactive" || status.toLowerCase() === "locked") return "Tạm khóa";
+            return status;
+        }
+        return status;
+    };
+
+    // Xử lý thêm coach
     const handleCoachFormChange = (e) => {
         const { name, value } = e.target;
-        setCoachForm((prev) => ({ ...prev, [name]: value }));
+        setCoachForm(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleAddCoach = (e) => {
+    const handleAddCoach = async (e) => {
         e.preventDefault();
-        setCoaches([
-            ...coaches,
-            {
-                id: Date.now(),
-                name: coachForm.name,
-                dob: coachForm.dob,
-                gender: coachForm.gender,
-                phone: coachForm.phone,
-                email: coachForm.email,
-                active: true,
-            },
-        ]);
-        setCoachForm({
-            name: "",
-            dob: "",
-            gender: "",
-            phone: "",
-            email: "",
-            password: "",
-        });
-        setShowAddCoach(false);
+        setAddingCoach(true);
+        setAddCoachError("");
+        try {
+            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    email: coachForm.email,
+                    password: coachForm.password,
+                    fullName: coachForm.fullName,
+                    phoneNumber: coachForm.phoneNumber,
+                    birthday: coachForm.birthday,
+                    sex: coachForm.sex === "true" || coachForm.sex === true // true: Nam, false: Nữ
+                })
+            });
+            if (!res.ok) {
+                const err = await res.text();
+                throw new Error(err);
+            }
+            setShowAddCoach(false);
+            setCoachForm({
+                email: "",
+                password: "",
+                fullName: "",
+                phoneNumber: "",
+                birthday: "",
+                sex: "true"
+            });
+            setAddingCoach(false);
+            // Tự động reload danh sách coach
+        } catch (err) {
+            setAddCoachError("Thêm coach thất bại: " + err.message);
+            setAddingCoach(false);
+        }
     };
-
-    // Tạm khóa hoặc mở khóa member
-    const handleToggleActiveMember = (id) => {
-        setMembers(members =>
-            members.map(m =>
-                m.id === id ? { ...m, active: !m.active } : m
-            )
-        );
-    };
-
-    // Tạm khóa hoặc mở khóa coach
-    const handleToggleActiveCoach = (id) => {
-        setCoaches(coaches =>
-            coaches.map(c =>
-                c.id === id ? { ...c, active: !c.active } : c
-            )
-        );
-    };
-
-    // Lọc theo search
-    const filteredMembers = members.filter(m =>
-        m.name.toLowerCase().includes(searchMember.toLowerCase())
-    );
-    const filteredCoaches = coaches.filter(c =>
-        c.name.toLowerCase().includes(searchCoach.toLowerCase())
-    );
 
     return (
         <div
@@ -162,12 +216,12 @@ export default function List() {
                 letterSpacing: 0.5,
                 textShadow: "0 2px 8px #9ACBD033"
             }}>
-                Danh sách Member đã đăng ký
+                Danh sách Member
             </h2>
             <div style={{ marginBottom: 18, display: "flex", justifyContent: "flex-end" }}>
                 <input
                     type="text"
-                    placeholder="Tìm kiếm tên member..."
+                    placeholder="Tìm kiếm tên hoặc email..."
                     value={searchMember}
                     onChange={e => setSearchMember(e.target.value)}
                     style={{
@@ -188,59 +242,28 @@ export default function List() {
                     <thead>
                         <tr>
                             <th style={thStyle}>STT</th>
-                            <th style={thStyle}>Họ tên</th>
                             <th style={thStyle}>Email</th>
-                            <th style={thStyle}>Gói membership</th>
+                            <th style={thStyle}>Họ và tên</th>
+                            <th style={thStyle}>SĐT</th>
+                            <th style={thStyle}>Ngày sinh</th>
+                            <th style={thStyle}>Giới tính</th>
                             <th style={thStyle}>Trạng thái</th>
-                            <th style={thStyle}>Tác vụ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredMembers.map((m, idx) => (
-                            <tr key={m.id} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
-                                <td style={tdStyle}>{idx + 1}</td>
-                                <td style={tdStyle}>{m.name}</td>
+                        {loadingMember ? (
+                            <tr><td colSpan={7} style={{ textAlign: "center", color: "#888" }}>Đang tải...</td></tr>
+                        ) : filteredMembers.length === 0 ? (
+                            <tr><td colSpan={7} style={{ textAlign: "center", color: "#888" }}>Không có member nào.</td></tr>
+                        ) : filteredMembers.map((m, idx) => (
+                            <tr key={m.accountId || idx} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
+                                <td style={tdStyle}>{m.accountId}</td>
                                 <td style={tdStyle}>{m.email}</td>
-                                <td style={tdStyle}>
-                                    <span style={{
-                                        background: m.membership === "Gói Pro" ? COLORS.primary : "#bbb",
-                                        color: COLORS.white,
-                                        padding: "4px 12px",
-                                        borderRadius: 16,
-                                        fontSize: 13,
-                                        fontWeight: 700,
-                                        boxShadow: "0 2px 8px #9ACBD022"
-                                    }}>
-                                        {m.membership}
-                                    </span>
-                                </td>
-                                <td style={tdStyle}>
-                                    <span style={{
-                                        color: m.active ? COLORS.success : COLORS.warning,
-                                        fontWeight: 700
-                                    }}>
-                                        {m.active ? "Hoạt động" : "Tạm khóa"}
-                                    </span>
-                                </td>
-                                <td style={tdStyle}>
-                                    <button
-                                        onClick={() => handleToggleActiveMember(m.id)}
-                                        style={{
-                                            background: m.active ? COLORS.warning : COLORS.success,
-                                            color: COLORS.white,
-                                            border: "none",
-                                            borderRadius: 8,
-                                            padding: "8px 22px",
-                                            cursor: "pointer",
-                                            fontWeight: 700,
-                                            fontSize: 16,
-                                            transition: "background 0.2s",
-                                            boxShadow: "0 2px 8px #9ACBD022"
-                                        }}
-                                    >
-                                        {m.active ? "Tạm khóa" : "Mở khóa"}
-                                    </button>
-                                </td>
+                                <td style={tdStyle}>{m.fullName}</td>
+                                <td style={tdStyle}>{m.phoneNumber}</td>
+                                <td style={tdStyle}>{m.birthday ? new Date(m.birthday).toLocaleDateString("vi-VN") : ""}</td>
+                                <td style={tdStyle}>{m.sex === true ? "Nam" : m.sex === false ? "Nữ" : m.sex}</td>
+                                <td style={tdStyle}>{renderStatus(m.status)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -257,7 +280,7 @@ export default function List() {
                 marginTop: 40,
                 textShadow: "0 2px 8px #9ACBD033"
             }}>
-                Danh sách Coach đã đăng ký
+                Danh sách Coach
             </h2>
             <div style={{
                 marginBottom: 18,
@@ -288,7 +311,7 @@ export default function List() {
                 </button>
                 <input
                     type="text"
-                    placeholder="Tìm kiếm tên coach..."
+                    placeholder="Tìm kiếm tên hoặc email..."
                     value={searchCoach}
                     onChange={e => setSearchCoach(e.target.value)}
                     style={{
@@ -309,45 +332,28 @@ export default function List() {
                     <thead>
                         <tr>
                             <th style={thStyle}>STT</th>
-                            <th style={thStyle}>Họ tên</th>
                             <th style={thStyle}>Email</th>
+                            <th style={thStyle}>Họ và tên</th>
+                            <th style={thStyle}>SĐT</th>
+                            <th style={thStyle}>Ngày sinh</th>
+                            <th style={thStyle}>Giới tính</th>
                             <th style={thStyle}>Trạng thái</th>
-                            <th style={thStyle}>Tác vụ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredCoaches.map((c, idx) => (
-                            <tr key={c.id} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
-                                <td style={tdStyle}>{idx + 1}</td>
-                                <td style={tdStyle}>{c.name}</td>
+                        {loadingCoach ? (
+                            <tr><td colSpan={7} style={{ textAlign: "center", color: "#888" }}>Đang tải...</td></tr>
+                        ) : filteredCoaches.length === 0 ? (
+                            <tr><td colSpan={7} style={{ textAlign: "center", color: "#888" }}>Không có coach nào.</td></tr>
+                        ) : filteredCoaches.map((c, idx) => (
+                            <tr key={c.coachId || idx} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
+                                <td style={tdStyle}>{c.coachId}</td>
                                 <td style={tdStyle}>{c.email}</td>
-                                <td style={tdStyle}>
-                                    <span style={{
-                                        color: c.active ? COLORS.success : COLORS.warning,
-                                        fontWeight: 700
-                                    }}>
-                                        {c.active ? "Hoạt động" : "Tạm khóa"}
-                                    </span>
-                                </td>
-                                <td style={tdStyle}>
-                                    <button
-                                        onClick={() => handleToggleActiveCoach(c.id)}
-                                        style={{
-                                            background: c.active ? COLORS.warning : COLORS.success,
-                                            color: COLORS.white,
-                                            border: "none",
-                                            borderRadius: 8,
-                                            padding: "8px 22px",
-                                            cursor: "pointer",
-                                            fontWeight: 700,
-                                            fontSize: 16,
-                                            transition: "background 0.2s",
-                                            boxShadow: "0 2px 8px #9ACBD022"
-                                        }}
-                                    >
-                                        {c.active ? "Tạm khóa" : "Mở khóa"}
-                                    </button>
-                                </td>
+                                <td style={tdStyle}>{c.fullName}</td>
+                                <td style={tdStyle}>{c.phoneNumber}</td>
+                                <td style={tdStyle}>{c.birthday ? new Date(c.birthday).toLocaleDateString("vi-VN") : ""}</td>
+                                <td style={tdStyle}>{c.sex === true ? "Nam" : c.sex === false ? "Nữ" : c.sex}</td>
+                                <td style={tdStyle}>{renderStatus(c.status)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -387,75 +393,6 @@ export default function List() {
                     >
                         <h3 style={{ color: COLORS.accent, marginBottom: 8, textAlign: "center" }}>Thêm Coach mới</h3>
                         <input
-                            name="name"
-                            value={coachForm.name}
-                            onChange={handleCoachFormChange}
-                            placeholder="Họ tên"
-                            required
-                            style={{
-                                padding: "9px",
-                                borderRadius: 8,
-                                border: `1.5px solid ${COLORS.primary}`,
-                                fontSize: 15,
-                                background: COLORS.tableBg,
-                                color: COLORS.accent,
-                                fontWeight: 600,
-                            }}
-                        />
-                        <input
-                            name="dob"
-                            type="date"
-                            value={coachForm.dob}
-                            onChange={handleCoachFormChange}
-                            placeholder="Ngày sinh"
-                            required
-                            style={{
-                                padding: "9px",
-                                borderRadius: 8,
-                                border: `1.5px solid ${COLORS.primary}`,
-                                fontSize: 15,
-                                background: COLORS.tableBg,
-                                color: COLORS.accent,
-                                fontWeight: 600,
-                            }}
-                        />
-                        <select
-                            name="gender"
-                            value={coachForm.gender}
-                            onChange={handleCoachFormChange}
-                            required
-                            style={{
-                                padding: "9px",
-                                borderRadius: 8,
-                                border: `1.5px solid ${COLORS.primary}`,
-                                fontSize: 15,
-                                color: coachForm.gender ? COLORS.accent : "#888",
-                                background: COLORS.tableBg,
-                                fontWeight: 600,
-                            }}
-                        >
-                            <option value="">Giới tính</option>
-                            <option value="Nam">Nam</option>
-                            <option value="Nữ">Nữ</option>
-                            <option value="Khác">Khác</option>
-                        </select>
-                        <input
-                            name="phone"
-                            value={coachForm.phone}
-                            onChange={handleCoachFormChange}
-                            placeholder="Số điện thoại"
-                            required
-                            style={{
-                                padding: "9px",
-                                borderRadius: 8,
-                                border: `1.5px solid ${COLORS.primary}`,
-                                fontSize: 15,
-                                background: COLORS.tableBg,
-                                color: COLORS.accent,
-                                fontWeight: 600,
-                            }}
-                        />
-                        <input
                             name="email"
                             type="email"
                             value={coachForm.email}
@@ -489,6 +426,76 @@ export default function List() {
                                 fontWeight: 600,
                             }}
                         />
+                        <input
+                            name="fullName"
+                            value={coachForm.fullName}
+                            onChange={handleCoachFormChange}
+                            placeholder="Họ và tên"
+                            required
+                            style={{
+                                padding: "9px",
+                                borderRadius: 8,
+                                border: `1.5px solid ${COLORS.primary}`,
+                                fontSize: 15,
+                                background: COLORS.tableBg,
+                                color: COLORS.accent,
+                                fontWeight: 600,
+                            }}
+                        />
+                        <input
+                            name="phoneNumber"
+                            value={coachForm.phoneNumber}
+                            onChange={handleCoachFormChange}
+                            placeholder="Số điện thoại"
+                            required
+                            style={{
+                                padding: "9px",
+                                borderRadius: 8,
+                                border: `1.5px solid ${COLORS.primary}`,
+                                fontSize: 15,
+                                background: COLORS.tableBg,
+                                color: COLORS.accent,
+                                fontWeight: 600,
+                            }}
+                        />
+                        <input
+                            name="birthday"
+                            type="date"
+                            value={coachForm.birthday}
+                            onChange={handleCoachFormChange}
+                            placeholder="Ngày sinh"
+                            required
+                            style={{
+                                padding: "9px",
+                                borderRadius: 8,
+                                border: `1.5px solid ${COLORS.primary}`,
+                                fontSize: 15,
+                                background: COLORS.tableBg,
+                                color: COLORS.accent,
+                                fontWeight: 600,
+                            }}
+                        />
+                        <select
+                            name="sex"
+                            value={coachForm.sex}
+                            onChange={handleCoachFormChange}
+                            required
+                            style={{
+                                padding: "9px",
+                                borderRadius: 8,
+                                border: `1.5px solid ${COLORS.primary}`,
+                                fontSize: 15,
+                                color: coachForm.sex ? COLORS.accent : "#888",
+                                background: COLORS.tableBg,
+                                fontWeight: 600,
+                            }}
+                        >
+                            <option value="true">Nam</option>
+                            <option value="false">Nữ</option>
+                        </select>
+                        {addCoachError && (
+                            <div style={{ color: COLORS.danger, fontWeight: 700, textAlign: "center" }}>{addCoachError}</div>
+                        )}
                         <div style={{ display: "flex", gap: 12, marginTop: 8, justifyContent: "flex-end" }}>
                             <button
                                 type="button"
@@ -507,25 +514,56 @@ export default function List() {
                             </button>
                             <button
                                 type="submit"
+                                disabled={addingCoach}
                                 style={{
                                     background: COLORS.primary,
                                     color: COLORS.white,
                                     border: "none",
                                     borderRadius: 7,
                                     padding: "8px 18px",
-                                    fontWeight: 800,
-                                    cursor: "pointer"
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    position: "relative",
+                                    overflow: "hidden",
+                                    transition: "background 0.18s",
                                 }}
-                                onMouseOver={e => e.currentTarget.style.background = COLORS.accent}
-                                onMouseOut={e => e.currentTarget.style.background = COLORS.primary}
                             >
-                                Thêm
+                                {addingCoach ? "Đang thêm..." : "Thêm Coach"}
+                                {addingCoach && (
+                                    <div style={{
+                                        position: "absolute",
+                                        top: 0,
+                                        left: 0,
+                                        width: "100%",
+                                        height: "100%",
+                                        background: COLORS.btnHover,
+                                        borderRadius: 7,
+                                        zIndex: 1,
+                                        animation: "fadeIn 0.4s",
+                                    }} />
+                                )}
                             </button>
+                        </div>
+                        <div style={{
+                            position: "absolute",
+                            top: 16,
+                            right: 16,
+                            cursor: "pointer",
+                            color: "#888",
+                            transition: "color 0.18s",
+                        }}
+                            onClick={() => setShowAddCoach(false)}
+                            onMouseEnter={e => e.currentTarget.style.color = "#555"}
+                            onMouseLeave={e => e.currentTarget.style.color = "#888"}
+                        >
+                            &times;
                         </div>
                     </form>
                 </div>
             )}
+
             <Footer />
+
 
         </div>
 

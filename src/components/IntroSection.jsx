@@ -15,13 +15,18 @@ export default function IntroSection() {
   const [about, setAbout] = useState("");
 
   useEffect(() => {
-    fetch("https://localhost:7133/api/Platform/info")
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.about) setAbout(data.about);
-        else setAbout("Chưa có thông tin giới thiệu.");
-      })
-      .catch(() => setAbout("Chưa có thông tin giới thiệu."));
+    const fetchAbout = async () => {
+      try {
+        const res = await fetch(
+          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Platform"
+        );
+        const data = await res.json();
+        setAbout(data.about || "");
+      } catch {
+        setAbout("Không thể tải thông tin giới thiệu.");
+      }
+    };
+    fetchAbout();
   }, []);
 
   return (
@@ -29,71 +34,55 @@ export default function IntroSection() {
       id="gioithieu"
       style={{
         width: "100%",
-        minHeight: "60vh",
+        minHeight: "40vh",
         background: COLORS.background,
+        padding: "2.5rem 0",
         display: "flex",
-        alignItems: "center",
         justifyContent: "center",
-        padding: "3rem 0",
       }}
     >
       <div
         style={{
+          maxWidth: 800,
+          width: "100%",
           background: COLORS.white,
           borderRadius: 20,
           boxShadow: "0 6px 32px rgba(72,166,167,0.13)",
           border: `2px solid ${COLORS.primary}`,
-          maxWidth: 700,
-          margin: "0 auto",
-          padding: "2.5rem 2rem",
-          textAlign: "center",
+          padding: "2.2rem 2rem",
         }}
       >
-        <h1
+        <h2
           style={{
             color: COLORS.accent,
             fontWeight: 900,
-            fontSize: "2.3rem",
-            marginBottom: 18,
+            fontSize: "2rem",
+            marginBottom: 24,
             letterSpacing: 1,
+            textAlign: "center",
             textShadow: "0 2px 8px #9ACBD033",
             userSelect: "none",
           }}
         >
-          Chào mừng bạn đến với Cộng đồng Cai Thuốc Lá!
-        </h1>
-        <p
+          Giới thiệu
+        </h2>
+        <div
           style={{
-            color: COLORS.secondary,
-            fontSize: "1.18rem",
-            marginBottom: 24,
-            fontWeight: 500,
-            lineHeight: 1.6,
-          }}
-        >
-          Đây là nơi bạn có thể chia sẻ kinh nghiệm, nhận sự hỗ trợ và cùng nhau vượt qua thử thách cai thuốc lá. Hãy bắt đầu hành trình sống khỏe mạnh hơn cùng chúng tôi!
-        </p>
-        <a
-          href="/community"
-          style={{
-            display: "inline-block",
-            background: `linear-gradient(90deg, ${COLORS.secondary} 60%, ${COLORS.accent} 100%)`,
-            color: COLORS.white,
-            fontWeight: 700,
+            color: COLORS.text,
             fontSize: "1.13rem",
-            border: "none",
-            borderRadius: 10,
-            padding: "0.9rem 2.2rem",
-            textDecoration: "none",
-            boxShadow: "0 2px 10px rgba(72,166,167,0.13)",
-            transition: "background 0.3s",
-            letterSpacing: 0.5,
+            fontWeight: 500,
+            lineHeight: 1.7,
+            textAlign: "center",
+            background: COLORS.light,
+            borderRadius: 14,
+            border: `1.5px solid ${COLORS.primary}`,
+            boxShadow: "0 2px 8px #9ACBD022",
+            padding: "1.3rem 1.1rem",
+            minHeight: 80,
           }}
-          onMouseOver={e => (e.currentTarget.style.background = COLORS.accent)}
-          onMouseOut={e => (e.currentTarget.style.background = `linear-gradient(90deg, ${COLORS.secondary} 60%, ${COLORS.accent} 100%)`)}
         >
-          Tham gia cộng đồng
-        </a>
+          {about}
+        </div>
       </div>
     </section>
   );

@@ -11,50 +11,33 @@ const COLORS = {
   light: "#E6F4F4",
 };
 
-// Dữ liệu 3 tin tức mẫu cho NewSection.jsx
-const news = [
-  {
-    id: 1,
-    title: "Bộ Y tế phát động chiến dịch quốc gia cai thuốc lá",
-    summary: "Chiến dịch mới nhằm nâng cao nhận thức cộng đồng về tác hại của thuốc lá và hỗ trợ người dân bỏ thuốc.",
-    date: "16/06/2025"
-  },
-  {
-    id: 2,
-    title: "Nghiên cứu: Cai thuốc lá giúp cải thiện sức khỏe tim mạch",
-    summary: "Các chuyên gia khuyến nghị bỏ thuốc lá càng sớm càng tốt để giảm nguy cơ mắc bệnh tim mạch và đột quỵ.",
-    date: "15/06/2025"
-  },
-  {
-    id: 3,
-    title: "Câu chuyện thành công: 100 ngày không thuốc lá",
-    summary: "Anh Nguyễn Văn A chia sẻ hành trình vượt qua cơn nghiện thuốc lá và truyền cảm hứng cho cộng đồng.",
-    date: "14/06/2025"
-  }
-];
-
 export default function NewSection() {
-  const [articles, setArticles] = useState([]);
+  const [news, setNews] = useState([]);
 
   useEffect(() => {
-    // fetch("https://localhost:7133/api/Platform/info")
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     // Lấy các trường news từ API và chuyển thành mảng bài viết
-    //     const news = [];
-    //     for (let i = 1; i <= 3; i++) {
-    //       if (data[`news${i}_Title`]) {
-    //         news.push({
-    //           title: data[`news${i}_Title`],
-    //           summary: data[`news${i}_Content`] || "",
-    //           link: data[`news${i}_Link`] || "#"
-    //         });
-    //       }
-    //     }
-    //     setArticles(news);
-    //   })
-    //   .catch(() => setArticles([]));
-    setArticles(news);
+    const fetchNews = async () => {
+      try {
+        const res = await fetch(
+          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Platform"
+        );
+        const data = await res.json();
+        // Xử lý dữ liệu từ API theo đúng format trả về
+        const arr = [];
+        for (let i = 1; i <= 3; i++) {
+          if (data[`news${i}Title`]) {
+            arr.push({
+              title: data[`news${i}Title`],
+              summary: data[`news${i}Content`] || "",
+              link: data[`news${i}Link`] || "#",
+            });
+          }
+        }
+        setNews(arr);
+      } catch {
+        setNews([]);
+      }
+    };
+    fetchNews();
   }, []);
 
   return (
@@ -95,12 +78,12 @@ export default function NewSection() {
           📰 Tin tức mới nhất
         </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {articles.length === 0 && (
+          {news.length === 0 && (
             <div style={{ color: COLORS.secondary, textAlign: "center", fontWeight: 600 }}>
               Chưa có tin tức nào.
             </div>
           )}
-          {articles.map((article, index) => (
+          {news.map((article, index) => (
             <div
               key={index}
               style={{
@@ -120,7 +103,11 @@ export default function NewSection() {
               <div style={{ color: COLORS.text, fontSize: "1.07rem" }}>
                 {article.summary}
               </div>
-              <a href={article.link} style={{ color: COLORS.accent, fontWeight: "bold", textDecoration: "none" }}>Xem chi tiết</a>
+              {article.link && (
+                <a href={article.link} style={{ color: COLORS.accent, fontWeight: "bold", textDecoration: "none" }} target="_blank" rel="noopener noreferrer">
+                  Xem chi tiết
+                </a>
+              )}
             </div>
           ))}
         </div>

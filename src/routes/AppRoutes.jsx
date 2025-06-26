@@ -1,6 +1,6 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
-import Home from "../page/Home";
+import Home from "../page/Home/Home";
 import MemberProfile from "../page/member/MemberProfile";
 import Contact from "../page/Contact";
 import NotFound from "../page/NotFound";
@@ -23,7 +23,17 @@ import AdminPage from "../page/admin/AdminPage";
 import AdminCommunity from "../page/admin/AdminCommunity";
 import AdminPayment from "../page/admin/AdminPayment";
 import AdminProfile from "../page/admin/AdminProfile";
-
+import Payment from "../components/Payment";
+import CoachLayout from "../layout/CoachLayout";
+import CoachPage from "../page/coach/CoachPage";
+import CoachProfile from "../page/coach/CoachProfile";
+import CoachNavbar from "../page/coach/CoachNavbar";
+import CoachCommunity from "../page/coach/CoachCommunity";
+import CoachMembers from "../page/coach/CoachMembers";
+import CoachSchedule from "../page/coach/CoachSchedule";
+import CoachStatistics from "../page/coach/CoachStatistics";
+import ConfirmRegister from "../components/ConfirmRegister";
+import ResetPassword from "../page/ResetPassword";
 
 export default function AppRoutes() {
   return (
@@ -44,6 +54,8 @@ export default function AppRoutes() {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="/confirm-register" element={<ConfirmRegister />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Các route cần đăng nhập */}
         <Route
@@ -92,7 +104,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-
         <Route index element={<AdminPage />} />
         <Route path="list" element={<List />} />
         <Route path="community" element={<AdminCommunity />} />
@@ -101,11 +112,29 @@ export default function AppRoutes() {
         <Route path="profile" element={<AdminProfile />} />
       </Route>
 
+      {/* Route coach dùng CoachLayout riêng */}
+      <Route
+        path="coachpage"
+        element={
+          <ProtectedRoute allowedRoles={["coach"]}>
+            <CoachNavbar />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<CoachPage />} />
+        <Route path="community" element={<CoachCommunity />} />
+        <Route path="members" element={<CoachMembers />} />
+        <Route path="schedule" element={<CoachSchedule />} />
+        <Route path="statistics" element={<CoachStatistics />} />
+        <Route path="profile" element={<CoachProfile />} />
+      </Route>
+
       {/* Các route khác */}
       <Route path="*" element={<NotFound />} />
       <Route path="dashboard" element={<DashBoard />}>
         <Route path="setting" element={<AdminPayment />} />
       </Route>
+      <Route path="/payment" element={<Payment />} />
     </Routes>
   );
 }

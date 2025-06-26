@@ -6,7 +6,7 @@ export default function AdminLayout() {
   return (
     <>
       <AdminNavbar />
-      <Outlet />
+
     </>
   );
 }

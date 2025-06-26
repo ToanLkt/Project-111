@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Footer from "../../components/Footer";
+import AuthContext from "../../AuthContext/AuthContext";
 
-// Chủ đề màu
 const COLORS = {
     bg: "#F2EFE7",
     border: "#9ACBD0",
@@ -14,41 +14,6 @@ const COLORS = {
     light: "#E6F4F4",
 };
 
-const rankingData = [
-    {
-        name: "Bạch Tấn Phú",
-        days: 120,
-        avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-    },
-    {
-        name: "Hà Việt Thành",
-        days: 98,
-        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-    },
-    {
-        name: "Lương Khánh Toàn",
-        days: 90,
-        avatar: "https://randomuser.me/api/portraits/men/65.jpg",
-    },
-    {
-        name: "Phan Diệu Linh",
-        days: 80,
-        avatar: "https://randomuser.me/api/portraits/women/68.jpg",
-    },
-    {
-        name: "Hoàng Văn E",
-        days: 75,
-        avatar: "https://randomuser.me/api/portraits/men/12.jpg",
-    },
-];
-
-const currentUser = {
-    name: "Lương Khánh Toàn",
-    days: 90,
-    avatar: "https://randomuser.me/api/portraits/men/65.jpg",
-    rank: rankingData.findIndex(u => u.name === "Lương Khánh Toàn") + 1,
-};
-
 const medalColors = [COLORS.medal1, COLORS.medal2, COLORS.medal3];
 const bgMedals = [
     "rgba(72,166,167,0.10)",
@@ -57,6 +22,35 @@ const bgMedals = [
 ];
 
 export default function Ranking() {
+    const { token } = useContext(AuthContext);
+    const [rankingData, setRankingData] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        // Lấy bảng xếp hạng
+        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Ranking")
+            .then(res => res.ok ? res.json() : [])
+            .then(data => Array.isArray(data) ? setRankingData(data) : setRankingData([]))
+            .catch(() => setRankingData([]))
+            .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        if (!token) {
+            setCurrentUser(null);
+            return;
+        }
+        // Lấy thông tin rank của bản thân
+        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Ranking/me", {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => setCurrentUser(data))
+            .catch(() => setCurrentUser(null));
+    }, [token]);
+
     return (
         <div
             style={{
@@ -104,69 +98,86 @@ export default function Ranking() {
                         🏆 Bảng xếp hạng thành viên
                     </h2>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                        {rankingData.map((user, idx) => (
-                            <div
-                                key={user.name}
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    borderRadius: 16,
-                                    padding: "1.1rem 1.2rem",
-                                    background: idx < 3 ? bgMedals[idx] : COLORS.light,
-                                    border: `2px solid ${medalColors[idx] || COLORS.border}`,
-                                    boxShadow: idx < 3 ? `0 0 16px ${medalColors[idx]}33` : "none",
-                                    transform: idx === 0 ? "scale(1.04)" : "none",
-                                    marginBottom: 0,
-                                    transition: "transform 0.2s",
-                                }}
-                            >
+                    {loading ? (
+                        <div style={{ textAlign: "center", color: COLORS.medal1, fontWeight: 700, fontSize: 18, margin: "2rem 0" }}>
+                            Đang tải bảng xếp hạng...
+                        </div>
+                    ) : rankingData.length === 0 ? (
+                        <div style={{ textAlign: "center", color: COLORS.medal1, fontWeight: 700, fontSize: 18, margin: "2rem 0" }}>
+                            Không có dữ liệu xếp hạng.
+                        </div>
+                    ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                            {rankingData.map((user, idx) => (
                                 <div
+                                    key={user.rank || idx}
                                     style={{
-                                        fontWeight: 900,
-                                        textAlign: "center",
-                                        fontSize: idx === 0 ? "2.2rem" : "1.4rem",
-                                        width: "2.5rem",
-                                        color: medalColors[idx] || COLORS.text,
-                                        marginRight: 10,
-                                        userSelect: "none",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        borderRadius: 16,
+                                        padding: "1.1rem 1.2rem",
+                                        background: idx < 3 ? bgMedals[idx] : COLORS.light,
+                                        border: `2px solid ${medalColors[idx] || COLORS.border}`,
+                                        boxShadow: idx < 3 ? `0 0 16px ${medalColors[idx]}33` : "none",
+                                        transform: idx === 0 ? "scale(1.04)" : "none",
+                                        marginBottom: 0,
+                                        transition: "transform 0.2s",
                                     }}
                                 >
-                                    {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
-                                </div>
-                                <img
-                                    src={user.avatar}
-                                    alt={user.name}
-                                    style={{
+                                    <div
+                                        style={{
+                                            fontWeight: 900,
+                                            textAlign: "center",
+                                            fontSize: idx === 0 ? "2.2rem" : "1.4rem",
+                                            width: "2.5rem",
+                                            color: medalColors[idx] || COLORS.text,
+                                            marginRight: 10,
+                                            userSelect: "none",
+                                        }}
+                                    >
+                                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${user.rank}`}
+                                    </div>
+                                    <div style={{
                                         width: idx === 0 ? 62 : 48,
                                         height: idx === 0 ? 62 : 48,
                                         borderRadius: "50%",
                                         border: `2.5px solid ${medalColors[idx] || COLORS.border}`,
                                         background: COLORS.white,
                                         marginRight: 18,
-                                        objectFit: "cover",
-                                    }}
-                                />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 700, fontSize: "1.13rem", color: COLORS.text }}>{user.name}</div>
-                                    <div style={{ fontSize: 14, color: "#48A6A7" }}>
-                                        Điểm cá nhân:{" "}
-                                        <span style={{ color: COLORS.medal1, fontWeight: 700 }}>{user.days}</span>
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: 900,
+                                        fontSize: idx === 0 ? 28 : 20,
+                                        color: medalColors[idx] || COLORS.text,
+                                    }}>
+                                        {user.fullName ? user.fullName[0].toUpperCase() : "?"}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700, fontSize: "1.13rem", color: COLORS.text }}>
+                                            {user.fullName || "Ẩn danh"}
+                                        </div>
+                                        <div style={{ fontSize: 14, color: "#48A6A7" }}>
+                                            Huy hiệu: <span style={{ color: COLORS.medal1, fontWeight: 700 }}>{user.badge || ""}</span>
+                                        </div>
+                                        <div style={{ fontSize: 14, color: "#48A6A7" }}>
+                                            Điểm cá nhân: <span style={{ color: COLORS.medal1, fontWeight: 700 }}>{user.totalScore ?? 0}</span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontWeight: 800,
+                                            marginLeft: 20,
+                                            color: medalColors[idx] || COLORS.text,
+                                            fontSize: "1.18rem",
+                                        }}
+                                    >
+                                        #{user.rank}
                                     </div>
                                 </div>
-                                <div
-                                    style={{
-                                        fontWeight: 800,
-                                        marginLeft: 20,
-                                        color: medalColors[idx] || COLORS.text,
-                                        fontSize: "1.18rem",
-                                    }}
-                                >
-                                    #{idx + 1}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Vị trí của bạn */}
                     <div
@@ -191,31 +202,41 @@ export default function Ranking() {
                         >
                             🎖 Vị trí của bạn
                         </h3>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <img
-                                src={currentUser.avatar}
-                                alt={currentUser.name}
-                                style={{
-                                    width: 62,
-                                    height: 62,
-                                    borderRadius: "50%",
-                                    border: `2.5px solid ${COLORS.medal1}`,
-                                    marginRight: 20,
-                                    objectFit: "cover",
-                                    background: COLORS.white,
-                                }}
-                            />
-                            <div style={{ textAlign: "left" }}>
-                                <div style={{ fontWeight: 700, fontSize: "1.13rem", color: COLORS.text }}>{currentUser.name}</div>
-                                <div style={{ color: "#48A6A7", fontSize: 14 }}>
-                                    Điểm cá nhân:{" "}
-                                    <span style={{ color: COLORS.medal1, fontWeight: 700 }}>{currentUser.days}</span>
-                                </div>
-                                <div style={{ color: COLORS.medal1, fontWeight: 800, fontSize: "1.15rem", marginTop: 2 }}>
-                                    #{currentUser.rank}
+                        {currentUser ? (
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <img
+                                    src={currentUser.avatar || "https://randomuser.me/api/portraits/lego/1.jpg"}
+                                    alt={currentUser.fullName || currentUser.email || "user"}
+                                    style={{
+                                        width: 62,
+                                        height: 62,
+                                        borderRadius: "50%",
+                                        border: `2.5px solid ${COLORS.medal1}`,
+                                        marginRight: 20,
+                                        objectFit: "cover",
+                                        background: COLORS.white,
+                                    }}
+                                />
+                                <div style={{ textAlign: "left" }}>
+                                    <div style={{ fontWeight: 700, fontSize: "1.13rem", color: COLORS.text }}>
+                                        {currentUser.fullName || currentUser.name || currentUser.email || "Ẩn danh"}
+                                    </div>
+                                    <div style={{ color: "#48A6A7", fontSize: 14 }}>
+                                        Điểm cá nhân:{" "}
+                                        <span style={{ color: COLORS.medal1, fontWeight: 700 }}>
+                                            {currentUser.totalScore ?? 0}
+                                        </span>
+                                    </div>
+                                    <div style={{ color: COLORS.medal1, fontWeight: 800, fontSize: "1.15rem", marginTop: 2 }}>
+                                        #{currentUser.rank ?? "?"}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div style={{ color: "#888", fontWeight: 600, fontSize: 15 }}>
+                                Vui lòng đăng nhập để xem vị trí của bạn.
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
