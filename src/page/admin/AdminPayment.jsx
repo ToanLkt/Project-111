@@ -26,6 +26,7 @@ const COLORS = {
 
 export default function AdminPayment() {
   const [packages, setPackages] = useState([]);
+  const [history, setHistory] = useState([]);
   const [showEdit, setShowEdit] = useState(false);
   const [editPkg, setEditPkg] = useState(null);
   const [form, setForm] = useState({
@@ -53,6 +54,20 @@ export default function AdminPayment() {
     }
     if (token) fetchPackages();
   }, [token]);
+
+  // Lấy lịch sử giao dịch
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/purchase-history");
+        const data = await res.json();
+        setHistory(Array.isArray(data) ? data : []);
+      } catch {
+        setHistory([]);
+      }
+    }
+    fetchHistory();
+  }, []);
 
   // Sửa gói
   const handleEditPackage = (pkg) => {
@@ -355,6 +370,67 @@ export default function AdminPayment() {
             </tbody>
           </table>
         </div>
+      </div>
+      <h2
+        style={{
+          color: COLORS.accent,
+          margin: "40px 0 18px 0",
+          fontWeight: 800,
+          fontSize: "1.5rem",
+          textAlign: "center",
+          letterSpacing: 0.5,
+        }}
+      >
+        Lịch sử giao dịch thành viên
+      </h2>
+      <div style={{ overflowX: "auto", marginBottom: 32 }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "separate",
+            borderSpacing: 0,
+            background: COLORS.tableBg,
+            borderRadius: 12,
+            overflow: "hidden",
+            boxShadow: "0 2px 12px #9ACBD011",
+          }}
+        >
+          <thead>
+            <tr style={{ background: COLORS.thBg }}>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>STT</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Tên thành viên</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Gói</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Mã giao dịch</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Số tiền</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Ngày mua</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Ngày bắt đầu</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Ngày kết thúc</th>
+              <th style={{ padding: 14, fontWeight: 700, color: COLORS.thText }}>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            {history.map((item, idx) => (
+              <tr key={item.purchaseID || idx} style={{ background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt }}>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{idx + 1}</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.memberName}</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.packageCategory}</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.transactionCode}</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.totalPrice?.toLocaleString("vi-VN")}đ</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.timeBuy?.slice(0, 19).replace("T", " ")}</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.startDate?.slice(0, 19).replace("T", " ")}</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.endDate?.slice(0, 19).replace("T", " ")}</td>
+                <td style={{ padding: 12, color: COLORS.tdText }}>{item.paymentStatus}</td>
+              </tr>
+            ))}
+            {history.length === 0 && (
+              <tr>
+                <td colSpan={9} style={{ textAlign: "center", padding: 18, color: "#888" }}>
+                  Không có giao dịch nào.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

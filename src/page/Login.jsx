@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../AuthContext/AuthContext";
 import { useNavigate } from "react-router-dom";
+// Thêm dòng này
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -256,25 +257,35 @@ export default function Login() {
                     Đăng nhập
                 </button>
 
-                {/* XÓA ĐĂNG NHẬP GOOGLE */}
-                {/* <div
+                {/* Nút chuyển đến trang loginGoogle.jsx */}
+                <button
+                    type="button"
+                    onClick={() => navigate("/logingoogle")}
                     style={{
-                        textAlign: "center",
-                        margin: "20px 0 16px",
-                        color: "#48A6A7",
-                        fontWeight: "500",
+                        width: "100%",
+                        background: "#fff",
+                        color: "#006A71",
+                        border: "2px solid #48A6A7",
+                        borderRadius: 8,
+                        padding: "0.7rem",
+                        fontWeight: "700",
+                        fontSize: "1.05rem",
+                        cursor: "pointer",
+                        marginBottom: 12,
+                        marginTop: 4,
+                        transition: "background 0.2s, color 0.2s",
+                    }}
+                    onMouseOver={e => {
+                        e.currentTarget.style.background = "#48A6A7";
+                        e.currentTarget.style.color = "#fff";
+                    }}
+                    onMouseOut={e => {
+                        e.currentTarget.style.background = "#fff";
+                        e.currentTarget.style.color = "#006A71";
                     }}
                 >
-                    hoặc
-                </div>
-                <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => {
-                        setError("Đăng nhập Google thất bại!");
-                        setShowToast(true);
-                        setTimeout(() => setShowToast(false), 1500);
-                    }}
-                /> */}
+                    Đăng nhập bằng Google (chuyển trang)
+                </button>
 
                 <button
                     type="button"

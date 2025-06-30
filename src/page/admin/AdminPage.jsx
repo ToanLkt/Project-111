@@ -12,7 +12,7 @@ export default function AdminPage() {
 
     useEffect(() => {
         // Nếu muốn lấy message động, thay URL API phù hợp
-        fetch("https://localhost:7133/api/Platform/info")
+        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Platform")
             .then((res) => res.json())
             .then((data) => {
                 if (data && data.message) setMessage(data.message);

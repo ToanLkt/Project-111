@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
-    "@tailwindcss/vite": "^4.1.7",
+    "@tailwindcss/vite": "^4.1.10",
     "boostrap": "^2.0.0",
-    "bootstrap": "^5.3.6",
+    "bootstrap": "^5.3.7",
+    "firebase": "^11.9.1",
+    "lucide-react": "^0.525.0",
     "react": "^18.3.1",
+    "react-bootstrap": "^2.10.10",
     "react-dom": "^18.3.1",
     "react-router": "^7.6.0",
     "react-router-dom": "^7.6.0"
@@ -32,7 +35,7 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
     "postcss": "^8.5.4",
-    "tailwindcss": "^4.1.8",
+    "tailwindcss": "^4.1.10",
     "vite": "^6.0.5"
   }
 }

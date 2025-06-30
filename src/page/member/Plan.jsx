@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Footer from "../../components/Footer";
+import AuthContext from "../../AuthContext/AuthContext"; // Thêm dòng này
 
 // Hàm tính số ngày, giờ, phút, giây đã cai thuốc
 function useQuitTimer(startDate) {
@@ -29,6 +30,8 @@ export default function Plan() {
     const cigarettesAllowed = 7;
     const [cigarettesToday, setCigarettesToday] = useState("");
     const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [apiError, setApiError] = useState("");
     const quitProgress = 80;
     const quitStartDate = "2025-06-15T00:00:00";
     const timer = useQuitTimer(quitStartDate);
@@ -39,10 +42,44 @@ export default function Plan() {
     ];
 
     const navigate = useNavigate();
+    const auth = useContext(AuthContext); // Lấy context
+    const token = auth?.token; // Lấy token member
 
-    const handleCigaretteSubmit = (e) => {
+    const handleCigaretteSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
+        setLoading(true);
+        setApiError("");
+
+        if (cigarettesToday === "" || isNaN(Number(cigarettesToday))) {
+            setApiError("Vui lòng nhập số điếu thuốc hợp lệ!");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            console.log("Token:", token);
+            console.log("Body gửi lên:", { todayCigarettes: Number(cigarettesToday) });
+
+            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/today-cigarettes", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    todayCigarettes: Number(cigarettesToday)
+                })
+            });
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error("Lỗi chi tiết:", errorText);
+                throw new Error("Lưu thất bại!");
+            }
+            setSubmitted(true);
+        } catch (err) {
+            setApiError("Lưu thất bại, vui lòng thử lại!");
+        }
+        setLoading(false);
     };
 
     const [openStage, setOpenStage] = useState(null);
@@ -91,8 +128,8 @@ export default function Plan() {
             <div
                 style={{
                     minHeight: "100vh",
-                    background: "#F2EFE7", // Nền sáng
-                    color: "#006A71",      // Text xanh đậm
+
+                    color: "#006A71",
                     fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
                     padding: "0 0 2rem 0"
                 }}
@@ -213,6 +250,7 @@ export default function Plan() {
                                 onChange={e => {
                                     setCigarettesToday(e.target.value);
                                     setSubmitted(false);
+                                    setApiError("");
                                 }}
                                 placeholder="Số điếu"
                                 style={{
@@ -229,6 +267,7 @@ export default function Plan() {
                             />
                             <button
                                 type="submit"
+                                disabled={loading}
                                 style={{
                                     background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                                     color: "#fff",
@@ -237,16 +276,21 @@ export default function Plan() {
                                     padding: "0.5rem 1.2rem",
                                     fontWeight: 600,
                                     fontSize: "1.05rem",
-                                    cursor: "pointer",
+                                    cursor: loading ? "not-allowed" : "pointer",
                                     boxShadow: "0 2px 8px rgba(72,166,167,0.10)"
                                 }}
                                 onMouseOver={e => e.currentTarget.style.background = "#006A71"}
                                 onMouseOut={e => e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)"}
                             >
-                                Lưu
+                                {loading ? "Đang lưu..." : "Lưu"}
                             </button>
                         </form>
-                        {submitted && (
+                        {apiError && (
+                            <div style={{ color: "#e74c3c", marginTop: 10, fontWeight: 500 }}>
+                                {apiError}
+                            </div>
+                        )}
+                        {submitted && !apiError && (
                             <div style={{ color: "#27ae60", marginTop: 10, fontWeight: 500 }}>
                                 Đã lưu: {cigarettesToday} điếu thuốc hôm nay!
                             </div>

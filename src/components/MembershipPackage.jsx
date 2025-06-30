@@ -54,7 +54,6 @@ export default function MembershipPackage() {
     }, []);
 
     const handleRegister = (pkg) => {
-        if (currentPkg) return; // Không cho đăng ký nếu còn hạn
         navigate("/payment", { state: { package: pkg } });
     };
 
@@ -163,20 +162,19 @@ export default function MembershipPackage() {
                                         style={{
                                             marginTop: 16,
                                             padding: "0.7rem 1.5rem",
-                                            background: isCurrent ? COLORS.secondary : COLORS.primary,
+                                            background: COLORS.primary,
                                             color: "#fff",
                                             border: "none",
                                             borderRadius: 8,
                                             fontWeight: 700,
                                             fontSize: "1rem",
-                                            cursor: isCurrent ? "default" : (isExpired ? "pointer" : "not-allowed"),
-                                            opacity: isCurrent || isExpired ? 1 : 0.6,
+                                            cursor: "pointer",
+                                            opacity: 1,
                                             transition: "background 0.2s",
                                         }}
-                                        disabled={!isExpired && !isCurrent}
                                         onClick={() => handleRegister(pkg)}
                                     >
-                                        {isCurrent ? "Đang dùng" : "Đăng ký"}
+                                        Đăng ký
                                     </button>
                                 )}
                             </div>

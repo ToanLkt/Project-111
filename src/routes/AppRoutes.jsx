@@ -34,6 +34,7 @@ import CoachSchedule from "../page/coach/CoachSchedule";
 import CoachStatistics from "../page/coach/CoachStatistics";
 import ConfirmRegister from "../components/ConfirmRegister";
 import ResetPassword from "../page/ResetPassword";
+import LoginGoogle from "../components/LoginGoogle";
 
 export default function AppRoutes() {
   return (
@@ -52,6 +53,7 @@ export default function AppRoutes() {
         <Route path="start-information" element={<StartInformation />} />
         <Route path="contact" element={<Contact />} />
         <Route path="login" element={<Login />} />
+        <Route path="logingoogle" element={<LoginGoogle />} />
         <Route path="register" element={<Register />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="/confirm-register" element={<ConfirmRegister />} />

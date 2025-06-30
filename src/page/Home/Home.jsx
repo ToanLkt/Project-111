@@ -10,12 +10,12 @@ export default function Home() {
   const [message, setMessage] = useState("Từng Khoảnh Khắc, Một Hơi Thở Tự Do");
 
   useEffect(() => {
-    // fetch("https://localhost:7133/api/Platform/info")
-    //   .then((res) => res.json())
-    //   .then((data) => {
-    //     if (data && data.message) setMessage(data.message);
-    //   })
-    //   .catch(() => setMessage("Từng Khoảnh Khắc, Một Hơi Thở Tự Do"));
+    fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Platform")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.message) setMessage(data.message);
+      })
+      .catch(() => setMessage("Từng Khoảnh Khắc, Một Hơi Thở Tự Do"));
   }, []);
 
   return (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../AuthContext/AuthContext";
+import HistoryPayment from "./HistoryPayment";
 
 export default function MemberProfile() {
   const COLORS = {
@@ -67,10 +68,31 @@ export default function MemberProfile() {
     setFormData(user);
     setIsEditing(false);
   };
-  const handleSave = () => {
-    setUser(formData);
-    setIsEditing(false);
-    // Có thể thêm API update ở đây nếu muốn
+  const handleSave = async () => {
+    try {
+      // Chuyển sex về boolean
+      const sexBool = formData.sex === "Nam" ? true : formData.sex === "Nữ" ? false : null;
+      const body = {
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        birthday: formData.birthday ? formData.birthday.slice(0, 10) : "",
+        sex: sexBool
+      };
+      const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error("Cập nhật thất bại");
+      setUser({ ...user, ...formData, sex: formData.sex });
+      setIsEditing(false);
+      alert("Cập nhật thành công!");
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
   if (!user) return <div style={{ textAlign: "center", marginTop: 40 }}>Đang tải...</div>;
@@ -283,6 +305,8 @@ export default function MemberProfile() {
           )}
         </div>
       </div>
+      <HistoryPayment />
     </div>
+
   );
 }
