@@ -3,14 +3,20 @@ import { Outlet, useNavigate } from "react-router-dom";
 import Footer from "../../components/Footer";
 import AuthContext from "../../AuthContext/AuthContext";
 
-// Hàm tính số ngày, giờ, phút, giây đã cai thuốc
+// Hàm chuyển đổi sang giờ Việt Nam (Asia/Ho_Chi_Minh)
+function toVietnamTime(date) {
+    return new Date(new Date(date).toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+}
+
+// Hàm tính số ngày, giờ, phút, giây đã cai thuốc (theo giờ Việt Nam)
 function useQuitTimer(startDate) {
     const [timer, setTimer] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
     useEffect(() => {
         function update() {
-            const now = new Date();
-            const diff = now - new Date(startDate);
+            const now = toVietnamTime(new Date());
+            const start = toVietnamTime(new Date(startDate));
+            const diff = now - start;
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
             const minutes = Math.floor((diff / (1000 * 60)) % 60);
@@ -25,27 +31,113 @@ function useQuitTimer(startDate) {
     return timer;
 }
 
+// Modal component
+function Modal({ open, onClose, children }) {
+    if (!open) return null;
+    return (
+        <div style={{
+            position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+            background: "rgba(0,0,0,0.25)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+            <div style={{
+                background: "#fff", borderRadius: 12, padding: "2rem 2.5rem", minWidth: 320, maxWidth: "90vw", boxShadow: "0 4px 32px #0002", position: "relative"
+            }}>
+                <button onClick={onClose} style={{
+                    position: "absolute", top: 12, right: 16, background: "none", border: "none", fontSize: 22, color: "#888", cursor: "pointer"
+                }} aria-label="Đóng">&times;</button>
+                {children}
+            </div>
+        </div>
+    );
+}
+
 export default function Plan() {
-    const savedMoney = 350000;
-    const cigarettesAllowed = 7;
     const [cigarettesToday, setCigarettesToday] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState("");
-    const quitProgress = 80;
-    const achievements = [
-        "1 tuần không hút thuốc",
-        "Tiết kiệm 300k",
-        "Vượt qua ngày đầu tiên"
-    ];
+    const quitProgress = 2;
 
     const navigate = useNavigate();
     const auth = useContext(AuthContext);
     const token = auth?.token;
 
+    // Thêm state cho dữ liệu từ API Plan
+    const [planData, setPlanData] = useState({
+        totalSaveMoney: 0,
+        totalCigarettesQuit: 0,
+        maxCigarettes: 0,
+        phases: []
+    });
+    const [planLoading, setPlanLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPlan = async () => {
+            setPlanLoading(true);
+            try {
+                const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                    },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // Tạo mảng phases từ dữ liệu API
+                    const phases = [
+                        {
+                            phase: 1,
+                            phaseId: data.phaseId1,
+                            start: data.startDatePhase1,
+                            end: data.endDatePhase1,
+                            status: data.statusPhase1
+                        },
+                        {
+                            phase: 2,
+                            phaseId: data.phaseId2,
+                            start: data.startDatePhase2,
+                            end: data.endDatePhase2,
+                            status: data.statusPhase2
+                        },
+                        {
+                            phase: 3,
+                            phaseId: data.phaseId3,
+                            start: data.startDatePhase3,
+                            end: data.endDatePhase3,
+                            status: data.statusPhase3
+                        },
+                        {
+                            phase: 4,
+                            phaseId: data.phaseId4,
+                            start: data.startDatePhase4,
+                            end: data.endDatePhase4,
+                            status: data.statusPhase4
+                        },
+                        {
+                            phase: 5,
+                            phaseId: data.phaseId5,
+                            start: data.startDatePhase5,
+                            end: data.endDatePhase5,
+                            status: data.statusPhase5
+                        }
+                    ];
+                    setPlanData({
+                        totalSaveMoney: data.totalSaveMoney ?? 0,
+                        totalCigarettesQuit: data.totalCigarettesQuit ?? 0,
+                        maxCigarettes: data.maxCigarettes ?? 0,
+                        phases
+                    });
+                }
+            } catch (err) {
+                // Có thể xử lý lỗi nếu muốn
+            }
+            setPlanLoading(false);
+        };
+        if (token) fetchPlan();
+    }, [token]);
+
     const handleCigaretteSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
+        setSubmitted(false);
         setLoading(true);
         setApiError("");
         try {
@@ -53,13 +145,27 @@ export default function Plan() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}` // Gửi token xác thực
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     todayCigarettes: Number(cigarettesToday)
                 })
             });
-            if (!res.ok) throw new Error("Lưu thất bại!");
+            const text = await res.text();
+            console.log("API trả về:", text);
+            if (!res.ok) {
+                // Lấy message chi tiết từ API (ưu tiên json, fallback text)
+                let errorMsg = "Lưu thất bại";
+                try {
+                    const data = await res.json();
+                    errorMsg = data.message || JSON.stringify(data);
+                } catch {
+                    errorMsg = await res.text();
+                }
+                setApiError(errorMsg);
+                setLoading(false);
+                return;
+            }
             setSubmitted(true);
         } catch (err) {
             setApiError("Lưu thất bại, vui lòng thử lại!");
@@ -67,64 +173,60 @@ export default function Plan() {
         setLoading(false);
     };
 
-    const [openStage, setOpenStage] = useState(null);
+    // Modal state
+    const [modalStageIdx, setModalStageIdx] = useState(null);
+    const [modalPhaseId, setModalPhaseId] = useState(null);
+    const [phaseDetail, setPhaseDetail] = useState(null);
+    const [phaseLoading, setPhaseLoading] = useState(false);
+    const [phaseError, setPhaseError] = useState("");
 
-    const stages = [
-        {
-            name: "Giai đoạn 1",
-            label: "Khởi đầu",
-            start: "2024-06-01",
-            end: "2024-06-07",
-            status: "Hoàn thành",
-            failDays: 0,
-            totalDays: 7
-        },
-        {
-            name: "Giai đoạn 2",
-            label: "Ổn định",
-            start: "2024-06-08",
-            end: "2024-06-21",
-            status: "Hoàn thành",
-            failDays: 1,
-            totalDays: 14
-        },
-        {
-            name: "Giai đoạn 3",
-            label: "Vượt khó",
-            start: "2024-06-22",
-            end: "2024-07-05",
-            status: "Không hoàn thành",
-            failDays: 2,
-            totalDays: 14
-        },
-        {
-            name: "Giai đoạn 4",
-            label: "Thành công",
-            start: "2024-07-06",
-            end: "2024-07-20",
-            status: "Chưa hoàn thành",
-            failDays: 0,
-            totalDays: 15
+    // Hàm lấy fail-stat khi mở chi tiết phase
+    const handleOpenModal = async (idx, phaseId) => {
+        setModalStageIdx(idx);
+        setModalPhaseId(phaseId);
+        setPhaseLoading(true);
+        setPhaseError("");
+        try {
+            const res = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat?phaseId=${phaseId}`,
+                { headers: { "Authorization": `Bearer ${token}` } }
+            );
+            if (!res.ok) throw new Error("Không lấy được dữ liệu phase");
+            const data = await res.json();
+            setPhaseDetail(data);
+        } catch (err) {
+            setPhaseError("Không lấy được dữ liệu phase");
+            setPhaseDetail(null);
         }
-    ];
+        setPhaseLoading(false);
+    };
 
     // Lấy trạng thái đã gửi thông tin
     const user = JSON.parse(localStorage.getItem("user"));
     const accountId = user?.accountId ?? user?.id ?? null;
     const infoSubmitted = !!localStorage.getItem(`info_submitted_${accountId}`);
 
-    // Lấy thời điểm bắt đầu cai thuốc cho user hiện tại
-    const quitStartDate = localStorage.getItem(`quit_start_${accountId}`) || new Date().toISOString();
+    // Lấy thời điểm bắt đầu cai thuốc cho user hiện tại (theo giờ Việt Nam)
+    const quitStartDate = localStorage.getItem(`quit_start_${accountId}`) || toVietnamTime(new Date()).toISOString();
 
     // Chỉ gọi useQuitTimer nếu đã submit
     const timer = infoSubmitted ? useQuitTimer(quitStartDate) : { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+    // Dữ liệu các giai đoạn
+    const stages = planData.phases.map(phase => ({
+        name: `Giai đoạn ${phase.phase}`,
+        label: phase.status,
+        start: phase.start,
+        end: phase.end,
+        status: phase.status,
+        phaseId: phase.phaseId
+    }));
 
     return (
         <>
             <div
                 style={{
                     minHeight: "100vh",
-
                     color: "#006A71",
                     fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
                     padding: "0 0 2rem 0"
@@ -163,10 +265,10 @@ export default function Plan() {
                             border: "none",
                             cursor: infoSubmitted ? "not-allowed" : "pointer"
                         }}
-                        onMouseOver={e => e.currentTarget.style.background = "#48A6A7"}
-                        onMouseOut={e => e.currentTarget.style.background = "#006A71"}
+                        onMouseOver={e => { if (!infoSubmitted) e.currentTarget.style.background = "#48A6A7"; }}
+                        onMouseOut={e => { if (!infoSubmitted) e.currentTarget.style.background = "#006A71"; }}
                     >
-                        Tham gia ngay
+                        {infoSubmitted ? "Đang tham gia" : "Tham gia ngay"}
                     </button>
                 </div>
 
@@ -190,7 +292,7 @@ export default function Plan() {
                         textAlign: "center"
                     }}>
                         <div style={{ fontWeight: 600, color: "#48A6A7", marginBottom: 18, fontSize: "1.15rem" }}>
-                            Thời gian bạn cai thuốc
+                            Thời gian bạn cai thuốc (giờ Việt Nam)
                         </div>
                         {infoSubmitted ? (
                             <div style={{
@@ -317,7 +419,7 @@ export default function Plan() {
                         }}>
                             <div style={{ fontWeight: 600, color: "#48A6A7" }}>Số tiền tiết kiệm được</div>
                             <div style={{ fontSize: "2rem", fontWeight: 700, color: "#27ae60" }}>
-                                {savedMoney.toLocaleString()}₫
+                                {planLoading ? "..." : planData.totalSaveMoney.toLocaleString()}₫
                             </div>
                         </div>
                         <div style={{
@@ -327,9 +429,9 @@ export default function Plan() {
                             padding: "1.2rem",
                             boxShadow: "0 1px 6px rgba(154,203,208,0.10)"
                         }}>
-                            <div style={{ fontWeight: 600, color: "#48A6A7" }}>Số điếu thuốc được hút trong ngày</div>
+                            <div style={{ fontWeight: 600, color: "#48A6A7" }}>Số điếu đã cai</div>
                             <div style={{ fontSize: "2rem", fontWeight: 700, color: "#e67e22" }}>
-                                {cigarettesAllowed}
+                                {planLoading ? "..." : planData.totalCigarettesQuit}
                             </div>
                         </div>
                         <div style={{
@@ -339,9 +441,9 @@ export default function Plan() {
                             padding: "1.2rem",
                             boxShadow: "0 1px 6px rgba(154,203,208,0.10)"
                         }}>
-                            <div style={{ fontWeight: 600, color: "#48A6A7" }}>Số điếu đã hút hôm nay</div>
+                            <div style={{ fontWeight: 600, color: "#48A6A7" }}>Số điếu được hút trong ngày</div>
                             <div style={{ fontSize: "2rem", fontWeight: 700, color: "#e67e22" }}>
-                                {cigarettesToday === "" ? 0 : cigarettesToday}
+                                {planLoading ? "..." : planData.maxCigarettes}
                             </div>
                         </div>
                     </div>
@@ -404,7 +506,7 @@ export default function Plan() {
                                         <span style={{ color: "#006A71", fontWeight: 600, fontSize: "1rem" }}>{stage.name}</span>
                                         <br />
                                         <button
-                                            onClick={() => setOpenStage(openStage === idx ? null : idx)}
+                                            onClick={() => handleOpenModal(idx, stage.phaseId)}
                                             style={{
                                                 background: "none",
                                                 border: "none",
@@ -418,7 +520,6 @@ export default function Plan() {
                                         >
                                             <span style={{
                                                 display: "inline-block",
-                                                transform: openStage === idx ? "rotate(90deg)" : "rotate(0deg)",
                                                 transition: "transform 0.2s"
                                             }}>▼</span>
                                         </button>
@@ -426,115 +527,61 @@ export default function Plan() {
                                 ))}
                             </div>
                         </div>
-                        {/* Thông tin từng giai đoạn */}
-                        {openStage !== null && (
-                            <div style={{
-                                background: "#fff",
-                                borderRadius: 10,
-                                padding: "1rem 1.5rem",
-                                margin: "0 auto 16px auto",
-                                maxWidth: 400,
-                                color: "#006A71",
-                                boxShadow: "0 1px 6px rgba(154,203,208,0.10)"
-                            }}>
-                                <div style={{ fontWeight: 700, color: "#48A6A7", marginBottom: 8 }}>
-                                    {stages[openStage].name} - {stages[openStage].label}
-                                </div>
-                                <div>Ngày bắt đầu: <span style={{ color: "#006A71" }}>{stages[openStage].start}</span></div>
-                                <div>Ngày kết thúc: <span style={{ color: "#006A71" }}>{stages[openStage].end}</span></div>
-                                <div>Trạng thái: <span style={{ color: stages[openStage].status === "Hoàn thành" ? "#27ae60" : "#e67e22" }}>{stages[openStage].status}</span></div>
-                                <div>Số ngày thất bại: <span style={{ color: "#e74c3c" }}>{stages[openStage].failDays}</span></div>
-                                <div>Tổng số ngày của giai đoạn: <span style={{ color: "#48A6A7" }}>{stages[openStage].totalDays}</span></div>
-                            </div>
-                        )}
                         <div style={{ color: "#006A71", fontWeight: 600, textAlign: "center" }}>
                             {quitProgress}% hoàn thành mục tiêu
-                        </div>
-                    </div>
-
-                    {/* Danh hiệu */}
-                    <div style={{
-                        background: "#F2EFE7",
-                        borderRadius: 12,
-                        padding: "1.5rem",
-                        boxShadow: "0 1px 6px rgba(154,203,208,0.10)",
-                        marginBottom: 36
-                    }}>
-                        <div style={{ fontWeight: 600, color: "#48A6A7", marginBottom: 10 }}>Danh hiệu bạn đạt được</div>
-                        <ul style={{ margin: 0, paddingLeft: 20, color: "#006A71", fontSize: "1.08rem" }}>
-                            {achievements.map((item, idx) => (
-                                <li key={idx} style={{ marginBottom: 6 }}>🏅 {item}</li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    {/* Lý do bạn muốn cai thuốc */}
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 32, marginBottom: 36 }}>
-                        <div style={{ flex: "1 1 320px" }}>
-                            <h1 style={{ color: "#006A71", fontWeight: 800, fontSize: "2.2rem", marginBottom: 12 }}>
-                                Lý do bạn muốn cai thuốc
-                            </h1>
-                            <ul style={{ fontSize: "1.15rem", color: "#48A6A7", marginBottom: 18, paddingLeft: 20 }}>
-                                <li>Vì sức khỏe bản thân và gia đình</li>
-                                <li>Tiết kiệm chi phí</li>
-                                <li>Cải thiện chất lượng cuộc sống</li>
-                                <li>Trở thành tấm gương cho người thân</li>
-                            </ul>
-                        </div>
-                        <div style={{ flex: "1 1 260px", textAlign: "center" }}>
-                            <img
-                                src="https://th.bing.com/th/id/R.7817708fda667cffccf24824423b12eb?rik=5xUZastZxf1y1w&pid=ImgRaw&r=0"
-                                alt="Cai nghiện thuốc lá"
-                                style={{ maxWidth: 220, width: "100%", borderRadius: 12, boxShadow: "0 2px 8px rgba(154,203,208,0.10)" }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Tips & Tools */}
-                    <div style={{ marginTop: 36, display: "flex", flexWrap: "wrap", gap: 32 }}>
-                        <div
-                            style={{
-                                flex: "1 1 320px",
-                                background: "#E6F4F4",
-                                borderRadius: 10,
-                                padding: "1.5rem",
-                                minWidth: 260,
-                                boxShadow: "0 1px 4px rgba(154,203,208,0.10)",
-                            }}
-                        >
-                            <h3 style={{ color: "#48A6A7", fontWeight: 700, marginBottom: 10 }}>Mẹo Vượt Qua Cơn Thèm</h3>
-                            <ul style={{ paddingLeft: 18, color: "#006A71", fontSize: "1rem", marginBottom: 0 }}>
-                                <li>Uống nước hoặc trà thảo mộc thay vì hút thuốc</li>
-                                <li>Đi bộ hoặc tập thể dục nhẹ nhàng</li>
-                                <li>Trò chuyện với bạn bè, người thân</li>
-                                <li>Thở sâu và thư giãn</li>
-                                <li>Tránh xa nơi có nhiều người hút thuốc</li>
-                            </ul>
-                        </div>
-                        <div
-                            style={{
-                                flex: "1 1 320px",
-                                background: "#9ACBD0",
-                                borderRadius: 10,
-                                padding: "1.5rem",
-                                minWidth: 260,
-                                boxShadow: "0 1px 4px rgba(154,203,208,0.10)",
-                            }}
-                        >
-                            <h3 style={{ color: "#006A71", fontWeight: 700, marginBottom: 10 }}>Công Cụ Hỗ Trợ</h3>
-                            <ul style={{ paddingLeft: 18, color: "#fff", fontSize: "1rem", marginBottom: 0 }}>
-                                <li>Ứng dụng theo dõi tiến trình bỏ thuốc</li>
-                                <li>Nhắc nhở động viên mỗi ngày</li>
-                                <li>Tham gia nhóm cộng đồng online</li>
-                                <li>Liên hệ chuyên gia tư vấn</li>
-                                <li>Tài liệu hướng dẫn miễn phí</li>
-                            </ul>
                         </div>
                     </div>
                 </div>
                 <Footer />
             </div>
-            <Outlet />
+            {/* Modal hiển thị chi tiết phase */}
+            <Modal open={modalStageIdx !== null} onClose={() => { setModalStageIdx(null); setPhaseDetail(null); }}>
+                {phaseLoading ? (
+                    <div>Đang tải...</div>
+                ) : phaseError ? (
+                    <div style={{ color: "#e74c3c" }}>{phaseError}</div>
+                ) : phaseDetail && modalStageIdx !== null ? (
+                    <>
+                        <div style={{ fontWeight: 700, color: "#48A6A7", marginBottom: 8, fontSize: 20 }}>
+                            {stages[modalStageIdx]?.name} - {stages[modalStageIdx]?.label}
+                        </div>
+                        <div>Ngày bắt đầu: <span style={{ color: "#006A71" }}>{stages[modalStageIdx]?.start}</span></div>
+                        <div>Ngày kết thúc: <span style={{ color: "#006A71" }}>{stages[modalStageIdx]?.end}</span></div>
+                        <div>Trạng thái: <span style={{ color: stages[modalStageIdx]?.status === "Hoàn thành" ? "#27ae60" : "#e67e22" }}>{stages[modalStageIdx]?.status}</span></div>
+                        <div>Số ngày thất bại: <span style={{ color: "#e74c3c" }}>{phaseDetail.failedDays}</span></div>
+                        <div>Tổng số ngày của giai đoạn: <span style={{ color: "#48A6A7" }}>{phaseDetail.totalDays}</span></div>
+                        <div style={{ marginTop: 16, fontWeight: 600, color: "#48A6A7" }}>
+                            Chi tiết số điếu thuốc đã hút trong giai đoạn
+                        </div>
+                        <div style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(7, 1fr)",
+                            gap: 8,
+                            marginTop: 12
+                        }}>
+                            {Array.from({ length: 7 }, (_, i) => {
+                                const dayData = phaseDetail.dayStats?.find(stat => new Date(stat.date).getDate() === new Date().getDate() - i);
+                                return (
+                                    <div key={i} style={{
+                                        background: dayData ? "#E6F4F4" : "#fff",
+                                        borderRadius: 8,
+                                        padding: "0.8rem",
+                                        textAlign: "center",
+                                        boxShadow: "0 1px 4px rgba(0,0,0,0.1)"
+                                    }}>
+                                        <div style={{ fontSize: "1.1rem", color: "#006A71" }}>
+                                            {dayData ? dayData.cigarettes : 0}
+                                        </div>
+                                        <div style={{ fontSize: "0.9rem", color: "#888" }}>
+                                            {dayData ? new Date(dayData.date).toLocaleDateString("vi-VN", { weekday: 'short' }) : ""}
+                                        </div>
+                                    </div>
+                                );
+                            }).reverse()}
+                        </div>
+                    </>
+                ) : null}
+            </Modal>
         </>
     );
 }

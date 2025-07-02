@@ -44,7 +44,7 @@ export default function StartInformation() {
             const body = {
                 cigarettesPerDay: Number(form.cigarettesPerDay),
                 smokingTime: form.smokingTime,
-                goalTime: form.goalTime, 
+                goalTime: form.goalTime,
                 reason: form.reason,
                 costPerCigarette: Number(form.costPerCigarette),
                 medicalHistory: form.medicalHistory,
@@ -88,7 +88,7 @@ export default function StartInformation() {
                     // Lưu thời điểm bắt đầu cai thuốc
                     localStorage.setItem(`quit_start_${accountId}`, new Date().toISOString());
                 }
-            } catch {}
+            } catch { }
             setTimeout(() => navigate("/plan"), 1200);
         } catch (err) {
             setApiError(err.message);
@@ -303,14 +303,11 @@ export default function StartInformation() {
                             <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
                                 Chi phí (VND/điếu)
                             </label>
-                            <input
+                            <select
                                 type="number"
                                 name="costPerCigarette"
                                 value={form.costPerCigarette}
                                 onChange={handleChange}
-                                placeholder="? VND"
-                                min={100}
-                                max={100000}
                                 required
                                 style={{
                                     width: "100%",
@@ -323,7 +320,14 @@ export default function StartInformation() {
                                     outline: "none",
                                     boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
                                 }}
-                            />
+                            >
+                                <option value="">Chọn chi phí</option>
+                                <option value={10000}>Khoảng 10.000 VND</option>
+                                <option value={20000}>Khoảng 20.000 VND</option>
+                                <option value={30000}>Khoảng 30.000 VND</option>
+                            </select>
+
+
                         </div>
                     </div>
                     <div style={{ marginBottom: 20 }}>

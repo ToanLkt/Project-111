@@ -66,6 +66,13 @@ function parseJwt(token) {
     }
 }
 
+// Hàm lấy thời gian hiện tại theo múi giờ Việt Nam (ISO string)
+function getVietnamNowISO() {
+    const now = new Date();
+    const vn = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+    return vn.toISOString();
+}
+
 export default function Payment() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -108,10 +115,11 @@ export default function Payment() {
         duration,
         transactionCode
     }) {
-        const now = new Date();
-        const startDate = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-        const endDate = new Date(now.getTime() + (duration || 30) * 24 * 60 * 60 * 1000).toISOString();
-        const timeBuy = new Date().toISOString();
+        // Lấy thời gian Việt Nam
+        const nowVN = getVietnamNowISO();
+        const startDate = new Date(new Date(nowVN).setHours(0, 0, 0, 0)).toISOString();
+        const endDate = new Date(new Date(nowVN).getTime() + (duration || 30) * 24 * 60 * 60 * 1000).toISOString();
+        const timeBuy = nowVN;
 
         const body = {
             packageMembershipId,

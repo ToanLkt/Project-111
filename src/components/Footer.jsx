@@ -14,7 +14,7 @@ export default function Footer() {
         >
             <div
                 style={{
-                    maxWidth: 1100,
+                    maxWidth: 1920,
                     margin: "0 auto",
                     display: "flex",
                     flexWrap: "wrap",

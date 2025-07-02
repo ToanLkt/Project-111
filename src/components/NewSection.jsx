@@ -54,7 +54,7 @@ export default function NewSection() {
     >
       <div
         style={{
-          maxWidth: 800,
+          maxWidth: 1920,
           width: "100%",
           background: COLORS.white,
           borderRadius: 20,

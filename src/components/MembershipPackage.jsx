@@ -108,7 +108,7 @@ export default function MembershipPackage() {
         >
             <div
                 style={{
-                    maxWidth: 900,
+                    maxWidth: 1920,
                     width: "100%",
                     background: COLORS.white,
                     borderRadius: 20,

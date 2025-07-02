@@ -36,14 +36,12 @@ export default function RoadmapSection() {
         width: "100%",
         minHeight: "40vh",
         background: COLORS.background,
-        padding: "2.5rem 0",
-        display: "flex",
         justifyContent: "center",
       }}
     >
       <div
         style={{
-          maxWidth: 800,
+          maxWidth: 1920,
           width: "100%",
           background: COLORS.white,
           borderRadius: 20,
