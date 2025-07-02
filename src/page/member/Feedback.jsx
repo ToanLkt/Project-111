@@ -64,7 +64,7 @@ export default function Feedback() {
         <div
             style={{
                 minHeight: "100vh",
-                background: "#F2EFE7",
+                background: "#FAFAF9",
                 padding: "3rem 1rem",
                 color: "#006A71",
                 fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",

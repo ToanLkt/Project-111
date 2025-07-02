@@ -55,7 +55,7 @@ export default function Ranking() {
         <div
             style={{
                 minHeight: "100vh",
-                background: `linear-gradient(120deg, ${COLORS.bg} 60%, ${COLORS.medal2} 100%)`,
+                background: `#FAFAF9`,
                 fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
                 color: COLORS.text,
                 display: "flex",

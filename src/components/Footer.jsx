@@ -1,188 +1,628 @@
-import React from "react";
+"use client"
+
+const COLORS = {
+    background: "#FAFAF9",
+    color1: "#CFE8EF",
+    color2: "#6AB7C5",
+    color3: "#336B73",
+    white: "#FFFFFF",
+    text: "#2D3748",
+    textLight: "#718096",
+    gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+    gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+    accent: "#10B981",
+    warning: "#F59E0B",
+}
 
 export default function Footer() {
     return (
-        <footer
-            id="lienhe"
-            style={{
-                marginTop: "2rem",
-                color: "#006A71",
-                padding: "2.5rem 0 1rem 0",
-                background: "#F2EFE7",
-                borderTop: "1px solid #9ACBD0",
-            }}
-        >
-            <div
-                style={{
-                    maxWidth: 1920,
-                    margin: "0 auto",
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "2.5rem",
-                    padding: "0 2rem",
-                }}
-            >
-                {/* Logo & Slogan */}
-                <div style={{ flex: "1 1 260px", minWidth: 220 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        <img
-                            src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                            alt="Logo"
-                            style={{ width: 38, height: 38, borderRadius: "50%", background: "#fff", border: "2px solid #48A6A7" }}
-                        />
-                        <span
-                            style={{
-                                color: "#006A71",
-                                fontWeight: "bold",
-                                fontSize: "1.3rem",
-                                letterSpacing: 1,
-                            }}
-                        >
-                            Cai Nghiện Thuốc Lá
-                        </span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: "1rem", color: "#48A6A7" }}>
-                        Nền tảng hỗ trợ cộng đồng bỏ thuốc lá, cung cấp tài liệu, chuyên gia và các công cụ theo dõi tiến trình.
-                    </p>
-                    <div style={{ marginTop: 12, fontSize: "0.97rem", color: "#48A6A7" }}>
-                        <span style={{ fontWeight: 500 }}>Giờ làm việc:</span> 8:00 - 15:00 (T2 - CN)
-                    </div>
-                </div>
+        <>
+            <style jsx>{`
+        .footer-section {
+          background: ${COLORS.background};
+          position: relative;
+          overflow: hidden;
+          padding: 4rem 0 2rem 0;
+          margin-top: 4rem;
+        }
 
-                {/* Contact */}
-                <div style={{ flex: "1 1 180px", minWidth: 180, marginRight: 40 }}>
-                    <h5 style={{ color: "#006A71", marginBottom: 10, fontWeight: 700 }}>Liên hệ</h5>
-                    <p style={{ margin: 4, fontSize: "1rem", color: "#48A6A7" }}>
-                        <span style={{ fontWeight: 500 }}>Email:</span>{" "}
-                        <a
-                            href="mailto:smokingcessation0206@gmail.com"
-                            style={{ color: "#48A6A7", textDecoration: "none", fontWeight: 600 }}
-                        >
-                            smokingcessation0206@gmail.com
-                        </a>
-                        <br />
-                        <span style={{ fontWeight: 500 }}>Điện thoại:</span> 0123 456 789
-                        <br />
-                        <span style={{ fontWeight: 500 }}>Địa chỉ:</span> 123 Đường Sức Khỏe, Quận 1, TP.HCM
-                    </p>
-                    <div style={{ marginTop: 10 }}>
-                        <a
-                            href="https://facebook.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ marginRight: 12 }}
-                        >
-                            <img
-                                src="https://cdn-icons-png.flaticon.com/512/733/733547.png"
-                                alt="fb"
-                                width={22}
-                                style={{ filter: "none" }}
-                            />
-                        </a>
-                        <a
-                            href="https://zalo.me"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ marginRight: 12 }}
-                        >
-                            <img
-                                src="https://cdn-icons-png.flaticon.com/512/5968/5968841.png"
-                                alt="zalo"
-                                width={22}
-                                style={{ filter: "none" }}
-                            />
-                        </a>
-                        <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
-                            <img
-                                src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png"
-                                alt="yt"
-                                width={22}
-                                style={{ filter: "none" }}
-                            />
-                        </a>
+        .footer-bg-pattern {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: 
+            radial-gradient(circle at 20% 80%, ${COLORS.color1}40 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, ${COLORS.color2}30 0%, transparent 50%);
+          z-index: 1;
+        }
+
+        .footer-content {
+          position: relative;
+          z-index: 2;
+        }
+
+        .footer-main-card {
+          background: ${COLORS.white};
+          border-radius: 32px;
+          padding: 3rem;
+          box-shadow: 
+            0 32px 64px rgba(51, 107, 115, 0.08),
+            0 16px 32px rgba(51, 107, 115, 0.04);
+          border: 2px solid ${COLORS.color1};
+          position: relative;
+          overflow: hidden;
+          margin-bottom: 2rem;
+        }
+
+        .footer-main-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 6px;
+          background: ${COLORS.gradient};
+          border-radius: 32px 32px 0 0;
+        }
+
+        .footer-grid {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1.5fr;
+          gap: 3rem;
+          align-items: start;
+        }
+
+        .footer-brand-section {
+          position: relative;
+        }
+
+        .footer-logo-container {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .footer-logo {
+          width: 60px;
+          height: 60px;
+          background: ${COLORS.gradient};
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.2);
+          border: 3px solid ${COLORS.color1};
+          transition: all 0.3s ease;
+        }
+
+        .footer-logo:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(106, 183, 197, 0.3);
+        }
+
+        .footer-logo img {
+          width: 32px;
+          height: 32px;
+          border-radius: 12px;
+          filter: brightness(1.2);
+        }
+
+        .footer-brand-name {
+          font-size: 1.4rem;
+          font-weight: 900;
+          background: ${COLORS.gradient};
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: -0.02em;
+        }
+
+        .footer-description {
+          color: ${COLORS.text};
+          font-size: 1rem;
+          line-height: 1.6;
+          margin-bottom: 1.5rem;
+          font-weight: 500;
+        }
+
+        .footer-hours {
+          background: ${COLORS.background};
+          border-radius: 16px;
+          padding: 1rem 1.5rem;
+          border: 1px solid ${COLORS.color1};
+          display: flex;
+          align-items: center;
+          gap: 0.8rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .footer-hours-icon {
+          width: 40px;
+          height: 40px;
+          background: ${COLORS.gradientLight};
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+        }
+
+        .footer-hours-text {
+          color: ${COLORS.color3};
+          font-weight: 600;
+          font-size: 0.95rem;
+        }
+
+        .footer-social-links {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .footer-social-link {
+          width: 48px;
+          height: 48px;
+          background: ${COLORS.white};
+          border: 2px solid ${COLORS.color1};
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          box-shadow: 0 4px 12px rgba(51, 107, 115, 0.08);
+        }
+
+        .footer-social-link:hover {
+          background: ${COLORS.color1};
+          border-color: ${COLORS.color2};
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(51, 107, 115, 0.15);
+        }
+
+        .footer-social-link img {
+          width: 24px;
+          height: 24px;
+          transition: all 0.3s ease;
+        }
+
+        .footer-section-title {
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: ${COLORS.color3};
+          margin-bottom: 1.5rem;
+          position: relative;
+          padding-bottom: 0.5rem;
+        }
+
+        .footer-section-title::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 30px;
+          height: 3px;
+          background: ${COLORS.gradient};
+          border-radius: 2px;
+        }
+
+        .footer-contact-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.8rem;
+          margin-bottom: 1rem;
+          padding: 0.8rem;
+          background: ${COLORS.background};
+          border-radius: 12px;
+          border: 1px solid ${COLORS.color1};
+          transition: all 0.3s ease;
+        }
+
+        .footer-contact-item:hover {
+          background: ${COLORS.color1};
+          transform: translateX(4px);
+        }
+
+        .footer-contact-icon {
+          width: 32px;
+          height: 32px;
+          background: ${COLORS.gradientLight};
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.9rem;
+          flex-shrink: 0;
+        }
+
+        .footer-contact-text {
+          color: ${COLORS.text};
+          font-size: 0.95rem;
+          line-height: 1.4;
+        }
+
+        .footer-contact-label {
+          font-weight: 700;
+          color: ${COLORS.color3};
+          display: block;
+          margin-bottom: 0.2rem;
+        }
+
+        .footer-contact-link {
+          color: ${COLORS.color2};
+          text-decoration: none;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .footer-contact-link:hover {
+          color: ${COLORS.color3};
+          text-decoration: underline;
+        }
+
+        .footer-nav-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .footer-nav-item {
+          margin-bottom: 0.8rem;
+        }
+
+        .footer-nav-link {
+          color: ${COLORS.text};
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 0.95rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 0.8rem;
+          border-radius: 12px;
+          transition: all 0.3s ease;
+          border: 1px solid transparent;
+        }
+
+        .footer-nav-link:hover {
+          background: ${COLORS.color1};
+          color: ${COLORS.color3};
+          transform: translateX(4px);
+          text-decoration: none;
+          border-color: ${COLORS.color2};
+        }
+
+        .footer-nav-icon {
+          font-size: 0.9rem;
+          color: ${COLORS.color2};
+        }
+
+        .footer-newsletter {
+          background: ${COLORS.background};
+          border-radius: 20px;
+          padding: 1.5rem;
+          border: 2px solid ${COLORS.color1};
+          position: relative;
+          overflow: hidden;
+        }
+
+        .footer-newsletter::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: ${COLORS.gradientLight};
+        }
+
+        .footer-newsletter-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .footer-newsletter-input {
+          padding: 1rem 1.2rem;
+          border: 2px solid ${COLORS.color1};
+          border-radius: 16px;
+          outline: none;
+          font-size: 1rem;
+          color: ${COLORS.text};
+          background: ${COLORS.white};
+          transition: all 0.3s ease;
+          font-weight: 500;
+        }
+
+        .footer-newsletter-input:focus {
+          border-color: ${COLORS.color2};
+          box-shadow: 0 0 0 3px rgba(106, 183, 197, 0.1);
+          background: ${COLORS.white};
+        }
+
+        .footer-newsletter-input::placeholder {
+          color: ${COLORS.textLight};
+          font-weight: 400;
+        }
+
+        .footer-newsletter-btn {
+          background: ${COLORS.gradient};
+          color: ${COLORS.white};
+          border: none;
+          border-radius: 16px;
+          padding: 1rem 1.5rem;
+          font-weight: 700;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+
+        .footer-newsletter-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(106, 183, 197, 0.3);
+        }
+
+        .footer-newsletter-desc {
+          color: ${COLORS.textLight};
+          font-size: 0.9rem;
+          line-height: 1.4;
+          font-weight: 500;
+        }
+
+        .footer-bottom {
+          background: ${COLORS.gradient};
+          color: ${COLORS.white};
+          text-align: center;
+          padding: 1.5rem 2rem;
+          border-radius: 24px;
+          font-weight: 600;
+          font-size: 0.95rem;
+          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.2);
+        }
+
+        .footer-floating-decoration {
+          position: absolute;
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          background: ${COLORS.color1};
+          opacity: 0.3;
+          z-index: 0;
+        }
+
+        .decoration-1 {
+          top: 20%;
+          right: 10%;
+        }
+
+        .decoration-2 {
+          bottom: 30%;
+          left: 5%;
+          background: ${COLORS.color2};
+          opacity: 0.2;
+        }
+
+        @media (max-width: 992px) {
+          .footer-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+          }
+
+          .footer-brand-section {
+            grid-column: 1 / 3;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .footer-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+
+          .footer-brand-section {
+            grid-column: 1;
+          }
+
+          .footer-main-card {
+            padding: 2rem;
+            border-radius: 24px;
+          }
+
+          .footer-section {
+            padding: 3rem 0 2rem 0;
+          }
+
+          .footer-logo-container {
+            justify-content: center;
+            text-align: center;
+          }
+
+          .footer-social-links {
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .footer-main-card {
+            margin: 0 1rem;
+            padding: 1.5rem;
+          }
+
+          .footer-logo {
+            width: 50px;
+            height: 50px;
+          }
+
+          .footer-logo img {
+            width: 28px;
+            height: 28px;
+          }
+
+          .footer-brand-name {
+            font-size: 1.2rem;
+          }
+        }
+      `}</style>
+
+            <footer id="lienhe" className="footer-section">
+                <div className="footer-bg-pattern"></div>
+                <div className="footer-floating-decoration decoration-1"></div>
+                <div className="footer-floating-decoration decoration-2"></div>
+
+                <div className="container footer-content">
+                    <div className="footer-main-card">
+                        <div className="footer-grid">
+                            {/* Brand Section */}
+                            <div className="footer-brand-section">
+                                <div className="footer-logo-container">
+                                    <div className="footer-logo">
+                                        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" />
+                                    </div>
+                                    <div className="footer-brand-name">Cai Nghiện Thuốc Lá</div>
+                                </div>
+
+                                <p className="footer-description">
+                                    Nền tảng hỗ trợ cộng đồng bỏ thuốc lá hàng đầu Việt Nam. Cung cấp phương pháp khoa học, chuyên gia tận
+                                    tâm và công cụ theo dõi tiến trình hiệu quả.
+                                </p>
+
+                                <div className="footer-hours">
+                                    <div className="footer-hours-icon">🕒</div>
+                                    <div>
+                                        <div className="footer-hours-text">Giờ làm việc</div>
+                                        <div style={{ color: COLORS.textLight, fontSize: "0.9rem" }}>8:00 - 15:00 (Thứ 2 - Chủ nhật)</div>
+                                    </div>
+                                </div>
+
+                                <div className="footer-social-links">
+                                    <a
+                                        href="https://facebook.com"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="footer-social-link"
+                                    >
+                                        <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" />
+                                    </a>
+                                    <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+                                        <img src="https://cdn-icons-png.flaticon.com/512/5968/5968841.png" alt="Zalo" />
+                                    </a>
+                                    <a
+                                        href="https://youtube.com"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="footer-social-link"
+                                    >
+                                        <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" alt="YouTube" />
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Contact Section */}
+                            <div>
+                                <h5 className="footer-section-title">Liên hệ</h5>
+
+                                <div className="footer-contact-item">
+                                    <div className="footer-contact-icon">📧</div>
+                                    <div className="footer-contact-text">
+                                        <span className="footer-contact-label">Email</span>
+                                        <a href="mailto:smokingcessation0206@gmail.com" className="footer-contact-link">
+                                            smokingcessation0206@gmail.com
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div className="footer-contact-item">
+                                    <div className="footer-contact-icon">📞</div>
+                                    <div className="footer-contact-text">
+                                        <span className="footer-contact-label">Điện thoại</span>
+                                        <a href="tel:0123456789" className="footer-contact-link">
+                                            0123 456 789
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div className="footer-contact-item">
+                                    <div className="footer-contact-icon">📍</div>
+                                    <div className="footer-contact-text">
+                                        <span className="footer-contact-label">Địa chỉ</span>
+                                        123 Đường Sức Khỏe
+                                        <br />
+                                        Quận 1, TP.HCM
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quick Links */}
+                            <div>
+                                <h5 className="footer-section-title">Liên kết nhanh</h5>
+                                <ul className="footer-nav-list">
+                                    <li className="footer-nav-item">
+                                        <a href="/" className="footer-nav-link">
+                                            <i className="footer-nav-icon">🏠</i>
+                                            Trang chủ
+                                        </a>
+                                    </li>
+                                    <li className="footer-nav-item">
+                                        <a href="#gioithieu" className="footer-nav-link">
+                                            <i className="footer-nav-icon">📖</i>
+                                            Giới thiệu
+                                        </a>
+                                    </li>
+                                    <li className="footer-nav-item">
+                                        <a href="#lienhe" className="footer-nav-link">
+                                            <i className="footer-nav-icon">📞</i>
+                                            Liên hệ
+                                        </a>
+                                    </li>
+                                    <li className="footer-nav-item">
+                                        <a href="#chuyen-gia" className="footer-nav-link">
+                                            <i className="footer-nav-icon">🧠</i>
+                                            Hỗ trợ chuyên gia
+                                        </a>
+                                    </li>
+                                    <li className="footer-nav-item">
+                                        <a href="#membership" className="footer-nav-link">
+                                            <i className="footer-nav-icon">💎</i>
+                                            Gói thành viên
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Newsletter */}
+                            <div>
+                                <h5 className="footer-section-title">Nhận tin mới</h5>
+                                <div className="footer-newsletter">
+                                    <form onSubmit={(e) => e.preventDefault()} className="footer-newsletter-form">
+                                        <input type="email" placeholder="Nhập email của bạn" className="footer-newsletter-input" required />
+                                        <button type="submit" className="footer-newsletter-btn">
+                                            <i className="fas fa-paper-plane"></i>
+                                            Đăng ký ngay
+                                        </button>
+                                    </form>
+                                    <div className="footer-newsletter-desc">
+                                        Nhận thông tin mới nhất về phương pháp cai thuốc lá, tài liệu hữu ích và ưu đãi đặc biệt.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer Bottom */}
+                    <div className="footer-bottom">
+                        &copy; {new Date().getFullYear()} Cai Nghiện Thuốc Lá. All rights reserved. Made with ❤️ for a healthier
+                        Vietnam.
                     </div>
                 </div>
-
-                {/* Quick Links */}
-                <div style={{ flex: "1 1 140px", minWidth: 140 }}>
-                    <h5 style={{ color: "#006A71", marginBottom: 10, fontWeight: 700 }}>Liên kết nhanh</h5>
-                    <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "1rem" }}>
-                        <li style={{ marginBottom: 8 }}>
-                            <a href="/" style={linkStyle}>
-                                Trang chủ
-                            </a>
-                        </li>
-                        <li style={{ marginBottom: 8 }}>
-                            <a href="#gioithieu" style={linkStyle}>
-                                Giới thiệu
-                            </a>
-                        </li>
-                        <li style={{ marginBottom: 8 }}>
-                            <a href="#lienhe" style={linkStyle}>
-                                Liên hệ
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#chuyen-gia" style={linkStyle}>
-                                Hỗ trợ
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                {/* Newsletter */}
-                <div style={{ flex: "1 1 220px", minWidth: 200 }}>
-                    <h5 style={{ color: "#006A71", marginBottom: 10, fontWeight: 700 }}>Nhận tin mới</h5>
-                    <form onSubmit={(e) => e.preventDefault()} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        <input
-                            type="email"
-                            placeholder="Nhập email của bạn"
-                            style={{
-                                padding: "0.5rem",
-                                borderRadius: 6,
-                                border: "1px solid #9ACBD0",
-                                outline: "none",
-                                fontSize: "1rem",
-                                color: "#006A71",
-                                background: "#fff",
-                            }}
-                        />
-                        <button
-                            type="submit"
-                            style={{
-                                background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
-                                color: "#fff",
-                                border: "none",
-                                borderRadius: 6,
-                                padding: "0.5rem",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                transition: "background 0.2s",
-                            }}
-                            onMouseOver={e => e.currentTarget.style.background = "#006A71"}
-                            onMouseOut={e => e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)"}
-                        >
-                            Đăng ký nhận tin
-                        </button>
-                    </form>
-                    <div style={{ fontSize: "0.95rem", color: "#48A6A7", marginTop: 8 }}>
-                        Nhận thông tin, tài liệu và ưu đãi mới nhất từ chúng tôi.
-                    </div>
-                </div>
-            </div>
-            <div style={{ marginTop: "2.5rem", fontSize: "0.97rem", color: "#48A6A7", textAlign: "center" }}>
-                &copy; {new Date().getFullYear()} Cai Nghiện Thuốc Lá. All rights reserved.
-            </div>
-        </footer>
-    );
+            </footer>
+        </>
+    )
 }
-
-const linkStyle = {
-    color: "#48A6A7",
-    textDecoration: "none",
-    fontWeight: "bold",
-    transition: "color 0.2s",
-};
-

@@ -137,7 +137,7 @@ export default function Plan() {
 
     const handleCigaretteSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(false);
+        setSubmitted(true);
         setLoading(true);
         setApiError("");
         try {
@@ -148,11 +148,9 @@ export default function Plan() {
                     "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    todayCigarettes: Number(cigarettesToday)
+                    cigarettes: Number(cigarettesToday)
                 })
             });
-            const text = await res.text();
-            console.log("API trả về:", text);
             if (!res.ok) {
                 // Lấy message chi tiết từ API (ưu tiên json, fallback text)
                 let errorMsg = "Lưu thất bại";

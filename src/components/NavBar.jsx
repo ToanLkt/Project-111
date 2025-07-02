@@ -1,328 +1,540 @@
-
+"use client"
 
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "../AuthContext/AuthContext"
+import "bootstrap/dist/css/bootstrap.min.css"
+
+const COLORS = {
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  success: "#10B981",
+  warning: "#F59E0B",
+}
 
 export default function NavBar() {
   const location = useLocation()
   const pathname = location.pathname
   const { role, email, logout } = useAuth()
 
-  // New palette
-  const colorBg = "#FAFAF9"
-  const color1 = "#CFE8EF"
-  const color2 = "#6AB7C5"
-  const color3 = "#336B73"
-  const colorWhite = "#FFFFFF"
-
   const navItems = [
-    { to: "/", label: "Trang chủ" },
-    { to: "/plan", label: "Lộ trình" },
-    { to: "/community", label: "Cộng đồng" },
-    { to: "/coach", label: "Chuyên gia" },
-    { to: "/ranking", label: "Bảng xếp hạng" },
-    { to: "/feedback", label: "Phản hồi" },
+    { to: "/", label: "Trang chủ", icon: "🏠" },
+    { to: "/plan", label: "Lộ trình", icon: "🗺️" },
+    { to: "/community", label: "Cộng đồng", icon: "👥" },
+    { to: "/coach", label: "Chuyên gia", icon: "🧠" },
+    { to: "/ranking", label: "Bảng xếp hạng", icon: "🏆" },
+    { to: "/feedback", label: "Phản hồi", icon: "💬" },
   ]
 
   return (
     <>
       <style jsx>{`
-        /* Navbar specific styles with high specificity to prevent override */
         .navbar-container {
           position: relative;
-          z-index: 1050 !important;
-          font-family: 'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif !important;
+          z-index: 1050;
+          font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          box-shadow: 0 8px 32px rgba(51, 107, 115, 0.15);
         }
 
         .navbar-header {
-          background: linear-gradient(90deg, #ffffff 10%, #CFE8EF 50%, #6AB7C5 100%) !important;
-          position: relative !important;
-          z-index: 1051 !important;
-          width: 100% !important;
-          padding: 1rem 0 !important;
+          background: ${COLORS.white};
+          border-bottom: 1px solid ${COLORS.color1};
+          position: relative;
+          z-index: 1051;
+          padding: 1.5rem 0;
+        }
+
+        .navbar-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 5px;
+          background: ${COLORS.gradient};
+        }
+
+        .navbar-header::after {
+          content: '';
+          position: absolute;
+          top: 5px;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: ${COLORS.gradientLight};
         }
 
         .navbar-main {
-          background: ${colorBg} !important;
-          position: sticky !important;
-          top: 0 !important;
-          z-index: 1050 !important;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
-           width: 100% !important;
-          padding: 1rem 0 !important;
+          background: ${COLORS.background};
+          position: sticky;
+          top: 0;
+          z-index: 1050;
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid ${COLORS.color1};
+          padding: 1.2rem 0;
+          box-shadow: 0 4px 20px rgba(51, 107, 115, 0.08);
         }
 
         .navbar-logo {
-          width: 45px !important;
-          height: 45px !important;
-          background: linear-gradient(135deg, ${color2} 0%, ${color3} 100%) !important;
-          border-radius: 50% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          margin-right: 1rem !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+          width: 65px;
+          height: 65px;
+          background: ${COLORS.gradient};
+          border-radius: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 1.5rem;
+          box-shadow: 0 12px 32px rgba(106, 183, 197, 0.25);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+          border: 3px solid ${COLORS.color1};
+        }
+
+        .navbar-logo::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+          transform: rotate(45deg);
+          transition: all 0.8s;
+          opacity: 0;
+        }
+
+        .navbar-logo:hover::before {
+          animation: shine 1s ease-in-out;
+        }
+
+        .navbar-logo:hover {
+          transform: translateY(-4px) scale(1.05);
+          box-shadow: 0 20px 48px rgba(106, 183, 197, 0.35);
+        }
+
+        @keyframes shine {
+          0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: translateX(100%) translateY(100%) rotate(45deg); opacity: 0; }
         }
 
         .navbar-logo img {
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: cover !important;
-          border-radius: 50% !important;
-          display: block !important;
+          width: 40px;
+          height: 40px;
+          object-fit: cover;
+          border-radius: 12px;
+          filter: brightness(1.1) contrast(1.1);
         }
 
         .navbar-brand {
-          color: ${color3} !important;
-          font-weight: 700 !important;
-          font-size: 1.25rem !important;
-          text-decoration: none !important;
+          color: ${COLORS.color3};
+          font-weight: 900;
+          font-size: 1.6rem;
+          text-decoration: none;
+          background: ${COLORS.gradient};
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: -0.02em;
+          transition: all 0.3s ease;
         }
 
         .navbar-brand:hover {
-          color: ${color3} !important;
-          text-decoration: none !important;
+          text-decoration: none;
+          transform: translateX(4px);
         }
 
         .navbar-search {
-          position: relative !important;
-          display: flex !important;
-          justify-content: center !important;
-          width: 100% !important;
+          position: relative;
+          display: flex;
+          justify-content: center;
+          width: 100%;
+        }
+
+        .navbar-search-wrapper {
+          position: relative;
+          width: 100%;
+          max-width: 420px;
         }
 
         .navbar-search-input {
-          border: 2px solid ${color1} !important;
-          background-color: ${colorWhite} !important;
-          color: ${color3} !important;
-          border-radius: 25px !important;
-          padding: 0.5rem 1rem 0.5rem 2.5rem !important;
-          width: 100% !important;
-          max-width: 260px !important;
-          min-width: 140px !important;
-          margin: 0 auto !important;
-          font-size: 0.9rem !important;
-          transition: all 0.3s ease !important;
+          border: 2px solid ${COLORS.color1};
+          background: ${COLORS.white};
+          color: ${COLORS.text};
+          border-radius: 50px;
+          padding: 1.2rem 1.8rem 1.2rem 4rem;
+          width: 100%;
+          font-size: 1.05rem;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
+          backdrop-filter: blur(10px);
+          font-weight: 500;
         }
 
         .navbar-search-input:focus {
-          border-color: ${color2} !important;
-          box-shadow: 0 0 0 0.2rem rgba(106, 183, 197, 0.25) !important;
-          outline: none !important;
+          border-color: ${COLORS.color2};
+          box-shadow: 0 0 0 4px rgba(106, 183, 197, 0.15), 0 12px 40px rgba(51, 107, 115, 0.15);
+          outline: none;
+          background: ${COLORS.white};
+          transform: translateY(-2px);
         }
 
         .navbar-search-input::placeholder {
-          color: #999 !important;
+          color: ${COLORS.textLight};
+          font-weight: 400;
+        }
+
+        .navbar-search-icon {
+          position: absolute;
+          left: 1.5rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: ${COLORS.color2};
+          font-size: 1.2rem;
+          pointer-events: none;
         }
 
         .navbar-user-dropdown {
-          border: 2px solid ${color2} !important;
-          background: ${color1} !important;
-          color: ${color3} !important;
-          border-radius: 25px !important;
-          padding: 0.5rem 1rem !important;
-          display: flex !important;
-          align-items: center !important;
-          gap: 0.5rem !important;
-          transition: all 0.3s ease !important;
+          border: 2px solid ${COLORS.color1};
+          background: ${COLORS.white};
+          color: ${COLORS.color3};
+          border-radius: 50px;
+          padding: 0.8rem 1.8rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
+          font-weight: 600;
+          backdrop-filter: blur(10px);
         }
 
         .navbar-user-dropdown:hover {
-          background: ${color2} !important;
-          color: ${colorWhite} !important;
+          background: ${COLORS.color1};
+          border-color: ${COLORS.color2};
+          transform: translateY(-3px);
+          box-shadow: 0 12px 40px rgba(51, 107, 115, 0.15);
         }
 
         .navbar-user-avatar {
-          width: 32px !important;
-          height: 32px !important;
-          background: linear-gradient(135deg, ${color2} 0%, ${color3} 100%) !important;
-          border-radius: 50% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          color: white !important;
-          font-size: 0.875rem !important;
+          width: 45px;
+          height: 45px;
+          background: ${COLORS.gradient};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 1.2rem;
+          font-weight: 700;
+          box-shadow: 0 6px 16px rgba(106, 183, 197, 0.25);
+          border: 2px solid ${COLORS.white};
         }
 
         .navbar-auth-btn {
-          border-radius: 25px !important;
-          padding: 0.5rem 1.5rem !important;
-          font-weight: 600 !important;
-          transition: all 0.3s ease !important;
-          text-decoration: none !important;
-          display: inline-block !important;
-          text-align: center !important;
+          border-radius: 50px;
+          padding: 1rem 2.5rem;
+          font-weight: 700;
+          font-size: 1.05rem;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.8rem;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
+        }
+
+        .navbar-auth-btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.6s;
+        }
+
+        .navbar-auth-btn:hover::before {
+          left: 100%;
         }
 
         .navbar-auth-btn-login {
-          border: 2px solid ${color2} !important;
-          color: ${color3} !important;
-          background: ${colorWhite} !important;
+          border: 2px solid ${COLORS.color2};
+          color: ${COLORS.color3};
+          background: ${COLORS.white};
         }
 
         .navbar-auth-btn-login:hover {
-          background: ${color2} !important;
-          color: ${colorWhite} !important;
+          background: ${COLORS.color2};
+          color: ${COLORS.white};
+          transform: translateY(-3px);
+          box-shadow: 0 12px 32px rgba(106, 183, 197, 0.25);
         }
 
         .navbar-auth-btn-register {
-          background: ${color2} !important;
-          border: 2px solid ${color2} !important;
-          color: ${colorWhite} !important;
+          background: ${COLORS.gradient};
+          border: 2px solid transparent;
+          color: ${COLORS.white};
+          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.2);
         }
 
         .navbar-auth-btn-register:hover {
-          background: ${color3} !important;
-          border-color: ${color3} !important;
+          transform: translateY(-3px);
+          box-shadow: 0 16px 40px rgba(106, 183, 197, 0.3);
         }
 
         .navbar-toggle {
-          border: 2px solid ${color2} !important;
-          color: ${color3} !important;
-          background: ${colorBg} !important;
-          border-radius: 8px !important;
-          padding: 0.5rem !important;
+          border: 2px solid ${COLORS.color1};
+          color: ${COLORS.color3};
+          background: ${COLORS.white};
+          border-radius: 16px;
+          padding: 0.8rem;
+          transition: all 0.3s ease;
+          box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
+        }
+
+        .navbar-toggle:hover {
+          background: ${COLORS.color1};
+          border-color: ${COLORS.color2};
+          transform: translateY(-3px);
+        }
+
+        .navbar-nav {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
         }
 
         .navbar-nav-item {
-          margin: 0 0.25rem !important;
+          position: relative;
         }
 
         .navbar-nav-link {
-          padding: 0.75rem 1.5rem !important;
-          border-radius: 25px !important;
-          font-weight: 600 !important;
-          border: 2px solid ${color2} !important;
-          transition: all 0.3s ease !important;
-          text-decoration: none !important;
-          position: relative !important;
-          display: inline-block !important;
+          padding: 1.2rem 2.5rem;
+          border-radius: 50px;
+          font-weight: 700;
+          font-size: 1.05rem;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          text-decoration: none;
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 0.8rem;
+          border: 2px solid ${COLORS.color1};
+          backdrop-filter: blur(10px);
+          box-shadow: 0 6px 20px rgba(51, 107, 115, 0.06);
         }
 
         .navbar-nav-link-active {
-          background: ${color2} !important;
-          color: ${colorWhite} !important;
+          background: ${COLORS.gradient};
+          color: ${COLORS.white};
+          border-color: transparent;
+          box-shadow: 0 12px 32px rgba(106, 183, 197, 0.25);
+          transform: translateY(-2px);
+        }
+
+        .navbar-nav-link-active::after {
+          content: '';
+          position: absolute;
+          bottom: -8px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 30px;
+          height: 4px;
+          background: ${COLORS.color2};
+          border-radius: 2px;
         }
 
         .navbar-nav-link-inactive {
-          background: transparent !important;
-          color: ${color3} !important;
+          background: ${COLORS.white};
+          color: ${COLORS.color3};
         }
 
-        .navbar-nav-link:hover {
-          background: ${color2} !important;
-          color: ${colorWhite} !important;
-          text-decoration: none !important;
-        }
-
-        .navbar-nav-indicator {
-          position: absolute !important;
-          bottom: -2px !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
-          width: 24px !important;
-          height: 3px !important;
-          background: ${color3} !important;
-          border-radius: 2px !important;
-          display: block !important;
+        .navbar-nav-link-inactive:hover {
+          background: ${COLORS.color1};
+          border-color: ${COLORS.color2};
+          color: ${COLORS.color3};
+          transform: translateY(-4px);
+          box-shadow: 0 12px 40px rgba(51, 107, 115, 0.15);
+          text-decoration: none;
         }
 
         .navbar-dropdown-menu {
-          z-index: 2000 !important;
-          background: ${colorWhite} !important;
-          border: 1px solid ${color1} !important;
-          border-radius: 10px !important;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+          z-index: 2000;
+          background: ${COLORS.white};
+          border: 2px solid ${COLORS.color1};
+          border-radius: 20px;
+          box-shadow: 0 16px 48px rgba(51, 107, 115, 0.12);
+          padding: 0.8rem;
+          margin-top: 0.8rem;
+          backdrop-filter: blur(20px);
         }
 
         .navbar-dropdown-item {
-          color: ${color3} !important;
-          padding: 0.75rem 1rem !important;
-          display: flex !important;
-          align-items: center !important;
-          gap: 0.5rem !important;
-          text-decoration: none !important;
+          color: ${COLORS.color3};
+          padding: 1rem 1.2rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          text-decoration: none;
+          border-radius: 16px;
+          transition: all 0.3s ease;
+          font-weight: 500;
         }
 
         .navbar-dropdown-item:hover {
-          background: ${color1} !important;
-          color: ${color3} !important;
+          background: ${COLORS.color1};
+          color: ${COLORS.color3};
+          transform: translateX(6px);
+        }
+
+        .navbar-dropdown-divider {
+          margin: 0.8rem 0;
+          border-color: ${COLORS.color1};
         }
 
         .navbar-mobile-search {
-          padding: 0.5rem 1rem 1rem !important;
-        }
-
-        .navbar-mobile-search-input {
-          border: 2px solid ${color1} !important;
-          background-color: ${colorBg} !important;
-          color: ${color3} !important;
-          border-radius: 25px !important;
-          padding: 0.5rem 1rem 0.5rem 2.5rem !important;
-          width: 100% !important;
-          max-width: 260px !important;
-          margin: 0 auto !important;
-          font-size: 0.9rem !important;
+          padding: 1.2rem;
+          background: ${COLORS.background};
+          border-top: 1px solid ${COLORS.color1};
         }
 
         .offcanvas-custom {
-          z-index: 1055 !important;
+          z-index: 1055;
+          border: none;
+          box-shadow: -8px 0 32px rgba(51, 107, 115, 0.12);
         }
 
         .offcanvas-header-custom {
-          background: ${color1} !important;
-          padding: 1rem !important;
+          background: ${COLORS.gradient};
+          color: ${COLORS.white};
+          padding: 2rem;
+          border-bottom: 1px solid ${COLORS.color1};
         }
 
         .offcanvas-body-custom {
-          background: ${colorWhite} !important;
-          padding: 1rem !important;
+          background: ${COLORS.white};
+          padding: 2rem;
         }
 
         .offcanvas-nav-link {
-          border: 2px solid ${color2} !important;
-          border-radius: 25px !important;
-          padding: 0.75rem 1rem !important;
-          margin-bottom: 0.5rem !important;
-          text-decoration: none !important;
-          display: block !important;
-          transition: all 0.3s ease !important;
+          border: 2px solid ${COLORS.color1};
+          border-radius: 20px;
+          padding: 1.2rem 1.5rem;
+          margin-bottom: 1rem;
+          text-decoration: none;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          font-weight: 600;
+          box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
         }
 
         .offcanvas-nav-link-active {
-          background: ${color2} !important;
-          color: ${colorWhite} !important;
+          background: ${COLORS.gradient};
+          color: ${COLORS.white};
+          border-color: transparent;
+          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.2);
         }
 
         .offcanvas-nav-link-inactive {
-          background: ${colorWhite} !important;
-          color: ${color3} !important;
+          background: ${COLORS.background};
+          color: ${COLORS.color3};
         }
 
-        /* Ensure navbar stays on top of all content */
-        .navbar-container * {
-          box-sizing: border-box !important;
+        .offcanvas-nav-link-inactive:hover {
+          background: ${COLORS.color1};
+          border-color: ${COLORS.color2};
+          transform: translateX(6px);
         }
 
-        /* Mobile responsive fixes */
+        .offcanvas-close-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 12px;
+          color: ${COLORS.white};
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+        }
+
+        .offcanvas-close-btn:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: scale(1.1);
+        }
+
         @media (max-width: 768px) {
           .navbar-search-input {
-            max-width: 200px !important;
-            font-size: 0.85rem !important;
+            font-size: 1rem;
+            padding: 1rem 1.5rem 1rem 3.5rem;
           }
-          
-          .navbar-mobile-search-input {
-            max-width: 200px !important;
-            font-size: 0.85rem !important;
+
+          .navbar-brand {
+            font-size: 1.4rem;
+          }
+
+          .navbar-logo {
+            width: 55px;
+            height: 55px;
+          }
+
+          .navbar-logo img {
+            width: 32px;
+            height: 32px;
+          }
+
+          .navbar-header {
+            padding: 1.2rem 0;
+          }
+
+          .navbar-nav {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+          }
+
+          .navbar-nav-link {
+            padding: 1rem 1.8rem;
+            font-size: 1rem;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .navbar-auth-btn {
+            padding: 0.8rem 1.8rem;
+            font-size: 1rem;
+          }
+
+          .navbar-brand {
+            font-size: 1.3rem;
+          }
+
+          .navbar-logo {
+            width: 50px;
+            height: 50px;
           }
         }
       `}</style>
 
       <div className="navbar-container">
         {/* Top Header Bar */}
-        <div className="navbar-header">
+        <div className="navbar-header" style={{ background: "linear-gradient(135deg,#FAFAF9 0%, #CFE8EF 70%, #6AB7C5 100%)" }}>
           <div className="container-fluid">
-            <div className="row align-items-center py-3">
+            <div className="row align-items-center">
               {/* Logo Section */}
               <div className="col-lg-3 col-md-4 col-sm-6">
                 <div className="d-flex align-items-center">
@@ -339,13 +551,18 @@ export default function NavBar() {
               {/* Search Section */}
               <div className="col-lg-6 col-md-4 d-none d-md-block">
                 <div className="navbar-search">
-                  <input type="text" className="navbar-search-input" placeholder="Tìm kiếm..." />
+                  <div className="navbar-search-wrapper">
+                    <div className="navbar-search-icon">
+                      <i className="fas fa-search"></i>
+                    </div>
+                    <input type="text" className="navbar-search-input" placeholder="Tìm kiếm thông tin, bài viết..." />
+                  </div>
                 </div>
               </div>
 
               {/* Account Section */}
               <div className="col-lg-3 col-md-4 col-sm-6">
-                <div className="d-flex align-items-center justify-content-end gap-2">
+                <div className="d-flex align-items-center justify-content-end gap-3">
                   {email ? (
                     <div className="dropdown">
                       <button
@@ -354,12 +571,11 @@ export default function NavBar() {
                         data-bs-toggle="dropdown"
                         aria-expanded="false"
                       >
-                        <div className="navbar-user-avatar">
-                          <span>👤</span>
-                        </div>
+                        <div className="navbar-user-avatar">{email.charAt(0).toUpperCase()}</div>
                         <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
-                          {email}
+                          {email.split("@")[0]}
                         </span>
+                        <i className="fas fa-chevron-down" style={{ fontSize: "0.8rem" }}></i>
                       </button>
                       <ul className="dropdown-menu dropdown-menu-end navbar-dropdown-menu">
                         <li>
@@ -367,20 +583,21 @@ export default function NavBar() {
                             to={role === "admin" ? "/admin/profile" : "/member/profile"}
                             className="dropdown-item navbar-dropdown-item"
                           >
-                            <span>👤</span>
+                            <i className="fas fa-user"></i>
                             Hồ sơ cá nhân
                           </Link>
                         </li>
+
                         <li>
-                          <hr className="dropdown-divider" />
+                          <hr className="dropdown-divider navbar-dropdown-divider" />
                         </li>
                         <li>
                           <button
                             onClick={logout}
                             className="dropdown-item navbar-dropdown-item"
-                            style={{ color: "#d9534f !important" }}
+                            style={{ color: "#EF4444" }}
                           >
-                            <span>🚪</span>
+                            <i className="fas fa-sign-out-alt"></i>
                             Đăng xuất
                           </button>
                         </li>
@@ -388,10 +605,12 @@ export default function NavBar() {
                     </div>
                   ) : (
                     <>
-                      <Link to="/login" className="navbar-auth-btn navbar-auth-btn-login d-none d-sm-inline-block">
+                      <Link to="/login" className="navbar-auth-btn navbar-auth-btn-login d-none d-sm-inline-flex">
+                        <i className="fas fa-sign-in-alt"></i>
                         Đăng nhập
                       </Link>
                       <Link to="/register" className="navbar-auth-btn navbar-auth-btn-register">
+                        <i className="fas fa-user-plus"></i>
                         Đăng ký
                       </Link>
                     </>
@@ -405,7 +624,7 @@ export default function NavBar() {
                     data-bs-target="#mobileMenu"
                     aria-controls="mobileMenu"
                   >
-                    <span>☰</span>
+                    <i className="fas fa-bars"></i>
                   </button>
                 </div>
               </div>
@@ -415,7 +634,12 @@ export default function NavBar() {
             <div className="row d-md-none">
               <div className="col-12 navbar-mobile-search">
                 <div className="navbar-search">
-                  <input type="text" className="navbar-mobile-search-input" placeholder="Tìm kiếm..." />
+                  <div className="navbar-search-wrapper">
+                    <div className="navbar-search-icon">
+                      <i className="fas fa-search"></i>
+                    </div>
+                    <input type="text" className="navbar-search-input" placeholder="Tìm kiếm..." />
+                  </div>
                 </div>
               </div>
             </div>
@@ -434,14 +658,13 @@ export default function NavBar() {
                       to={item.to}
                       className={`navbar-nav-link ${isActive ? "navbar-nav-link-active" : "navbar-nav-link-inactive"}`}
                     >
+                      <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
                       {item.label}
-                      {isActive && <span className="navbar-nav-indicator" />}
                     </Link>
                   </li>
                 )
               })}
             </ul>
-
           </div>
         </nav>
 
@@ -455,37 +678,55 @@ export default function NavBar() {
           <div className="offcanvas-header offcanvas-header-custom">
             <div className="d-flex align-items-center">
               <div className="navbar-logo" style={{ marginRight: "0.75rem", width: "40px", height: "40px" }}>
-                <span style={{ fontSize: "1.25rem" }}>🚭</span>
+                <img src="/A.png" alt="Logo" style={{ width: "24px", height: "24px" }} />
               </div>
-              <h5 className="offcanvas-title fw-bold" id="mobileMenuLabel" style={{ color: color3 }}>
+              <h5 className="offcanvas-title fw-bold mb-0" id="mobileMenuLabel">
                 Cai Nghiện Thuốc Lá
               </h5>
             </div>
-            <button type="button" className="btn-close" data-bs-dismiss="offcanvas" aria-label="Close" />
+            <button type="button" className="offcanvas-close-btn" data-bs-dismiss="offcanvas" aria-label="Close">
+              <i className="fas fa-times"></i>
+            </button>
           </div>
 
-          <div className="offcanvas offcanvas-end offcanvas-custom" tabIndex="-1" id="mobileMenu">
-            <div className="offcanvas-header offcanvas-header-custom">
-              <h5 className="offcanvas-title">Menu</h5>
-              <button type="button" className="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close" />
-            </div>
-            <div className="offcanvas-body offcanvas-body-custom">
-              {navItems.map((item) => {
-                const isActive = pathname === item.to
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={`offcanvas-nav-link ${isActive ? "offcanvas-nav-link-active" : "offcanvas-nav-link-inactive"}`}
-                    data-bs-dismiss="offcanvas"
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
+          <div className="offcanvas-body offcanvas-body-custom">
+            {navItems.map((item) => {
+              const isActive = pathname === item.to
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`offcanvas-nav-link ${isActive ? "offcanvas-nav-link-active" : "offcanvas-nav-link-inactive"}`}
+                  data-bs-dismiss="offcanvas"
+                >
+                  <span style={{ fontSize: "1.2rem" }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              )
+            })}
 
+            {/* Mobile Auth Buttons */}
+            {!email && (
+              <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${COLORS.color1}` }}>
+                <Link
+                  to="/login"
+                  className="offcanvas-nav-link offcanvas-nav-link-inactive mb-2"
+                  data-bs-dismiss="offcanvas"
+                >
+                  <i className="fas fa-sign-in-alt"></i>
+                  Đăng nhập
+                </Link>
+                <Link
+                  to="/register"
+                  className="offcanvas-nav-link offcanvas-nav-link-active"
+                  data-bs-dismiss="offcanvas"
+                >
+                  <i className="fas fa-user-plus"></i>
+                  Đăng ký
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

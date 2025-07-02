@@ -1,312 +1,594 @@
-import React, { useState, useEffect } from "react";
-import { useAuth } from "../../AuthContext/AuthContext";
-import HistoryPayment from "./HistoryPayment";
+"use client"
+
+import { useState, useEffect } from "react"
+import { useAuth } from "../../AuthContext/AuthContext"
+import HistoryPayment from "./HistoryPayment"
+import "bootstrap/dist/css/bootstrap.min.css"
+
+const COLORS = {
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  success: "#10B981",
+  warning: "#F59E0B",
+  danger: "#EF4444",
+}
 
 export default function MemberProfile() {
-  const COLORS = {
-    background: "#F2EFE7",
-    primary: "#9ACBD0",
-    secondary: "#48A6A7",
-    accent: "#006A71",
-    text: "#006A71",
-    white: "#fff",
-    light: "#E6F4F4",
-  };
-
-  const { token } = useAuth();
-  const [user, setUser] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(null);
+  const { token } = useAuth()
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     async function fetchProfile() {
       try {
-        if (!token) throw new Error("Không tìm thấy token");
-        const url = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile";
+        if (!token) throw new Error("Không tìm thấy token")
+
+        const url = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile"
         const res = await fetch(url, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        });
-        if (!res.ok) throw new Error(res.status === 403 ? "Forbidden" : "Unauthorized");
-        const profile = await res.json();
-        setUser({
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) throw new Error(res.status === 403 ? "Forbidden" : "Unauthorized")
+
+        const profile = await res.json()
+        const userData = {
           email: profile.email || "",
           fullName: profile.fullName || "",
           phoneNumber: profile.phoneNumber || "",
           birthday: profile.birthday || "",
           sex: profile.sex === true ? "Nam" : profile.sex === false ? "Nữ" : "",
           status: profile.status === true ? "Hoạt động" : profile.status === false ? "Khóa" : "",
-        });
-        setFormData({
-          email: profile.email || "",
-          fullName: profile.fullName || "",
-          phoneNumber: profile.phoneNumber || "",
-          birthday: profile.birthday || "",
-          sex: profile.sex === true ? "Nam" : profile.sex === false ? "Nữ" : "",
-          status: profile.status === true ? "Hoạt động" : profile.status === false ? "Khóa" : "",
-        });
+        }
+
+        setUser(userData)
+        setFormData(userData)
       } catch (e) {
-        setUser(null);
-        alert(e.message);
+        setUser(null)
+        alert(e.message)
+      } finally {
+        setLoading(false)
       }
     }
-    if (token) fetchProfile();
-  }, [token]);
+
+    if (token) fetchProfile()
+  }, [token])
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }));
-  };
+    }))
+  }
 
-  const handleEdit = () => setIsEditing(true);
+  const handleEdit = () => setIsEditing(true)
+
   const handleCancel = () => {
-    setFormData(user);
-    setIsEditing(false);
-  };
+    setFormData(user)
+    setIsEditing(false)
+  }
+
   const handleSave = async () => {
+    setSaving(true)
     try {
-      // Chuyển sex về boolean
-      const sexBool = formData.sex === "Nam" ? true : formData.sex === "Nữ" ? false : null;
+      const sexBool = formData.sex === "Nam" ? true : formData.sex === "Nữ" ? false : null
       const body = {
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         birthday: formData.birthday ? formData.birthday.slice(0, 10) : "",
-        sex: sexBool
-      };
-      const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) throw new Error("Cập nhật thất bại");
-      setUser({ ...user, ...formData, sex: formData.sex });
-      setIsEditing(false);
-      alert("Cập nhật thành công!");
-    } catch (e) {
-      alert(e.message);
-    }
-  };
+        sex: sexBool,
+      }
 
-  if (!user) return <div style={{ textAlign: "center", marginTop: 40 }}>Đang tải...</div>;
+      const res = await fetch(
+        "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile",
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        },
+      )
+
+      if (!res.ok) throw new Error("Cập nhật thất bại")
+
+      setUser({ ...user, ...formData, sex: formData.sex })
+      setIsEditing(false)
+      alert("Cập nhật thành công!")
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <>
+        <style jsx>{`
+          .loading-container {
+            min-height: 100vh;
+            background: ${COLORS.background};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          }
+
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid ${COLORS.color1};
+            border-radius: 50%;
+            border-top-color: ${COLORS.color2};
+            animation: spin 1s linear infinite;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+
+          .loading-text {
+            margin-top: 1rem;
+            color: ${COLORS.textLight};
+            font-size: 1.1rem;
+            font-weight: 500;
+          }
+        `}</style>
+        <div className="loading-container">
+          <div className="text-center">
+            <div className="loading-spinner"></div>
+            <div className="loading-text">Đang tải thông tin...</div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div style={{ textAlign: "center", marginTop: 40, color: COLORS.textLight }}>
+        Không thể tải thông tin người dùng
+      </div>
+    )
+  }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: COLORS.background,
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        color: COLORS.text,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "48px 0 32px 0",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 500,
-          background: COLORS.white,
-          borderRadius: 16,
-          boxShadow: "0 4px 24px rgba(72,166,167,0.10)",
-          padding: "2.2rem 2rem 1.5rem 2rem",
-          border: `1.5px solid ${COLORS.primary}`,
-        }}
-      >
-        <h2
-          style={{
-            color: COLORS.accent,
-            textAlign: "center",
-            marginBottom: 28,
-            fontWeight: 800,
-            fontSize: "2rem",
-            userSelect: "none",
-            letterSpacing: 0.5,
-          }}
-        >
-          👤 Thông tin cá nhân
-        </h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div>
-            <b>Email:</b>{" "}
-            {isEditing ? (
-              <input
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                style={{
-                  padding: 6,
-                  borderRadius: 8,
-                  border: `1.5px solid ${COLORS.primary}`,
-                  width: "70%",
-                  background: COLORS.light,
-                  color: COLORS.text,
-                  outline: "none",
-                }}
-              />
-            ) : (
-              <span>{user.email}</span>
-            )}
-          </div>
-          <div>
-            <b>Họ tên:</b>{" "}
-            {isEditing ? (
-              <input
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                style={{
-                  padding: 6,
-                  borderRadius: 8,
-                  border: `1.5px solid ${COLORS.primary}`,
-                  width: "70%",
-                  background: COLORS.light,
-                  color: COLORS.text,
-                  outline: "none",
-                }}
-              />
-            ) : (
-              <span>{user.fullName}</span>
-            )}
-          </div>
-          <div>
-            <b>Số điện thoại:</b>{" "}
-            {isEditing ? (
-              <input
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                style={{
-                  padding: 6,
-                  borderRadius: 8,
-                  border: `1.5px solid ${COLORS.primary}`,
-                  width: "70%",
-                  background: COLORS.light,
-                  color: COLORS.text,
-                  outline: "none",
-                }}
-              />
-            ) : (
-              <span>{user.phoneNumber}</span>
-            )}
-          </div>
-          <div>
-            <b>Ngày sinh:</b>{" "}
-            {isEditing ? (
-              <input
-                name="birthday"
-                type="date"
-                value={formData.birthday ? formData.birthday.slice(0, 10) : ""}
-                onChange={handleChange}
-                style={{
-                  padding: 6,
-                  borderRadius: 8,
-                  border: `1.5px solid ${COLORS.primary}`,
-                  width: "70%",
-                  background: COLORS.light,
-                  color: COLORS.text,
-                  outline: "none",
-                }}
-              />
-            ) : (
-              <span>{user.birthday ? user.birthday.slice(0, 10) : ""}</span>
-            )}
-          </div>
-          <div>
-            <b>Giới tính:</b>{" "}
-            {isEditing ? (
-              <select
-                name="sex"
-                value={formData.sex}
-                onChange={handleChange}
-                style={{
-                  padding: 6,
-                  borderRadius: 8,
-                  border: `1.5px solid ${COLORS.primary}`,
-                  background: COLORS.light,
-                  color: COLORS.text,
-                  outline: "none",
-                }}
-              >
-                <option value="">Chọn</option>
-                <option value="Nam">Nam</option>
-                <option value="Nữ">Nữ</option>
-              </select>
-            ) : (
-              <span>{user.sex}</span>
-            )}
-          </div>
-          <div>
-            <b>Trạng thái:</b> <span>{user.status}</span>
-          </div>
-        </div>
-        <div style={{ marginTop: 28, textAlign: "center" }}>
-          {!isEditing ? (
-            <button
-              onClick={handleEdit}
-              style={{
-                padding: "7px 20px",
-                fontSize: 15,
-                background: `linear-gradient(90deg, ${COLORS.secondary} 60%, ${COLORS.accent} 100%)`,
-                color: COLORS.white,
-                border: "none",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontWeight: 700,
-                boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
-                transition: "background 0.3s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = COLORS.accent)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = `linear-gradient(90deg, ${COLORS.secondary} 60%, ${COLORS.accent} 100%)`)}
-            >
-              Chỉnh sửa
-            </button>
-          ) : (
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: "7px 20px",
-                  fontSize: 15,
-                  background: "#28a745",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                Lưu
-              </button>
-              <button
-                onClick={handleCancel}
-                style={{
-                  padding: "7px 20px",
-                  fontSize: 15,
-                  background: "#dc3545",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                Hủy
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      <HistoryPayment />
-    </div>
+    <>
+      <style jsx>{`
+        .profile-container {
+          min-height: 100vh;
+          background: ${COLORS.background};
+          font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          color: ${COLORS.text};
+          padding: 3rem 0;
+        }
 
-  );
+        .profile-card {
+          background: ${COLORS.white};
+          border-radius: 24px;
+          box-shadow: 
+            0 20px 40px rgba(51, 107, 115, 0.08),
+            0 8px 16px rgba(51, 107, 115, 0.04);
+          padding: 3rem;
+          border: 1px solid ${COLORS.color1};
+          position: relative;
+          overflow: hidden;
+          max-width: 600px;
+          margin: 0 auto 3rem auto;
+        }
+
+        .profile-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: ${COLORS.gradient};
+          z-index: 1;
+        }
+
+        .profile-header {
+          text-align: center;
+          margin-bottom: 2.5rem;
+        }
+
+        .profile-icon {
+          width: 80px;
+          height: 80px;
+          background: ${COLORS.gradientLight};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 1.5rem;
+          border: 3px solid ${COLORS.color1};
+          font-size: 2.5rem;
+        }
+
+        .profile-title {
+          font-size: 2.2rem;
+          font-weight: 800;
+          background: ${COLORS.gradient};
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: -0.02em;
+          margin-bottom: 0.5rem;
+        }
+
+        .profile-subtitle {
+          color: ${COLORS.textLight};
+          font-size: 1rem;
+          font-weight: 500;
+        }
+
+        .form-group {
+          margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+          display: block;
+          font-weight: 600;
+          color: ${COLORS.color3};
+          margin-bottom: 0.5rem;
+          font-size: 0.95rem;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 0.8rem 1rem;
+          border: 1px solid ${COLORS.color1};
+          border-radius: 12px;
+          background: ${COLORS.background};
+          color: ${COLORS.text};
+          font-size: 1rem;
+          transition: all 0.3s ease;
+          outline: none;
+        }
+
+        .form-input:focus {
+          border-color: ${COLORS.color2};
+          box-shadow: 0 0 0 3px rgba(106, 183, 197, 0.1);
+          background: ${COLORS.white};
+        }
+
+        .form-input:disabled {
+          background: ${COLORS.white};
+          border-color: ${COLORS.color1};
+          color: ${COLORS.text};
+          cursor: default;
+        }
+
+        .form-select {
+          width: 100%;
+          padding: 0.8rem 1rem;
+          border: 1px solid ${COLORS.color1};
+          border-radius: 12px;
+          background: ${COLORS.background};
+          color: ${COLORS.text};
+          font-size: 1rem;
+          transition: all 0.3s ease;
+          outline: none;
+          cursor: pointer;
+        }
+
+        .form-select:focus {
+          border-color: ${COLORS.color2};
+          box-shadow: 0 0 0 3px rgba(106, 183, 197, 0.1);
+          background: ${COLORS.white};
+        }
+
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          background: ${COLORS.success};
+          color: ${COLORS.white};
+        }
+
+        .status-badge.inactive {
+          background: ${COLORS.danger};
+        }
+
+        .button-group {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 2rem;
+        }
+
+        .btn-primary {
+          background: ${COLORS.gradient};
+          color: ${COLORS.white};
+          border: none;
+          border-radius: 12px;
+          padding: 0.8rem 2rem;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 16px rgba(106, 183, 197, 0.2);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(106, 183, 197, 0.3);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-success {
+          background: ${COLORS.success};
+          color: ${COLORS.white};
+          border: none;
+          border-radius: 12px;
+          padding: 0.8rem 2rem;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-success:hover:not(:disabled) {
+          background: #059669;
+          transform: translateY(-1px);
+        }
+
+        .btn-danger {
+          background: ${COLORS.danger};
+          color: ${COLORS.white};
+          border: none;
+          border-radius: 12px;
+          padding: 0.8rem 2rem;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .btn-danger:hover {
+          background: #DC2626;
+          transform: translateY(-1px);
+        }
+
+        .loading-btn-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid transparent;
+          border-radius: 50%;
+          border-top-color: currentColor;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .profile-container {
+            padding: 2rem 1rem;
+          }
+
+          .profile-card {
+            padding: 2rem;
+            border-radius: 20px;
+          }
+
+          .profile-title {
+            font-size: 1.8rem;
+          }
+
+          .button-group {
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .btn-primary,
+          .btn-success,
+          .btn-danger {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .profile-card {
+            padding: 1.5rem;
+          }
+
+          .profile-title {
+            font-size: 1.6rem;
+          }
+
+          .profile-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 2rem;
+          }
+        }
+      `}</style>
+
+      <div className="profile-container">
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-12">
+              <div className="profile-card">
+                <div className="profile-header">
+                  <div className="profile-icon">👤</div>
+                  <h2 className="profile-title">Thông tin cá nhân</h2>
+                  <p className="profile-subtitle">Quản lý thông tin tài khoản của bạn</p>
+                </div>
+
+                <form>
+                  <div className="form-group">
+                    <label className="form-label">
+                      <i className="fas fa-envelope me-2"></i>
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={isEditing ? formData.email : user.email}
+                      onChange={handleChange}
+                      className="form-input"
+                      disabled={!isEditing}
+                      readOnly
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <i className="fas fa-user me-2"></i>
+                      Họ và tên
+                    </label>
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={isEditing ? formData.fullName : user.fullName}
+                      onChange={handleChange}
+                      className="form-input"
+                      disabled={!isEditing}
+                      placeholder="Nhập họ và tên"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <i className="fas fa-phone me-2"></i>
+                      Số điện thoại
+                    </label>
+                    <input
+                      type="tel"
+                      name="phoneNumber"
+                      value={isEditing ? formData.phoneNumber : user.phoneNumber}
+                      onChange={handleChange}
+                      className="form-input"
+                      disabled={!isEditing}
+                      placeholder="Nhập số điện thoại"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <i className="fas fa-calendar me-2"></i>
+                      Ngày sinh
+                    </label>
+                    <input
+                      type="date"
+                      name="birthday"
+                      value={
+                        isEditing
+                          ? formData.birthday
+                            ? formData.birthday.slice(0, 10)
+                            : ""
+                          : user.birthday
+                            ? user.birthday.slice(0, 10)
+                            : ""
+                      }
+                      onChange={handleChange}
+                      className="form-input"
+                      disabled={!isEditing}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <i className="fas fa-venus-mars me-2"></i>
+                      Giới tính
+                    </label>
+                    {isEditing ? (
+                      <select name="sex" value={formData.sex} onChange={handleChange} className="form-select">
+                        <option value="">Chọn giới tính</option>
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                      </select>
+                    ) : (
+                      <input type="text" value={user.sex || "Chưa cập nhật"} className="form-input" disabled readOnly />
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      <i className="fas fa-info-circle me-2"></i>
+                      Trạng thái tài khoản
+                    </label>
+                    <div>
+                      <span className={`status-badge ${user.status === "Khóa" ? "inactive" : ""}`}>
+                        <i className={`fas ${user.status === "Hoạt động" ? "fa-check-circle" : "fa-lock"}`}></i>
+                        {user.status}
+                      </span>
+                    </div>
+                  </div>
+                </form>
+
+                <div className="button-group">
+                  {!isEditing ? (
+                    <button onClick={handleEdit} className="btn-primary">
+                      <i className="fas fa-edit"></i>
+                      Chỉnh sửa thông tin
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={handleSave} className="btn-success" disabled={saving}>
+                        {saving ? (
+                          <>
+                            <div className="loading-btn-spinner"></div>
+                            Đang lưu...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-save"></i>
+                            Lưu thay đổi
+                          </>
+                        )}
+                      </button>
+                      <button onClick={handleCancel} className="btn-danger" disabled={saving}>
+                        <i className="fas fa-times"></i>
+                        Hủy bỏ
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <HistoryPayment />
+      </div>
+    </>
+  )
 }
