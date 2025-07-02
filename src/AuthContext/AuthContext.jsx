@@ -20,33 +20,37 @@ export function AuthProvider({ children }) {
         }
         const data = await res.json();
 
-        // Lấy token từ login
+        // Lấy token và accountId từ login
         const token = data.token;
+        const accountId = data.accountId || data.AccountId || data.id || null;
 
-        // Gọi tiếp API lấy profile để xác định accountId và fullName
-        let accountId = null;
-        let fullName = "";
+        // Gọi tiếp API lấy profile để lấy các thông tin khác (email, fullName, role)
+        let profileInfo = {};
         try {
             const profileRes = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (profileRes.ok) {
                 const profile = await profileRes.json();
-                accountId = profile.accountId || profile.AccountId || profile.id || null;
-                fullName = profile.fullName || profile.FullName || profile.name || "";
+                profileInfo = {
+                    email: profile.email || profile.Email || email,
+                    fullName: profile.fullName || profile.FullName || profile.name || "",
+                    role: profile.role?.toLowerCase() || data.role?.toLowerCase() || null
+                };
             }
         } catch (e) {
-            accountId = data.accountId || data.AccountId || data.id || null;
-            fullName = data.fullName || data.FullName || data.name || "";
+            // Nếu lỗi thì fallback về data từ login
+            profileInfo = {
+                email: data.email || data.Email || email,
+                fullName: data.fullName || data.FullName || data.name || "",
+                role: data.role?.toLowerCase() || null
+            };
         }
 
         const userData = {
-            ...data,
-            role: data.role?.toLowerCase(),
-            email: data.email || data.Email || email,
-            accountId,
             token,
-            fullName
+            accountId,
+            ...profileInfo
         };
         setUser(userData);
         localStorage.setItem("user", JSON.stringify(userData));

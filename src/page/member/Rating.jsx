@@ -1,5 +1,5 @@
 import React from "react";
-import Footer from "../../components/Footer";
+
 
 export default function Rating({ value, onChange, readOnly = false, size = 26 }) {
     return (

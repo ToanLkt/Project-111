@@ -1,7 +1,15 @@
 import React, { useState } from "react";
 import { useAuth } from "../AuthContext/AuthContext";
 import { useNavigate } from "react-router-dom";
-// Thêm dòng này
+
+// Thêm hàm này ở đây
+function parseJwt(token) {
+    try {
+        return JSON.parse(atob(token.split('.')[1]));
+    } catch {
+        return null;
+    }
+}
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -19,7 +27,7 @@ export default function Login() {
         setSuccess("");
         setShowToast(false);
         try {
-            const role = await login(email, password); // Gọi API login từ context
+            const role = await login(email, password); 
             setSuccess("Đăng nhập thành công!");
             setShowToast(true);
             setTimeout(() => {

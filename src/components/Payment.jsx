@@ -57,11 +57,21 @@ function formatDate(dt) {
         String(dt.getSeconds()).padStart(2, "0");
 }
 
+// Lấy accountId từ token JWT của user hiện tại
+function parseJwt(token) {
+    try {
+        return JSON.parse(atob(token.split('.')[1]));
+    } catch {
+        return null;
+    }
+}
+
 export default function Payment() {
     const location = useLocation();
     const navigate = useNavigate();
-    const auth = useContext(AuthContext); // Lấy context
-    const token = auth?.token; // Lấy token từ context
+    const auth = useContext(AuthContext);
+    const token = auth?.token;
+    const accountId = auth?.accountId;
     const [packages, setPackages] = useState([]);
     const [showQR, setShowQR] = useState(false);
     const [buyingPkg, setBuyingPkg] = useState(null);
@@ -170,20 +180,29 @@ export default function Payment() {
                 // Tạo endDate tại đây (không lấy từ Google Sheets)
                 const endDate = formatDate(new Date(Date.now() + (buyingPkg.duration || 30) * 24 * 60 * 60 * 1000));
                 if (lastPaid) {
-                    if (!localStorage.getItem(`paid_success_${buyingPkg.package_membership_ID}`)) {
+                    if (!localStorage.getItem(`paid_success_${buyingPkg.package_membership_ID}_${accountId}`)) {
                         showToast("✅ Giao dịch thành công!");
                         createPayment({
                             packageMembershipId: buyingPkg.package_membership_ID,
                             totalPrice: buyingPkg.price,
                             paymentStatus: "SUCCESS",
                             duration: buyingPkg.duration,
-                            transactionCode // <-- truyền vào
+                            transactionCode
                         });
-                        localStorage.setItem(`paid_success_${buyingPkg.package_membership_ID}`, "true");
-                        localStorage.setItem("current_package", JSON.stringify({
+                        // Lưu trạng thái đã thanh toán cho từng accountId
+                        localStorage.setItem(`paid_success_${buyingPkg.package_membership_ID}_${accountId}`, "true");
+                        localStorage.setItem(`current_package_${accountId}`, JSON.stringify({
                             package_membership_ID: buyingPkg.package_membership_ID,
-                            endDate: endDate
+                            category: buyingPkg.category,
+                            description: buyingPkg.description,
+                            price: buyingPkg.price,
+                            duration: buyingPkg.duration,
+                            endDate: endDate,
+                            accountId: accountId
                         }));
+
+                        // Chuyển về trang member để cập nhật UI
+                        navigate("/member");
                     }
                     // Đóng QR mỗi khi tìm thấy giao dịch
                     stop = true;
@@ -197,7 +216,7 @@ export default function Payment() {
 
         const interval = setInterval(checkPaid, 2000);
         return () => { stop = true; clearInterval(interval); };
-    }, [showQR, buyingPkg, transactionCode]);
+    }, [showQR, buyingPkg, transactionCode, accountId]);
 
     return (
         <>
@@ -236,95 +255,133 @@ export default function Payment() {
                         Thanh toán & Đăng ký gói thành viên
                     </h2>
                     <div style={{ display: "flex", gap: 32, flexWrap: "wrap", justifyContent: "center", marginBottom: 32 }}>
-                        {packages.map((pkg) => (
-                            <div
-                                key={pkg.package_membership_ID}
-                                style={{
-                                    background: COLORS.light,
-                                    borderRadius: 14,
-                                    border: `2.5px solid ${COLORS.primary}`,
-                                    boxShadow: "0 2px 8px #9ACBD022",
-                                    padding: "1.5rem 1.2rem 1.2rem 1.2rem",
-                                    minWidth: 220,
-                                    maxWidth: 270,
-                                    flex: "1 1 220px",
-                                    opacity: pkg.status === "Active" ? 1 : 0.6,
-                                    position: "relative",
-                                    marginBottom: 8,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    justifyContent: "space-between",
-                                    borderColor: COLORS.primary,
-                                }}
-                            >
-                                <div style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    marginBottom: 6,
-                                    minHeight: 24,
-                                }}>
-                                    <span style={{
-                                        color: COLORS.accent,
-                                        fontWeight: 700,
-                                        fontSize: "1.15rem",
-                                        textTransform: "uppercase",
-                                        letterSpacing: 1,
-                                    }}>
-                                        {pkg.category}
-                                    </span>
-                                    <span style={{
-                                        color: pkg.status === "Active" ? COLORS.secondary : "#aaa",
-                                        fontWeight: 600,
-                                        fontSize: "0.98rem",
-                                        marginLeft: 8,
-                                        whiteSpace: "nowrap"
-                                    }}>
-                                        {pkg.status === "Active" ? "Đang mở" : "Đóng"}
-                                    </span>
-                                </div>
-                                <div style={{
-                                    color: COLORS.text,
-                                    fontSize: "1.07rem",
-                                    marginBottom: 10,
-                                    fontWeight: 500
-                                }}>
-                                    {pkg.description}
-                                </div>
-                                <div style={{
-                                    color: COLORS.secondary,
-                                    fontWeight: 700,
-                                    fontSize: "1.15rem",
-                                    marginBottom: 8
-                                }}>
-                                    {pkg.price === 0 ? "Miễn phí" : pkg.price.toLocaleString("vi-VN") + "đ"}
-                                </div>
-                                <div style={{ color: "#888", fontSize: "0.98rem" }}>
-                                    Thời hạn: {pkg.duration} ngày
-                                </div>
-                                <button
+                        {packages.map((pkg) => {
+                            // Lấy gói đang dùng từ localStorage (nếu có)
+                            const currentPkg = (() => {
+                                try {
+                                    const data = localStorage.getItem(`current_package_${accountId}`);
+                                    if (!data) return null;
+                                    const parsed = JSON.parse(data);
+                                    if (new Date(parsed.endDate) > new Date()) return parsed;
+                                    return null;
+                                } catch {
+                                    return null;
+                                }
+                            })();
+                            // Nếu đã mua và còn hạn gói này thì khóa lại và ghi là đang dùng
+                            const isCurrent = currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID;
+
+                            return (
+                                <div
+                                    key={pkg.package_membership_ID}
                                     style={{
-                                        marginTop: 16,
-                                        padding: "10px 24px",
-                                        background: COLORS.primary,
-                                        color: "#fff",
-                                        border: "none",
-                                        borderRadius: 8,
-                                        fontWeight: 700,
-                                        fontSize: "1rem",
-                                        cursor: "pointer",
-                                        boxShadow: "0 2px 8px #9ACBD022"
-                                    }}
-                                    disabled={pkg.status !== "Active"}
-                                    onClick={() => {
-                                        setBuyingPkg(pkg);
-                                        setShowQR(true);
+                                        background: COLORS.light,
+                                        borderRadius: 14,
+                                        border: `2.5px solid ${COLORS.primary}`,
+                                        boxShadow: "0 2px 8px #9ACBD022",
+                                        padding: "1.5rem 1.2rem 1.2rem 1.2rem",
+                                        minWidth: 220,
+                                        maxWidth: 270,
+                                        flex: "1 1 220px",
+                                        opacity: pkg.status === "Active" ? 1 : 0.6,
+                                        position: "relative",
+                                        marginBottom: 8,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        justifyContent: "space-between",
+                                        borderColor: COLORS.primary,
                                     }}
                                 >
-                                    Mua gói
-                                </button>
-                            </div>
-                        ))}
+                                    <div style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "flex-start",
+                                        marginBottom: 6,
+                                        minHeight: 24,
+                                    }}>
+                                        <span style={{
+                                            color: COLORS.accent,
+                                            fontWeight: 700,
+                                            fontSize: "1.15rem",
+                                            textTransform: "uppercase",
+                                            letterSpacing: 1,
+                                        }}>
+                                            {pkg.category}
+                                        </span>
+                                        <span style={{
+                                            color: pkg.status === "Active" ? COLORS.secondary : "#aaa",
+                                            fontWeight: 600,
+                                            fontSize: "0.98rem",
+                                            marginLeft: 8,
+                                            whiteSpace: "nowrap"
+                                        }}>
+                                            {pkg.status === "Active"
+                                                ? (isCurrent ? "Đang dùng" : "Đang mở")
+                                                : "Đóng"}
+                                        </span>
+                                    </div>
+                                    <div style={{
+                                        color: COLORS.text,
+                                        fontSize: "1.07rem",
+                                        marginBottom: 10,
+                                        fontWeight: 500
+                                    }}>
+                                        {pkg.description}
+                                    </div>
+                                    <div style={{
+                                        color: COLORS.secondary,
+                                        fontWeight: 700,
+                                        fontSize: "1.15rem",
+                                        marginBottom: 8
+                                    }}>
+                                        {pkg.price === 0 ? "Miễn phí" : pkg.price.toLocaleString("vi-VN") + "đ"}
+                                    </div>
+                                    <div style={{ color: "#888", fontSize: "0.98rem" }}>
+                                        Thời hạn: {pkg.duration} ngày
+                                    </div>
+                                    {!isCurrent && (
+                                        <button
+                                            style={{
+                                                marginTop: 16,
+                                                padding: "10px 24px",
+                                                background: COLORS.primary,
+                                                color: "#fff",
+                                                border: "none",
+                                                borderRadius: 8,
+                                                fontWeight: 700,
+                                                fontSize: "1rem",
+                                                cursor: "pointer",
+                                                boxShadow: "0 2px 8px #9ACBD022"
+                                            }}
+                                            disabled={pkg.status !== "Active"}
+                                            onClick={() => {
+                                                setBuyingPkg(pkg);
+                                                setShowQR(true);
+                                            }}
+                                        >
+                                            Mua gói
+                                        </button>
+                                    )}
+                                    {isCurrent && (
+                                        <div
+                                            style={{
+                                                marginTop: 16,
+                                                padding: "10px 24px",
+                                                background: "#27ae60",
+                                                color: "#fff",
+                                                borderRadius: 8,
+                                                fontWeight: 700,
+                                                fontSize: "1rem",
+                                                textAlign: "center",
+                                                boxShadow: "0 2px 8px #48A6A733"
+                                            }}
+                                        >
+                                            Bạn đang sử dụng gói này
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     <div style={{ textAlign: "center", marginTop: 32 }}>

@@ -5,13 +5,15 @@ import { useAuth } from "../../AuthContext/AuthContext";
 export default function StartInformation() {
     // Bảng màu chủ đề
     const COLORS = {
-        background: "#F2EFE7",
+        background: "linear-gradient(120deg, #F2EFE7 60%, #9ACBD0 100%)",
         primary: "#9ACBD0",
         secondary: "#48A6A7",
         accent: "#006A71",
         text: "#006A71",
         white: "#fff",
         light: "#E6F4F4",
+        gold: "#FFD700",
+        dark: "#23235a"
     };
 
     const { token } = useAuth();
@@ -42,7 +44,7 @@ export default function StartInformation() {
             const body = {
                 cigarettesPerDay: Number(form.cigarettesPerDay),
                 smokingTime: form.smokingTime,
-                goalTime: Number(form.goalTime),
+                goalTime: form.goalTime, 
                 reason: form.reason,
                 costPerCigarette: Number(form.costPerCigarette),
                 medicalHistory: form.medicalHistory,
@@ -77,6 +79,16 @@ export default function StartInformation() {
                 return;
             }
             setSubmitted(true);
+            // Lưu flag đã gửi thông tin cho user hiện tại
+            try {
+                const user = JSON.parse(localStorage.getItem("user"));
+                const accountId = user?.accountId ?? user?.id ?? null;
+                if (accountId) {
+                    localStorage.setItem(`info_submitted_${accountId}`, "true");
+                    // Lưu thời điểm bắt đầu cai thuốc
+                    localStorage.setItem(`quit_start_${accountId}`, new Date().toISOString());
+                }
+            } catch {}
             setTimeout(() => navigate("/plan"), 1200);
         } catch (err) {
             setApiError(err.message);
@@ -100,25 +112,53 @@ export default function StartInformation() {
         >
             <div
                 style={{
-                    maxWidth: 700,
+                    maxWidth: 600,
                     width: "100%",
                     background: COLORS.white,
-                    borderRadius: 22,
-                    boxShadow: "0 8px 32px rgba(72,166,167,0.13)",
-                    padding: "2.5rem 2rem",
-                    border: `2px solid ${COLORS.primary}`,
+                    borderRadius: 28,
+                    boxShadow: "0 8px 32px rgba(72,166,167,0.18)",
+                    padding: "2.8rem 2.2rem",
+                    border: `2.5px solid ${COLORS.primary}`,
                     textAlign: "center",
+                    position: "relative",
+                    overflow: "hidden"
                 }}
             >
+                {/* Decorative top circle */}
+                <div style={{
+                    position: "absolute",
+                    top: -60,
+                    left: -60,
+                    width: 120,
+                    height: 120,
+                    background: COLORS.primary,
+                    borderRadius: "50%",
+                    opacity: 0.18,
+                    zIndex: 0
+                }} />
+                {/* Decorative bottom circle */}
+                <div style={{
+                    position: "absolute",
+                    bottom: -70,
+                    right: -70,
+                    width: 140,
+                    height: 140,
+                    background: COLORS.secondary,
+                    borderRadius: "50%",
+                    opacity: 0.13,
+                    zIndex: 0
+                }} />
+
                 <h2
                     style={{
                         color: COLORS.accent,
                         fontWeight: 900,
-                        fontSize: "2.2rem",
-                        marginBottom: 24,
+                        fontSize: "2.3rem",
+                        marginBottom: 18,
                         letterSpacing: 1,
                         textShadow: "0 2px 8px #9ACBD033",
                         userSelect: "none",
+                        zIndex: 1
                     }}
                 >
                     🚀 Bắt đầu hành trình cai thuốc lá
@@ -130,9 +170,10 @@ export default function StartInformation() {
                         marginBottom: 24,
                         fontWeight: 500,
                         lineHeight: 1.6,
+                        zIndex: 1
                     }}
                 >
-                    Hành trình cai thuốc lá là một quá trình đầy thử thách nhưng hoàn toàn có thể thành công nếu bạn quyết tâm và có sự chuẩn bị kỹ lưỡng. Hãy bắt đầu bằng việc cung cấp các thông tin quan trọng dưới đây!
+                    Hãy cung cấp các thông tin quan trọng dưới đây để cá nhân hóa lộ trình hỗ trợ bạn cai thuốc lá hiệu quả!
                 </p>
 
                 <form
@@ -142,6 +183,7 @@ export default function StartInformation() {
                         width: "100%",
                         borderTop: `2px solid ${COLORS.primary}`,
                         paddingTop: "1.5rem",
+                        zIndex: 1
                     }}
                 >
                     {submitted && (
@@ -150,11 +192,15 @@ export default function StartInformation() {
                                 textAlign: "center",
                                 marginTop: 18,
                                 color: "#27ae60",
-                                fontWeight: 600,
-                                fontSize: "1.08rem",
+                                fontWeight: 700,
+                                fontSize: "1.13rem",
+                                letterSpacing: 0.5,
+                                background: "#eafaf1",
+                                borderRadius: 8,
+                                padding: "12px 0"
                             }}
                         >
-                            Cảm ơn bạn đã cung cấp thông tin!
+                            🎉 Cảm ơn bạn đã cung cấp thông tin!
                         </div>
                     )}
 
@@ -173,84 +219,115 @@ export default function StartInformation() {
                         </div>
                     )}
 
-                    <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 600, display: "block", marginBottom: 6, color: "#d4af37" }}>
-                            Số điếu bạn hút 1 ngày
-                        </label>
-                        <input
-                            type="number"
-                            name="cigarettesPerDay"
-                            value={form.cigarettesPerDay}
-                            onChange={handleChange}
-                            placeholder="? điếu"
-                            min={1}
-                            max={100}
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.65rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#222e3a",
-                                color: "#fff",
-                                outline: "none",
-                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                            }}
-                        />
+                    <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                                Số điếu hút/ngày
+                            </label>
+                            <input
+                                type="number"
+                                name="cigarettesPerDay"
+                                value={form.cigarettesPerDay}
+                                onChange={handleChange}
+                                placeholder="? điếu"
+                                min={1}
+                                max={100}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #2d98da",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    color: COLORS.text,
+                                    outline: "none",
+                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                }}
+                            />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                                Thời gian hút (năm)
+                            </label>
+                            <input
+                                type="text"
+                                name="smokingTime"
+                                value={form.smokingTime}
+                                onChange={handleChange}
+                                placeholder="3 năm, 5 năm..."
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #2d98da",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    color: COLORS.text,
+                                    outline: "none",
+                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                                Thời gian muốn cai (ngày)
+                            </label>
+                            <select
+                                name="goalTime"
+                                value={form.goalTime}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #2d98da",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    color: COLORS.text,
+                                    outline: "none",
+                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                }}
+                            >
+                                <option value="">Chọn thời gian</option>
+                                <option value={180}>3-6 tháng (~180 ngày)</option>
+                                <option value={270}>6-9 tháng (~270 ngày)</option>
+                                <option value={360}>9-12 tháng (~360 ngày)</option>
+                            </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                                Chi phí (VND/điếu)
+                            </label>
+                            <input
+                                type="number"
+                                name="costPerCigarette"
+                                value={form.costPerCigarette}
+                                onChange={handleChange}
+                                placeholder="? VND"
+                                min={100}
+                                max={100000}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #2d98da",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    color: COLORS.text,
+                                    outline: "none",
+                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                }}
+                            />
+                        </div>
                     </div>
                     <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 600, display: "block", marginBottom: 6, color: "#d4af37" }}>
-                            Thời gian hút thuốc (năm)
-                        </label>
-                        <input
-                            type="text"
-                            name="smokingTime"
-                            value={form.smokingTime}
-                            onChange={handleChange}
-                            placeholder="3 năm, 5 năm..."
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.65rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#222e3a",
-                                color: "#fff",
-                                outline: "none",
-                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                            }}
-                        />
-                    </div>
-                    <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 600, display: "block", marginBottom: 6, color: "#d4af37" }}>
-                            Thời gian muốn cai thuốc lá (ngày)
-                        </label>
-                        <input
-                            type="number"
-                            name="goalTime"
-                            value={form.goalTime}
-                            onChange={handleChange}
-                            placeholder="Ví dụ: 30"
-                            min={1}
-                            max={365}
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.65rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#222e3a",
-                                color: "#fff",
-                                outline: "none",
-                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                            }}
-                        />
-                    </div>
-                    <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 600, display: "block", marginBottom: 6, color: "#d4af37" }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
                             Lý do bạn muốn cai thuốc lá
                         </label>
                         <textarea
@@ -262,45 +339,19 @@ export default function StartInformation() {
                             required
                             style={{
                                 width: "100%",
-                                padding: "0.65rem",
+                                padding: "0.7rem",
                                 borderRadius: 10,
                                 border: "1.5px solid #2d98da",
                                 fontSize: "1rem",
-                                backgroundColor: "#222e3a",
-                                color: "#fff",
+                                backgroundColor: "#f8fafc",
+                                color: COLORS.text,
                                 resize: "vertical",
                                 outline: "none",
                             }}
                         />
                     </div>
                     <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 600, display: "block", marginBottom: 6, color: "#d4af37" }}>
-                            Chi phí (VND/1 điếu)
-                        </label>
-                        <input
-                            type="number"
-                            name="costPerCigarette"
-                            value={form.costPerCigarette}
-                            onChange={handleChange}
-                            placeholder="? VND"
-                            min={100}
-                            max={100000}
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.65rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#222e3a",
-                                color: "#fff",
-                                outline: "none",
-                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                            }}
-                        />
-                    </div>
-                    <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 600, display: "block", marginBottom: 6, color: "#d4af37" }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
                             Tiền sử bệnh án (nếu có)
                         </label>
                         <textarea
@@ -311,19 +362,19 @@ export default function StartInformation() {
                             rows={2}
                             style={{
                                 width: "100%",
-                                padding: "0.65rem",
+                                padding: "0.7rem",
                                 borderRadius: 10,
                                 border: "1.5px solid #2d98da",
                                 fontSize: "1rem",
-                                backgroundColor: "#222e3a",
-                                color: "#fff",
+                                backgroundColor: "#f8fafc",
+                                color: COLORS.text,
                                 resize: "vertical",
                                 outline: "none",
                             }}
                         />
                     </div>
                     <div style={{ marginBottom: 28 }}>
-                        <label style={{ fontWeight: 600, display: "block", marginBottom: 6, color: "#d4af37" }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
                             Thời điểm bạn thèm thuốc nhất trong ngày
                         </label>
                         <input
@@ -335,12 +386,12 @@ export default function StartInformation() {
                             required
                             style={{
                                 width: "100%",
-                                padding: "0.65rem",
+                                padding: "0.7rem",
                                 borderRadius: 10,
                                 border: "1.5px solid #2d98da",
                                 fontSize: "1rem",
-                                backgroundColor: "#222e3a",
-                                color: "#fff",
+                                backgroundColor: "#f8fafc",
+                                color: COLORS.text,
                                 outline: "none",
                                 boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
                             }}
@@ -351,15 +402,15 @@ export default function StartInformation() {
                         disabled={loading}
                         style={{
                             width: "100%",
-                            padding: "0.9rem",
+                            padding: "1rem",
                             background: loading
                                 ? "#b2bec3"
                                 : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                             border: "none",
-                            borderRadius: 10,
+                            borderRadius: 12,
                             color: "#fff",
-                            fontWeight: 700,
-                            fontSize: "1.1rem",
+                            fontWeight: 800,
+                            fontSize: "1.15rem",
                             letterSpacing: 1,
                             cursor: loading ? "not-allowed" : "pointer",
                             boxShadow: "0 2px 8px rgba(44,130,201,0.10)",

@@ -42,35 +42,41 @@ export default function AdminNavbar() {
                         gap: 32,
                     }}
                 >
-                    {/* Logo bên trái */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 220 }}>
-                        <div
-                            style={{
-                                width: 45,
-                                height: 45,
-                                borderRadius: "50%",
-                                background: `linear-gradient(135deg, ${color2} 0%, ${color3} 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                marginRight: 8,
-                            }}
-                        >
-                            <span className="fs-4" style={{ color: colorWhite, fontSize: 28 }}>👤</span>
-                        </div>
-                        <Link to="/admin" style={{ textDecoration: "none" }}>
-                            <span
+                    {/* Logo Section */}
+                    <div className="col-lg-3 col-md-4 col-sm-6">
+                        <div className="d-flex align-items-center">
+                            <div
+                                className="rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm"
                                 style={{
-                                    color: color3,
-                                    fontWeight: "bold",
-                                    fontSize: "1.25rem",
-                                    letterSpacing: 1,
-                                    whiteSpace: "nowrap",
+                                    width: "45px",
+                                    height: "45px",
+                                    background: `linear-gradient(135deg, ${color2} 0%, ${color3} 100%)`,
+                                    overflow: "hidden",
                                 }}
                             >
-                                Cai Nghiện Thuốc Lá
-                            </span>
-                        </Link>
+                                <span className="fs-4" style={{ color: colorWhite }}>
+                                    <img
+                                        src="/A.png"
+                                        alt="Logo"
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                            borderRadius: "50%",
+                                            display: "block"
+                                        }}
+                                    />
+                                </span>
+                            </div>
+                            <Link
+                                to="/"
+                                className="text-decoration-none fw-bold fs-5"
+                                style={{ color: color3 }}
+                            >
+                                <span className="d-none d-sm-inline">Cai Nghiện Thuốc Lá</span>
+                                <span className="d-sm-none">CNTL</span>
+                            </Link>
+                        </div>
                     </div>
                     {/* Thanh tìm kiếm ở giữa */}
                     <div style={{
@@ -104,16 +110,6 @@ export default function AdminNavbar() {
                                     color: color3,
                                 }}
                             />
-                            <span
-                                style={{
-                                    fontSize: 18,
-                                    marginLeft: 10,
-                                    color: color2,
-                                    cursor: "pointer",
-                                }}
-                            >
-                                🔍
-                            </span>
                         </div>
                     </div>
                     {/* Tài khoản bên phải */}

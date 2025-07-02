@@ -44,10 +44,21 @@ export default function NavBar() {
                     width: "45px",
                     height: "45px",
                     background: `linear-gradient(135deg, ${color2} 0%, ${color3} 100%)`,
+                    overflow: "hidden",
                   }}
                 >
                   <span className="fs-4" style={{ color: colorWhite }}>
-                    <img src="" alt="" />
+                    <img
+                      src="/A.png"
+                      alt="Logo"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "50%",
+                        display: "block"
+                      }}
+                    />
                   </span>
                 </div>
                 <Link

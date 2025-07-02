@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import AuthContext from "../AuthContext/AuthContext";
 
 // Bảng màu chủ đề
 const COLORS = {
@@ -12,11 +13,13 @@ const COLORS = {
     light: "#E6F4F4",
 };
 
-function getCurrentPackage() {
+function getCurrentPackage(accountId) {
+    if (!accountId) return null;
     try {
-        const data = localStorage.getItem("current_package");
+        const data = localStorage.getItem(`current_package_${accountId}`);
         if (!data) return null;
         const pkg = JSON.parse(data);
+        if (pkg.accountId !== accountId) return null;
         if (new Date(pkg.endDate) > new Date()) return pkg;
         return null;
     } catch {
@@ -24,10 +27,49 @@ function getCurrentPackage() {
     }
 }
 
+function showToast(message) {
+    let old = document.getElementById("toast-msg");
+    if (old) old.remove();
+    const toast = document.createElement("div");
+    toast.id = "toast-msg";
+    toast.innerText = message;
+    toast.style.position = "fixed";
+    toast.style.top = "32px";
+    toast.style.right = "32px";
+    toast.style.background = "#e67e22";
+    toast.style.color = "#fff";
+    toast.style.padding = "16px 32px";
+    toast.style.borderRadius = "10px";
+    toast.style.fontWeight = "600";
+    toast.style.fontSize = "17px";
+    toast.style.zIndex = "9999";
+    toast.style.boxShadow = "0 4px 16px rgba(0,0,0,0.15)";
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
 export default function MembershipPackage() {
     const [packages, setPackages] = useState([]);
-    const [currentPkg, setCurrentPkg] = useState(null);
+    const auth = useContext(AuthContext);
+
+    // Luôn lấy lại currentPkg khi accountId thay đổi hoặc có giao dịch mới
+    const [currentPkg, setCurrentPkg] = useState(() => getCurrentPackage(auth?.accountId));
     const navigate = useNavigate();
+
+    // Cập nhật lại currentPkg khi accountId thay đổi
+    useEffect(() => {
+        setCurrentPkg(getCurrentPackage(auth?.accountId));
+    }, [auth?.accountId]);
+
+    // Cập nhật lại currentPkg mỗi 3s để bắt kịp giao dịch mới
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentPkg(getCurrentPackage(auth?.accountId));
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [auth?.accountId]);
 
     useEffect(() => {
         const fetchPackages = async () => {
@@ -42,18 +84,13 @@ export default function MembershipPackage() {
             }
         };
         fetchPackages();
-        setCurrentPkg(getCurrentPackage());
-    }, []);
-
-    // Khi user thanh toán thành công ở nơi khác, cập nhật lại gói đang dùng
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentPkg(getCurrentPackage());
-        }, 3000);
-        return () => clearInterval(interval);
     }, []);
 
     const handleRegister = (pkg) => {
+        if (!auth?.token) {
+            showToast("Đăng nhập để mua gói");
+            return;
+        }
         navigate("/payment", { state: { package: pkg } });
     };
 
@@ -92,7 +129,7 @@ export default function MembershipPackage() {
                         userSelect: "none",
                     }}
                 >
-                    🎁 Gói thành viên
+                    Gói thành viên
                 </h2>
                 <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
                     {packages.length === 0 && (
@@ -101,8 +138,8 @@ export default function MembershipPackage() {
                         </div>
                     )}
                     {packages.map((pkg) => {
-                        const isCurrent = currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID;
-                        const isExpired = !currentPkg || new Date(currentPkg.endDate) <= new Date();
+                        // Kiểm tra gói hiện tại theo accountId
+                        const isCurrent = auth?.token && currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID;
                         return (
                             <div
                                 key={pkg.package_membership_ID}
@@ -117,6 +154,18 @@ export default function MembershipPackage() {
                                     flex: "1 1 220px",
                                     opacity: pkg.status === "Active" ? 1 : 0.6,
                                     position: "relative",
+                                    transition: "transform 0.2s, box-shadow 0.2s",
+                                    cursor: pkg.status === "Active" && !isCurrent ? "pointer" : "not-allowed",
+                                }}
+                                onMouseOver={e => {
+                                    if (pkg.status === "Active" && !isCurrent) {
+                                        e.currentTarget.style.transform = "translateY(-4px) scale(1.03)";
+                                        e.currentTarget.style.boxShadow = "0 6px 24px #48A6A733";
+                                    }
+                                }}
+                                onMouseOut={e => {
+                                    e.currentTarget.style.transform = "none";
+                                    e.currentTarget.style.boxShadow = "0 2px 8px #9ACBD022";
                                 }}
                             >
                                 <div style={{
@@ -155,14 +204,14 @@ export default function MembershipPackage() {
                                     fontWeight: 600,
                                     fontSize: "0.95rem"
                                 }}>
-                                    {pkg.status === "Active" ? "Đang mở" : "Đóng"}
+                                    {pkg.status === "Active" ? (isCurrent ? "Đang dùng" : "Đang mở") : "Đóng"}
                                 </div>
-                                {pkg.status === "Active" && (
+                                {pkg.status === "Active" && !isCurrent && (
                                     <button
                                         style={{
                                             marginTop: 16,
                                             padding: "0.7rem 1.5rem",
-                                            background: COLORS.primary,
+                                            background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                                             color: "#fff",
                                             border: "none",
                                             borderRadius: 8,
@@ -170,12 +219,32 @@ export default function MembershipPackage() {
                                             fontSize: "1rem",
                                             cursor: "pointer",
                                             opacity: 1,
-                                            transition: "background 0.2s",
+                                            transition: "background 0.2s, box-shadow 0.2s",
+                                            boxShadow: "0 2px 8px #48A6A733"
                                         }}
+                                        onMouseOver={e => e.currentTarget.style.background = "#006A71"}
+                                        onMouseOut={e => e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)"}
                                         onClick={() => handleRegister(pkg)}
                                     >
                                         Đăng ký
                                     </button>
+                                )}
+                                {isCurrent && (
+                                    <div
+                                        style={{
+                                            marginTop: 16,
+                                            padding: "0.7rem 1.5rem",
+                                            background: "#27ae60",
+                                            color: "#fff",
+                                            borderRadius: 8,
+                                            fontWeight: 700,
+                                            fontSize: "1rem",
+                                            textAlign: "center",
+                                            boxShadow: "0 2px 8px #48A6A733"
+                                        }}
+                                    >
+                                        Bạn đang sử dụng gói này
+                                    </div>
                                 )}
                             </div>
                         );

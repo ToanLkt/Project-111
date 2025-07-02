@@ -8,10 +8,17 @@ export default function Register() {
     const [password, setPassword] = useState("");
     const [repassword, setRepassword] = useState("");
     const [birthday, setBirthday] = useState("");
-    const [sex, setSex] = useState("true");
+    const [sex, setSex] = useState(true);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Palette
+    const colorBg = "#F2EFE7";
+    const color1 = "#9ACBD0";
+    const color2 = "#48A6A7";
+    const color3 = "#006A71";
+    const colorWhite = "#FFFFFF";
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,27 +38,44 @@ export default function Register() {
                     fullName: name,
                     phoneNumber: phone,
                     birthday,
-                    sex: sex === "true" || sex === true
+                    sex // boolean true/false
                 })
             });
-            if (!res.ok) {
-                const err = await res.text();
-                throw new Error(err);
+            let apiMsg = "";
+            try {
+                const apiJson = await res.json();
+                if (apiJson.errors) {
+                    apiMsg = Object.entries(apiJson.errors)
+                        .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+                        .join("\n");
+                } else if (apiJson.message) {
+                    apiMsg = apiJson.message;
+                } else {
+                    apiMsg = JSON.stringify(apiJson);
+                }
+            } catch {
+                apiMsg = "Không đọc được phản hồi từ máy chủ.";
             }
-            // Đăng ký thành công
-            navigate("/login");
+            if (!res.ok) {
+                setError("Đăng ký thất bại:\n" + apiMsg);
+                setLoading(false);
+                return;
+            }
+            setError("Đăng ký thành công!\n" + apiMsg);
+            setLoading(false);
+            setTimeout(() => navigate("/login"), 1500);
         } catch (err) {
             setError("Đăng ký thất bại: " + err.message);
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
         <div
             style={{
                 minHeight: "100vh",
-                background: "#000",
-                color: "#fff",
+                background: `linear-gradient(180deg, ${colorBg} 0%, ${color1} 40%, ${color2} 80%, ${color3} 100%)`,
+                color: color3,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -60,39 +84,31 @@ export default function Register() {
                 position: "relative",
             }}
         >
-            {/* Background image */}
-            <div
-                style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    backgroundImage:
-                        "url('https://www.statnews.com/wp-content/uploads/2023/01/AdobeStock_562452567-768x432.jpeg')",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    opacity: 0.25,
-                    zIndex: 0,
-                }}
-            />
-
             <form
                 onSubmit={handleSubmit}
                 style={{
-                    background: "rgba(20, 20, 20, 0.85)",
-                    padding: "2rem",
-                    borderRadius: 12,
-                    boxShadow: "0 4px 16px rgba(255, 255, 255, 0.05)",
+                    background: colorWhite,
+                    padding: "2.5rem 2rem",
+                    borderRadius: 16,
+                    boxShadow: "0 4px 24px #48A6A733",
                     width: "100%",
                     maxWidth: 420,
                     zIndex: 1,
+                    border: `2px solid ${color1}`,
                 }}
             >
-                <h2 style={{ color: "#d4af37", textAlign: "center", marginBottom: 24 }}>Tạo tài khoản</h2>
+                <h2 style={{
+                    color: color2,
+                    textAlign: "center",
+                    marginBottom: 28,
+                    fontWeight: 700,
+                    letterSpacing: 1
+                }}>
+                    Tạo tài khoản
+                </h2>
 
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Họ và tên</label>
+                <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 500, color: color3 }}>Họ và tên</label>
                     <input
                         type="text"
                         required
@@ -102,17 +118,18 @@ export default function Register() {
                         style={{
                             width: "100%",
                             padding: "0.75rem",
-                            borderRadius: 6,
-                            border: "1px solid #444",
+                            borderRadius: 8,
+                            border: `1.5px solid ${color1}`,
                             marginTop: 6,
                             fontSize: "1rem",
-                            background: "#111",
-                            color: "#fff"
+                            background: colorBg,
+                            color: color3,
+                            outline: "none",
                         }}
                     />
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Email</label>
+                <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 500, color: color3 }}>Email</label>
                     <input
                         type="email"
                         required
@@ -122,17 +139,18 @@ export default function Register() {
                         style={{
                             width: "100%",
                             padding: "0.75rem",
-                            borderRadius: 6,
-                            border: "1px solid #444",
+                            borderRadius: 8,
+                            border: `1.5px solid ${color1}`,
                             marginTop: 6,
                             fontSize: "1rem",
-                            background: "#111",
-                            color: "#fff"
+                            background: colorBg,
+                            color: color3,
+                            outline: "none",
                         }}
                     />
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Số điện thoại</label>
+                <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 500, color: color3 }}>Số điện thoại</label>
                     <input
                         type="tel"
                         required
@@ -142,17 +160,18 @@ export default function Register() {
                         style={{
                             width: "100%",
                             padding: "0.75rem",
-                            borderRadius: 6,
-                            border: "1px solid #444",
+                            borderRadius: 8,
+                            border: `1.5px solid ${color1}`,
                             marginTop: 6,
                             fontSize: "1rem",
-                            background: "#111",
-                            color: "#fff"
+                            background: colorBg,
+                            color: color3,
+                            outline: "none",
                         }}
                     />
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Ngày sinh</label>
+                <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 500, color: color3 }}>Ngày sinh</label>
                     <input
                         type="date"
                         required
@@ -162,38 +181,40 @@ export default function Register() {
                         style={{
                             width: "100%",
                             padding: "0.75rem",
-                            borderRadius: 6,
-                            border: "1px solid #444",
+                            borderRadius: 8,
+                            border: `1.5px solid ${color1}`,
                             marginTop: 6,
                             fontSize: "1rem",
-                            background: "#111",
-                            color: "#fff"
+                            background: colorBg,
+                            color: color3,
+                            outline: "none",
                         }}
                     />
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Giới tính</label>
+                <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 500, color: color3 }}>Giới tính</label>
                     <select
                         required
                         value={sex}
-                        onChange={e => setSex(e.target.value)}
+                        onChange={e => setSex(e.target.value === 'true')}
                         style={{
                             width: "100%",
                             padding: "0.75rem",
-                            borderRadius: 6,
-                            border: "1px solid #444",
+                            borderRadius: 8,
+                            border: `1.5px solid ${color1}`,
                             marginTop: 6,
                             fontSize: "1rem",
-                            background: "#111",
-                            color: "#fff"
+                            background: colorBg,
+                            color: color3,
+                            outline: "none",
                         }}
                     >
-                        <option value="true">Nam</option>
-                        <option value="false">Nữ</option>
+                        <option value={true}>Nam</option>
+                        <option value={false}>Nữ</option>
                     </select>
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Mật khẩu</label>
+                <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 500, color: color3 }}>Mật khẩu</label>
                     <input
                         type="password"
                         required
@@ -203,17 +224,18 @@ export default function Register() {
                         style={{
                             width: "100%",
                             padding: "0.75rem",
-                            borderRadius: 6,
-                            border: "1px solid #444",
+                            borderRadius: 8,
+                            border: `1.5px solid ${color1}`,
                             marginTop: 6,
                             fontSize: "1rem",
-                            background: "#111",
-                            color: "#fff"
+                            background: colorBg,
+                            color: color3,
+                            outline: "none",
                         }}
                     />
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontWeight: 500, color: "#f1f2f6" }}>Nhập lại mật khẩu</label>
+                <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 500, color: color3 }}>Nhập lại mật khẩu</label>
                     <input
                         type="password"
                         required
@@ -223,18 +245,19 @@ export default function Register() {
                         style={{
                             width: "100%",
                             padding: "0.75rem",
-                            borderRadius: 6,
-                            border: "1px solid #444",
+                            borderRadius: 8,
+                            border: `1.5px solid ${color1}`,
                             marginTop: 6,
                             fontSize: "1rem",
-                            background: "#111",
-                            color: "#fff"
+                            background: colorBg,
+                            color: color3,
+                            outline: "none",
                         }}
                     />
                 </div>
 
                 {error && (
-                    <div style={{ color: "#ff7675", fontWeight: 600, marginBottom: 12, textAlign: "center" }}>
+                    <div style={{ color: "#d9534f", fontWeight: 600, marginBottom: 12, textAlign: "center" }}>
                         {error}
                     </div>
                 )}
@@ -244,15 +267,16 @@ export default function Register() {
                     disabled={loading}
                     style={{
                         width: "100%",
-                        background: "linear-gradient(90deg, #d4af37 0%, #bfa233 100%)",
-                        color: "#000",
+                        background: `linear-gradient(90deg, ${color2} 0%, ${color1} 100%)`,
+                        color: colorWhite,
                         border: "none",
-                        borderRadius: 6,
+                        borderRadius: 8,
                         padding: "0.75rem",
                         fontWeight: 600,
                         fontSize: "1.05rem",
                         cursor: loading ? "not-allowed" : "pointer",
-                        marginTop: 8
+                        marginTop: 8,
+                        transition: "background 0.3s ease",
                     }}
                 >
                     {loading ? "Đang đăng ký..." : "Đăng ký"}
@@ -260,7 +284,7 @@ export default function Register() {
 
                 <div style={{ textAlign: "center", marginTop: 16, fontSize: "0.95rem" }}>
                     Đã có tài khoản?{" "}
-                    <a href="/login" style={{ color: "#d4af37", fontWeight: 500, textDecoration: "none" }}>
+                    <a href="/login" style={{ color: color2, fontWeight: 500, textDecoration: "none" }}>
                         Đăng nhập
                     </a>
                 </div>

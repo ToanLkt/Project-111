@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Footer from "../../components/Footer";
-import AuthContext from "../../AuthContext/AuthContext"; // Thêm dòng này
+import AuthContext from "../../AuthContext/AuthContext";
 
 // Hàm tính số ngày, giờ, phút, giây đã cai thuốc
 function useQuitTimer(startDate) {
@@ -33,8 +33,6 @@ export default function Plan() {
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState("");
     const quitProgress = 80;
-    const quitStartDate = "2025-06-15T00:00:00";
-    const timer = useQuitTimer(quitStartDate);
     const achievements = [
         "1 tuần không hút thuốc",
         "Tiết kiệm 300k",
@@ -42,39 +40,26 @@ export default function Plan() {
     ];
 
     const navigate = useNavigate();
-    const auth = useContext(AuthContext); // Lấy context
-    const token = auth?.token; // Lấy token member
+    const auth = useContext(AuthContext);
+    const token = auth?.token;
 
     const handleCigaretteSubmit = async (e) => {
         e.preventDefault();
+        setSubmitted(true);
         setLoading(true);
         setApiError("");
-
-        if (cigarettesToday === "" || isNaN(Number(cigarettesToday))) {
-            setApiError("Vui lòng nhập số điếu thuốc hợp lệ!");
-            setLoading(false);
-            return;
-        }
-
         try {
-            console.log("Token:", token);
-            console.log("Body gửi lên:", { todayCigarettes: Number(cigarettesToday) });
-
             const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/today-cigarettes", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
+                    "Authorization": `Bearer ${token}` // Gửi token xác thực
                 },
                 body: JSON.stringify({
                     todayCigarettes: Number(cigarettesToday)
                 })
             });
-            if (!res.ok) {
-                const errorText = await res.text();
-                console.error("Lỗi chi tiết:", errorText);
-                throw new Error("Lưu thất bại!");
-            }
+            if (!res.ok) throw new Error("Lưu thất bại!");
             setSubmitted(true);
         } catch (err) {
             setApiError("Lưu thất bại, vui lòng thử lại!");
@@ -123,6 +108,17 @@ export default function Plan() {
         }
     ];
 
+    // Lấy trạng thái đã gửi thông tin
+    const user = JSON.parse(localStorage.getItem("user"));
+    const accountId = user?.accountId ?? user?.id ?? null;
+    const infoSubmitted = !!localStorage.getItem(`info_submitted_${accountId}`);
+
+    // Lấy thời điểm bắt đầu cai thuốc cho user hiện tại
+    const quitStartDate = localStorage.getItem(`quit_start_${accountId}`) || new Date().toISOString();
+
+    // Chỉ gọi useQuitTimer nếu đã submit
+    const timer = infoSubmitted ? useQuitTimer(quitStartDate) : { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
     return (
         <>
             <div
@@ -153,6 +149,7 @@ export default function Plan() {
                     </p>
                     <button
                         onClick={() => navigate("/start-information")}
+                        disabled={infoSubmitted}
                         style={{
                             background: "#006A71",
                             color: "#fff",
@@ -164,7 +161,7 @@ export default function Plan() {
                             boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
                             transition: "background 0.2s, color 0.2s",
                             border: "none",
-                            cursor: "pointer"
+                            cursor: infoSubmitted ? "not-allowed" : "pointer"
                         }}
                         onMouseOver={e => e.currentTarget.style.background = "#48A6A7"}
                         onMouseOut={e => e.currentTarget.style.background = "#006A71"}
@@ -195,36 +192,42 @@ export default function Plan() {
                         <div style={{ fontWeight: 600, color: "#48A6A7", marginBottom: 18, fontSize: "1.15rem" }}>
                             Thời gian bạn cai thuốc
                         </div>
-                        <div style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            gap: 24,
-                            fontSize: "2.2rem",
-                            fontWeight: 700,
-                            letterSpacing: 1,
-                            color: "#006A71"
-                        }}>
-                            <div>
-                                <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.days}</span>
-                                <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>ngày</div>
+                        {infoSubmitted ? (
+                            <div style={{
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                gap: 24,
+                                fontSize: "2.2rem",
+                                fontWeight: 700,
+                                letterSpacing: 1,
+                                color: "#006A71"
+                            }}>
+                                <div>
+                                    <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.days}</span>
+                                    <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>ngày</div>
+                                </div>
+                                <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
+                                <div>
+                                    <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.hours.toString().padStart(2, "0")}</span>
+                                    <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>giờ</div>
+                                </div>
+                                <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
+                                <div>
+                                    <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.minutes.toString().padStart(2, "0")}</span>
+                                    <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>phút</div>
+                                </div>
+                                <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
+                                <div>
+                                    <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.seconds.toString().padStart(2, "0")}</span>
+                                    <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>giây</div>
+                                </div>
                             </div>
-                            <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
-                            <div>
-                                <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.hours.toString().padStart(2, "0")}</span>
-                                <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>giờ</div>
+                        ) : (
+                            <div style={{ color: "#888", fontWeight: 500, fontSize: "1.15rem" }}>
+                                Hãy nhập thông tin bắt đầu cai thuốc để bắt đầu đếm thời gian!
                             </div>
-                            <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
-                            <div>
-                                <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.minutes.toString().padStart(2, "0")}</span>
-                                <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>phút</div>
-                            </div>
-                            <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
-                            <div>
-                                <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.seconds.toString().padStart(2, "0")}</span>
-                                <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>giây</div>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Mục nhập số điếu thuốc hôm nay đã hút */}
