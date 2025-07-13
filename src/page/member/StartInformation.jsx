@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../AuthContext/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
+import { updateTodayCigarettesRequest } from "../../redux/components/payment/paymentSlice";
 
 export default function StartInformation() {
     // Bảng màu chủ đề
@@ -16,8 +17,26 @@ export default function StartInformation() {
         dark: "#23235a"
     };
 
-    const { token } = useAuth();
+    // Redux state thay vì AuthContext
+    const { user, token } = useSelector((state) => {
+        console.log('🔍 StartInformation Redux state:', state.account);
+        return state.account || {};
+    });
+
+    const dispatch = useDispatch();
     const navigate = useNavigate();
+
+    // Extract user info từ Redux user object
+    const getUserId = () => {
+        if (!user) return null;
+        return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+            user.userId ||
+            user.id ||
+            null;
+    };
+
+    const accountId = getUserId();
+
     const [form, setForm] = useState({
         cigarettesPerDay: "",
         smokingTime: "",
@@ -40,7 +59,10 @@ export default function StartInformation() {
         e.preventDefault();
         setLoading(true);
         setApiError(null);
+
         try {
+            console.log('🚀 Submitting form with Redux token...');
+
             const body = {
                 cigarettesPerDay: Number(form.cigarettesPerDay),
                 smokingTime: form.smokingTime,
@@ -50,6 +72,9 @@ export default function StartInformation() {
                 medicalHistory: form.medicalHistory,
                 mostSmokingTime: form.mostSmokingTime
             };
+
+            console.log('📋 Form data:', body);
+
             const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/submit-form", {
                 method: "POST",
                 headers: {
@@ -58,6 +83,7 @@ export default function StartInformation() {
                 },
                 body: JSON.stringify(body)
             });
+
             if (!res.ok) {
                 let errMsg = "Gửi thông tin thất bại";
                 let dataText = await res.text();
@@ -78,24 +104,71 @@ export default function StartInformation() {
                 setLoading(false);
                 return;
             }
+
+            console.log('✅ Form submitted successfully');
             setSubmitted(true);
-            // Lưu flag đã gửi thông tin cho user hiện tại
-            try {
-                const user = JSON.parse(localStorage.getItem("user"));
-                const accountId = user?.accountId ?? user?.id ?? null;
-                if (accountId) {
-                    localStorage.setItem(`info_submitted_${accountId}`, "true");
-                    // Lưu thời điểm bắt đầu cai thuốc
-                    localStorage.setItem(`quit_start_${accountId}`, new Date().toISOString());
-                }
-            } catch { }
-            setTimeout(() => navigate("/plan"), 1200);
+
+            // Lưu thông tin vào Redux state và localStorage
+            if (accountId) {
+                console.log('💾 Saving user data for accountId:', accountId);
+
+                // Lưu flag đã gửi thông tin
+                localStorage.setItem(`info_submitted_${accountId}`, "true");
+
+                // Lưu thời điểm bắt đầu cai thuốc
+                const quitStartDate = new Date().toISOString();
+                localStorage.setItem(`quit_start_${accountId}`, quitStartDate);
+
+                // Lưu thông tin form vào localStorage để sử dụng sau
+                localStorage.setItem(`user_quit_info_${accountId}`, JSON.stringify({
+                    cigarettesPerDay: Number(form.cigarettesPerDay),
+                    smokingTime: form.smokingTime,
+                    goalTime: form.goalTime,
+                    reason: form.reason,
+                    costPerCigarette: Number(form.costPerCigarette),
+                    medicalHistory: form.medicalHistory,
+                    mostSmokingTime: form.mostSmokingTime,
+                    startDate: quitStartDate
+                }));
+
+                // Dispatch Redux action để update cigarettes per day
+                console.log('📤 Dispatching updateTodayCigarettesRequest...');
+                dispatch(updateTodayCigarettesRequest({
+                    todayCigarettes: Number(form.cigarettesPerDay)
+                }));
+            }
+
+            // Navigate sau 1.2 giây
+            setTimeout(() => {
+                console.log('🏠 Navigating to /plan...');
+                navigate("/plan");
+            }, 1200);
+
         } catch (err) {
+            console.error('❌ Form submission error:', err);
             setApiError(err.message);
         } finally {
             setLoading(false);
         }
     };
+
+    // Redirect nếu không có token
+    React.useEffect(() => {
+        if (!token) {
+            console.log('❌ No token found, redirecting to login...');
+            navigate("/login");
+        }
+    }, [token, navigate]);
+
+    // Debug user info
+    React.useEffect(() => {
+        console.log('🔍 User info debug:', {
+            hasToken: !!token,
+            hasUser: !!user,
+            accountId,
+            userKeys: user ? Object.keys(user) : []
+        });
+    }, [token, user, accountId]);
 
     return (
         <section
@@ -158,7 +231,8 @@ export default function StartInformation() {
                         letterSpacing: 1,
                         textShadow: "0 2px 8px #9ACBD033",
                         userSelect: "none",
-                        zIndex: 1
+                        zIndex: 1,
+                        position: "relative"
                     }}
                 >
                     🚀 Bắt đầu hành trình cai thuốc lá
@@ -170,11 +244,32 @@ export default function StartInformation() {
                         marginBottom: 24,
                         fontWeight: 500,
                         lineHeight: 1.6,
-                        zIndex: 1
+                        zIndex: 1,
+                        position: "relative"
                     }}
                 >
                     Hãy cung cấp các thông tin quan trọng dưới đây để cá nhân hóa lộ trình hỗ trợ bạn cai thuốc lá hiệu quả!
                 </p>
+
+                {/* Debug panel - Development only */}
+                {process.env.NODE_ENV === 'development' && (
+                    <div style={{
+                        position: "absolute",
+                        top: 10,
+                        right: 10,
+                        background: "rgba(0,0,0,0.8)",
+                        color: "white",
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        fontSize: "10px",
+                        fontFamily: "monospace",
+                        zIndex: 999
+                    }}>
+                        <div>Token: {token ? "✅" : "❌"}</div>
+                        <div>User: {user ? "✅" : "❌"}</div>
+                        <div>ID: {accountId || "null"}</div>
+                    </div>
+                )}
 
                 <form
                     onSubmit={handleSubmit}
@@ -183,7 +278,8 @@ export default function StartInformation() {
                         width: "100%",
                         borderTop: `2px solid ${COLORS.primary}`,
                         paddingTop: "1.5rem",
-                        zIndex: 1
+                        zIndex: 1,
+                        position: "relative"
                     }}
                 >
                     {submitted && (
@@ -197,7 +293,8 @@ export default function StartInformation() {
                                 letterSpacing: 0.5,
                                 background: "#eafaf1",
                                 borderRadius: 8,
-                                padding: "12px 0"
+                                padding: "12px 0",
+                                marginBottom: 20
                             }}
                         >
                             🎉 Cảm ơn bạn đã cung cấp thông tin!
@@ -304,7 +401,6 @@ export default function StartInformation() {
                                 Chi phí (VND/điếu)
                             </label>
                             <select
-                                type="number"
                                 name="costPerCigarette"
                                 value={form.costPerCigarette}
                                 onChange={handleChange}
@@ -326,8 +422,6 @@ export default function StartInformation() {
                                 <option value={20000}>Khoảng 20.000 VND</option>
                                 <option value={30000}>Khoảng 30.000 VND</option>
                             </select>
-
-
                         </div>
                     </div>
                     <div style={{ marginBottom: 20 }}>
@@ -403,11 +497,11 @@ export default function StartInformation() {
                     </div>
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || !token}
                         style={{
                             width: "100%",
                             padding: "1rem",
-                            background: loading
+                            background: (loading || !token)
                                 ? "#b2bec3"
                                 : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                             border: "none",
@@ -416,12 +510,12 @@ export default function StartInformation() {
                             fontWeight: 800,
                             fontSize: "1.15rem",
                             letterSpacing: 1,
-                            cursor: loading ? "not-allowed" : "pointer",
+                            cursor: (loading || !token) ? "not-allowed" : "pointer",
                             boxShadow: "0 2px 8px rgba(44,130,201,0.10)",
                             transition: "all 0.2s ease",
                         }}
                     >
-                        {loading ? "Đang gửi..." : "Gửi thông tin"}
+                        {loading ? "Đang gửi..." : !token ? "Cần đăng nhập" : "Gửi thông tin"}
                     </button>
                 </form>
             </div>

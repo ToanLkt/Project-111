@@ -155,7 +155,7 @@ export default function Payment() {
     }
   }, [showQR, buyingPkg])
 
-  // Handle payment success
+  // Handle payment success - version đơn giản
   useEffect(() => {
     console.log('🔍 Payment success useEffect triggered, paymentSuccess:', paymentSuccess)
 
@@ -171,22 +171,16 @@ export default function Payment() {
       console.log('❌ QR modal closed')
 
       // Chuyển về trang Home sau 2 giây
-      const navigateTimeout = setTimeout(() => {
+      setTimeout(() => {
         console.log('🏠 Navigating to home page...')
         navigate("/")
       }, 2000)
 
       // Clear payment state sau khi đã xử lý xong
-      const clearTimeout = setTimeout(() => {
+      setTimeout(() => {
         console.log('🧹 Clearing payment state...')
         dispatch(clearPaymentState())
       }, 3000)
-
-      // Cleanup timeouts nếu component unmount
-      return () => {
-        clearTimeout(navigateTimeout)
-        clearTimeout(clearTimeout)
-      }
     }
   }, [paymentSuccess, navigate, dispatch])
 

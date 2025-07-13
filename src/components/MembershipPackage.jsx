@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux" // Thêm useDispatch
 import "bootstrap/dist/css/bootstrap.min.css"
+
+// Import Redux actions
+import { fetchPackagesRequest } from "../redux/components/payment/paymentSlice"
 
 const COLORS = {
   background: "#FAFAF9",
@@ -17,20 +20,6 @@ const COLORS = {
   gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
   success: "#10B981",
   warning: "#F59E0B",
-}
-
-function getCurrentPackage(userId) {
-  if (!userId) return null
-  try {
-    const data = localStorage.getItem(`current_package_${userId}`)
-    if (!data) return null
-    const pkg = JSON.parse(data)
-    if (pkg.userId !== userId) return null
-    if (new Date(pkg.endDate) > new Date()) return pkg
-    return null
-  } catch {
-    return null
-  }
 }
 
 function showToast(message, type = "warning") {
@@ -59,81 +48,66 @@ function showToast(message, type = "warning") {
 }
 
 export default function MembershipPackage() {
-  const [packages, setPackages] = useState([])
-  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   // Redux state
   const { user, token } = useSelector((state) => state.account || {})
-  
+  const {
+    packages = [],
+    packagesLoading = false,
+    packagesError = null,
+    currentPackage = null,
+    completedPayments = []
+  } = useSelector((state) => {
+    console.log('🔍 MembershipPackage Redux state:', state.payment)
+    return state.payment || {}
+  })
+
   // Extract user info từ Redux user object
   const getUserId = () => {
     if (!user) return null
     return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
-           user.userId ||
-           user.id ||
-           null
+      user.userId ||
+      user.id ||
+      null
   }
 
   const getUserRole = () => {
     if (!user) return null
     const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
-                 user.role ||
-                 null
+      user.role ||
+      null
     return role ? role.toString().trim() : null
   }
 
   const userId = getUserId()
   const userRole = getUserRole()
-  const [currentPkg, setCurrentPkg] = useState(() => getCurrentPackage(userId))
 
-  // Cập nhật lại currentPkg khi userId thay đổi
+  // Fetch packages từ Redux khi component mount
   useEffect(() => {
-    setCurrentPkg(getCurrentPackage(userId))
-  }, [userId])
+    console.log("🚀 Dispatching fetchPackagesRequest from MembershipPackage...")
+    dispatch(fetchPackagesRequest())
+  }, [dispatch])
 
-  // Cập nhật lại currentPkg mỗi 3s để bắt kịp giao dịch mới
+  // Debug Redux state changes
   useEffect(() => {
-    if (!userId) return
-    
-    const interval = setInterval(() => {
-      setCurrentPkg(getCurrentPackage(userId))
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [userId])
-
-  useEffect(() => {
-    const fetchPackages = async () => {
-      try {
-        console.log("🚀 Fetching packages...")
-        const res = await fetch(
-          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership",
-        )
-        
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-        }
-        
-        const data = await res.json()
-        console.log("✅ Packages data:", data)
-        setPackages(Array.isArray(data) ? data : [])
-      } catch (error) {
-        console.error("❌ Error fetching packages:", error)
-        setPackages([])
-        showToast("Không thể tải danh sách gói thành viên", "warning")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPackages()
-  }, [])
+    console.log('🔍 MembershipPackage state updated:', {
+      packagesLoading,
+      packagesError,
+      packagesCount: packages?.length || 0,
+      currentPackage: !!currentPackage,
+      completedPayments: completedPayments?.length || 0,
+      userId,
+      userRole
+    })
+  }, [packagesLoading, packagesError, packages, currentPackage, completedPayments, userId, userRole])
 
   const handleRegister = (pkg) => {
-    console.log("🎯 Register attempt:", { 
-      hasToken: !!token, 
-      userRole, 
-      packageId: pkg.package_membership_ID 
+    console.log("🎯 Register attempt:", {
+      hasToken: !!token,
+      userRole,
+      packageId: pkg.package_membership_ID
     })
 
     if (!token) {
@@ -147,8 +121,16 @@ export default function MembershipPackage() {
       return
     }
 
-    if (currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID) {
+    // Kiểm tra gói hiện tại từ Redux
+    if (currentPackage && currentPackage.package_membership_ID === pkg.package_membership_ID) {
       showToast("Bạn đã đang sử dụng gói này!")
+      return
+    }
+
+    // Kiểm tra completedPayments
+    const paymentKey = `${pkg.package_membership_ID}_${userId}`
+    if (completedPayments.includes(paymentKey)) {
+      showToast("Bạn đã mua gói này rồi!")
       return
     }
 
@@ -182,9 +164,34 @@ export default function MembershipPackage() {
     }).format(price)
   }
 
+  // Kiểm tra gói hiện tại
+  const isCurrentPackage = (pkg) => {
+    if (!currentPackage || !userId) return false
+
+    // Kiểm tra bằng package ID và user ID
+    const isMatchingPackage = currentPackage.package_membership_ID === pkg.package_membership_ID
+    const isMatchingUser = currentPackage.accountId === userId
+    const isNotExpired = currentPackage.endDate && new Date(currentPackage.endDate) > new Date()
+
+    console.log('🔍 Checking current package:', {
+      packageId: pkg.package_membership_ID,
+      currentPackageId: currentPackage.package_membership_ID,
+      userId,
+      currentUserId: currentPackage.accountId,
+      endDate: currentPackage.endDate,
+      isNotExpired,
+      isMatchingPackage,
+      isMatchingUser
+    })
+
+    return isMatchingPackage && isMatchingUser && isNotExpired
+  }
+
   return (
     <>
+      {/* Giữ nguyên style CSS */}
       <style jsx>{`
+        /* ... Giữ nguyên tất cả CSS ... */
         .membership-section {
           background: ${COLORS.background};
           padding: 5rem 0;
@@ -506,7 +513,6 @@ export default function MembershipPackage() {
           100% { background-position: -200% 0; }
         }
 
-        /* Debug panel */
         .debug-panel {
           position: fixed;
           bottom: 20px;
@@ -553,7 +559,7 @@ export default function MembershipPackage() {
                   Chọn gói phù hợp để bắt đầu hành trình cai thuốc lá của bạn
                 </p>
 
-                {loading ? (
+                {packagesLoading ? (
                   <div className="packages-grid">
                     {[...Array(3)].map((_, index) => (
                       <div key={index} className="loading-card">
@@ -566,6 +572,21 @@ export default function MembershipPackage() {
                       </div>
                     ))}
                   </div>
+                ) : packagesError ? (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">❌</div>
+                    <div className="empty-state-text">Lỗi tải gói thành viên</div>
+                    <p style={{ color: COLORS.textLight, marginTop: "0.5rem" }}>
+                      {packagesError}
+                    </p>
+                    <button
+                      className="package-button btn-register"
+                      style={{ maxWidth: "200px", margin: "1rem auto" }}
+                      onClick={() => dispatch(fetchPackagesRequest())}
+                    >
+                      🔄 Thử lại
+                    </button>
+                  </div>
                 ) : packages.length === 0 ? (
                   <div className="empty-state">
                     <div className="empty-state-icon">📦</div>
@@ -577,10 +598,9 @@ export default function MembershipPackage() {
                 ) : (
                   <div className="packages-grid">
                     {packages.map((pkg, index) => {
-                      const isCurrent =
-                        token && currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID
+                      const isCurrent = isCurrentPackage(pkg)
                       const isActive = pkg.status === "Active"
-                      const canRegister = isActive && !isCurrent
+                      const canRegister = isActive && !isCurrent && token && userRole === "Member"
 
                       return (
                         <div
@@ -592,9 +612,8 @@ export default function MembershipPackage() {
                               {getPackageIcon(pkg.category)}
                             </div>
                             <div
-                              className={`package-status ${
-                                isCurrent ? "status-current" : isActive ? "status-active" : "status-inactive"
-                              }`}
+                              className={`package-status ${isCurrent ? "status-current" : isActive ? "status-active" : "status-inactive"
+                                }`}
                             >
                               {isCurrent ? "Đang dùng" : isActive ? "Đang mở" : "Đóng"}
                             </div>
@@ -625,7 +644,7 @@ export default function MembershipPackage() {
                           ) : (
                             <button className="package-button btn-disabled" disabled>
                               <i className="fas fa-lock"></i>
-                              Không khả dụng
+                              {!token ? "Cần đăng nhập" : userRole !== "Member" ? "Chỉ dành cho Member" : "Không khả dụng"}
                             </button>
                           )}
                         </div>
@@ -647,8 +666,16 @@ export default function MembershipPackage() {
             <div>UserId: {userId || "null"}</div>
             <div>Role: {userRole || "null"}</div>
             <div>Packages: {packages.length}</div>
-            <div>Current Pkg: {currentPkg ? "✅" : "❌"}</div>
-            <div>Loading: {loading ? "⏳" : "✅"}</div>
+            <div>Packages Loading: {packagesLoading ? "⏳" : "✅"}</div>
+            <div>Packages Error: {packagesError ? "❌" : "✅"}</div>
+            <div>Current Pkg: {currentPackage ? "✅" : "❌"}</div>
+            <div>Completed Payments: {completedPayments?.length || 0}</div>
+            {currentPackage && (
+              <>
+                <div>Pkg ID: {currentPackage.package_membership_ID}</div>
+                <div>End Date: {currentPackage.endDate ? new Date(currentPackage.endDate).toLocaleDateString() : "N/A"}</div>
+              </>
+            )}
           </div>
         )}
       </section>
