@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux"; // Add this
 import Footer from "../../components/Footer";
 import AuthContext from "../../AuthContext/AuthContext";
+
 
 // Hàm chuyển đổi sang giờ Việt Nam (Asia/Ho_Chi_Minh)
 function toVietnamTime(date) {
@@ -52,6 +54,9 @@ function Modal({ open, onClose, children }) {
 }
 
 export default function Plan() {
+    const dispatch = useDispatch(); // Add this
+    const { paymentLoading, paymentSuccess, paymentError } = useSelector((state) => state.payment); // Add this
+
     const [cigarettesToday, setCigarettesToday] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -135,41 +140,26 @@ export default function Plan() {
         if (token) fetchPlan();
     }, [token]);
 
+    // Handle form submission
     const handleCigaretteSubmit = async (e) => {
         e.preventDefault();
-        setSubmitted(true);
-        setLoading(true);
-        setApiError("");
-        try {
-            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/today-cigarettes", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    cigarettes: Number(cigarettesToday)
-                })
-            });
-            if (!res.ok) {
-                // Lấy message chi tiết từ API (ưu tiên json, fallback text)
-                let errorMsg = "Lưu thất bại";
-                try {
-                    const data = await res.json();
-                    errorMsg = data.message || JSON.stringify(data);
-                } catch {
-                    errorMsg = await res.text();
-                }
-                setApiError(errorMsg);
-                setLoading(false);
-                return;
-            }
-            setSubmitted(true);
-        } catch (err) {
-            setApiError("Lưu thất bại, vui lòng thử lại!");
-        }
-        setLoading(false);
+
+        // Dispatch Redux action instead of direct API call
+        dispatch(updateTodayCigarettesRequest({
+            todayCigarettes: Number(cigarettesToday)
+        }));
     };
+
+    // Handle success/error from Redux
+    useEffect(() => {
+        if (paymentSuccess) {
+            setSubmitted(true);
+            // Reset form after successful submission
+            setTimeout(() => {
+                setSubmitted(false);
+            }, 3000);
+        }
+    }, [paymentSuccess]);
 
     // Modal state
     const [modalStageIdx, setModalStageIdx] = useState(null);
@@ -353,7 +343,6 @@ export default function Plan() {
                                 onChange={e => {
                                     setCigarettesToday(e.target.value);
                                     setSubmitted(false);
-                                    setApiError("");
                                 }}
                                 placeholder="Số điếu"
                                 style={{
@@ -367,35 +356,40 @@ export default function Plan() {
                                     background: "#fff"
                                 }}
                                 required
+                                disabled={paymentLoading}
                             />
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={paymentLoading}
                                 style={{
-                                    background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                                    background: paymentLoading ? "#ccc" : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                                     color: "#fff",
                                     border: "none",
                                     borderRadius: 8,
                                     padding: "0.5rem 1.2rem",
                                     fontWeight: 600,
                                     fontSize: "1.05rem",
-                                    cursor: loading ? "not-allowed" : "pointer",
+                                    cursor: paymentLoading ? "not-allowed" : "pointer",
                                     boxShadow: "0 2px 8px rgba(72,166,167,0.10)"
                                 }}
-                                onMouseOver={e => e.currentTarget.style.background = "#006A71"}
-                                onMouseOut={e => e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)"}
+                                onMouseOver={e => !paymentLoading && (e.currentTarget.style.background = "#006A71")}
+                                onMouseOut={e => !paymentLoading && (e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)")}
                             >
-                                {loading ? "Đang lưu..." : "Lưu"}
+                                {paymentLoading ? "Đang lưu..." : "Lưu"}
                             </button>
                         </form>
-                        {apiError && (
-                            <div style={{ color: "#e74c3c", marginTop: 10, fontWeight: 500 }}>
-                                {apiError}
-                            </div>
-                        )}
-                        {submitted && !apiError && (
+
+                        {/* Success message */}
+                        {submitted && paymentSuccess && (
                             <div style={{ color: "#27ae60", marginTop: 10, fontWeight: 500 }}>
                                 Đã lưu: {cigarettesToday} điếu thuốc hôm nay!
+                            </div>
+                        )}
+
+                        {/* Error message */}
+                        {paymentError && (
+                            <div style={{ color: "#e74c3c", marginTop: 10, fontWeight: 500 }}>
+                                {paymentError}
                             </div>
                         )}
                     </section>

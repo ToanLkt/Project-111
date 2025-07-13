@@ -16,73 +16,126 @@ import Ranking from "../page/member/Ranking";
 import Feedback from "../page/member/Feedback";
 import StartInformation from "../page/member/StartInformation";
 import ProtectedRoute from "../components/ProtectedRoute";
-import AdminLayout from "../layout/AdminLayout";
+
+// Admin imports
+import AdminNavbar from "../page/admin/AdminNavbar";
 import List from "../page/admin/List";
 import AdminFeedback from "../page/admin/AdminFeedback";
 import AdminPage from "../page/admin/AdminPage";
 import AdminCommunity from "../page/admin/AdminCommunity";
 import AdminPayment from "../page/admin/AdminPayment";
 import AdminProfile from "../page/admin/AdminProfile";
-import Payment from "../components/Payment";
-import CoachLayout from "../layout/CoachLayout";
+import AdminReport from "../page/admin/AdminReport";
+
+// Coach imports
+import CoachNavbar from "../page/coach/CoachNavbar";
 import CoachPage from "../page/coach/CoachPage";
 import CoachProfile from "../page/coach/CoachProfile";
-import CoachNavbar from "../page/coach/CoachNavbar";
 import CoachCommunity from "../page/coach/CoachCommunity";
 import CoachMembers from "../page/coach/CoachMembers";
 import CoachSchedule from "../page/coach/CoachSchedule";
 import CoachStatistics from "../page/coach/CoachStatistics";
+
+// Other imports
+import Payment from "../components/Payment";
 import ConfirmRegister from "../components/ConfirmRegister";
 import ResetPassword from "../page/ResetPassword";
 import LoginGoogle from "../components/LoginGoogle";
 
 export default function AppRoutes() {
+  console.log("🔥 AppRoutes rendering...");
+  console.log("🔥 Current location:", window.location.pathname);
+
   return (
     <Routes>
-      {/* Layout chính cho user */}
+      {/* Admin Routes - PHẢI ĐỂ TRƯỚC */}
+      <Route path="admin" element={<AdminNavbar />}>
+        <Route index element={<AdminPage />} />
+        <Route path="list" element={<List />} />
+        <Route path="payment" element={<AdminPayment />} />
+        <Route path="profile" element={<AdminProfile />} />
+        <Route path="report" element={<AdminReport />} />
+
+        {/* Admin có thể truy cập các trang chung - KHÔNG dùng AppLayout */}
+        <Route path="community" element={<AdminCommunity />} />
+        <Route path="feedback" element={<AdminFeedback />} />
+      </Route>
+
+      {/* Coach Routes */}
+      <Route path="coachpage" element={<CoachNavbar />}>
+        <Route index element={<CoachPage />} />
+        <Route path="members" element={<CoachMembers />} />
+        <Route path="schedule" element={<CoachSchedule />} />
+        <Route path="statistics" element={<CoachStatistics />} />
+        <Route path="profile" element={<CoachProfile />} />
+        <Route path="community" element={<CoachCommunity />} />
+      </Route>
+
+
+
+      {/* Layout chính cho Member/Public */}
       <Route path="" element={<AppLayout />}>
         <Route index element={<Home />} />
-        <Route
-          path="plan"
-          element={
-            <ProtectedRoute>
-              <Plan />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="start-information" element={<StartInformation />} />
+
+        {/* Public routes */}
         <Route path="contact" element={<Contact />} />
         <Route path="login" element={<Login />} />
         <Route path="logingoogle" element={<LoginGoogle />} />
         <Route path="register" element={<Register />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
-        <Route path="/confirm-register" element={<ConfirmRegister />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="confirm-register" element={<ConfirmRegister />} />
+        <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="start-information" element={<StartInformation />} />
 
-        {/* Các route cần đăng nhập */}
+        {/* Member-only routes */}
         <Route
-          path="community"
+          path="plan"
           element={
-            <ProtectedRoute>
-              <Community />
+            <ProtectedRoute allowedRoles={["Member"]}>
+              <Plan />
             </ProtectedRoute>
           }
         />
         <Route
           path="coach"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Member"]}>
               <Coach />
             </ProtectedRoute>
           }
         />
-        <Route path="ranking" element={<Ranking />} />
-        <Route path="feedback" element={<Feedback />} />
 
+        {/* Member shared routes - CHỈ cho Member */}
+        <Route
+          path="community"
+          element={
+            <ProtectedRoute allowedRoles={["Member"]}>
+              <Community />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="ranking"
+          element={
+            <ProtectedRoute allowedRoles={["Member"]}>
+              <Ranking />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="feedback"
+          element={
+            <ProtectedRoute allowedRoles={["Member"]}>
+              <Feedback />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Member specific routes */}
         <Route
           path="member"
           element={
-            <ProtectedRoute allowedRoles={["member"]}>
+            <ProtectedRoute allowedRoles={["Member"]}>
               <Home />
             </ProtectedRoute>
           }
@@ -90,53 +143,31 @@ export default function AppRoutes() {
         <Route
           path="member/profile"
           element={
-            <ProtectedRoute allowedRoles={["member"]}>
+            <ProtectedRoute allowedRoles={["Member"]}>
               <MemberProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="member/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["Member"]}>
+              <DashBoard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="payment"
+          element={
+            <ProtectedRoute allowedRoles={["Member"]}>
+              <Payment />
             </ProtectedRoute>
           }
         />
       </Route>
 
-      {/* Route admin dùng AdminLayout riêng */}
-      <Route
-        path="admin"
-        element={
-          <ProtectedRoute allowedRoles={["admin"]}>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<AdminPage />} />
-        <Route path="list" element={<List />} />
-        <Route path="community" element={<AdminCommunity />} />
-        <Route path="feedback" element={<AdminFeedback />} />
-        <Route path="payment" element={<AdminPayment />} />
-        <Route path="profile" element={<AdminProfile />} />
-      </Route>
-
-      {/* Route coach dùng CoachLayout riêng */}
-      <Route
-        path="coachpage"
-        element={
-          <ProtectedRoute allowedRoles={["coach"]}>
-            <CoachNavbar />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<CoachPage />} />
-        <Route path="community" element={<CoachCommunity />} />
-        <Route path="members" element={<CoachMembers />} />
-        <Route path="schedule" element={<CoachSchedule />} />
-        <Route path="statistics" element={<CoachStatistics />} />
-        <Route path="profile" element={<CoachProfile />} />
-      </Route>
-
-      {/* Các route khác */}
+      {/* 404 route */}
       <Route path="*" element={<NotFound />} />
-      <Route path="dashboard" element={<DashBoard />}>
-        <Route path="setting" element={<AdminPayment />} />
-      </Route>
-      <Route path="/payment" element={<Payment />} />
     </Routes>
   );
 }

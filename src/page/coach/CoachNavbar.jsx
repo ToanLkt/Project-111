@@ -1,46 +1,94 @@
 "use client"
 
-import { Link, useLocation, Outlet } from "react-router-dom"
-import { useAuth } from "../../AuthContext/AuthContext"
+import React from "react";
+import { Link, useLocation, Outlet, Navigate } from "react-router-dom"
+import { useSelector, useDispatch } from "react-redux"
+import { logout as logoutAction } from "../../redux/login/loginSlice"
 import "bootstrap/dist/css/bootstrap.min.css"
 
 const COLORS = {
-    background: "#FAFAF9",
-    color1: "#CFE8EF",
-    color2: "#6AB7C5",
-    color3: "#336B73",
-    white: "#FFFFFF",
-    text: "#2D3748",
-    textLight: "#718096",
-    gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
-    gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
-    gradientCoach: "linear-gradient(135deg, #48A6A7 0%, #006A71 100%)",
-    gradientCoachLight: "linear-gradient(135deg, #9ACBD0 0%, #48A6A7 50%)",
-    success: "#10B981",
-    warning: "#F59E0B",
-    coach: "#006A71",
-    coachPrimary: "#48A6A7",
-    coachLight: "#9ACBD0",
-    gold: "#bfa917",
-    goldBg: "#fffbe8",
-    danger: "#e74c3c",
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  gradientCoach: "linear-gradient(135deg, #48A6A7 0%, #006A71 100%)",
+  gradientCoachLight: "linear-gradient(135deg, #9ACBD0 0%, #48A6A7 50%)",
+  success: "#10B981",
+  warning: "#F59E0B",
+  coach: "#006A71",
+  coachPrimary: "#48A6A7",
+  coachLight: "#9ACBD0",
+  gold: "#bfa917",
+  goldBg: "#fffbe8",
+  danger: "#e74c3c",
 }
 
 export default function CoachNavbar() {
-    const location = useLocation()
-    const { email, logout } = useAuth()
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const { user, token, loading } = useSelector((state) => state.account || {});
 
-    const navItems = [
-        { to: "/coachpage", label: "Trang chủ", icon: "🏠" },
-        { to: "/coachpage/community", label: "Cộng đồng", icon: "👥" },
-        { to: "/coachpage/members", label: "Quản lý học viên", icon: "👨‍🎓" },
-        { to: "/coachpage/schedule", label: "Lịch trình", icon: "📅" },
-        { to: "/coachpage/statistics", label: "Thống kê", icon: "📊" },
-    ]
+  // Extract thông tin từ user object
+  const getUserEmail = () => {
+    if (!user) return null
+    return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] ||
+      user.email ||
+      user.emailAddress ||
+      null
+  }
 
-    return (
-        <>
-            <style jsx>{`
+  const getUserRole = () => {
+    if (!user) return null
+    const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+      user.role ||
+      null
+    return role ? role.toString().trim() : null
+  }
+
+  // Logic authentication
+  const userRole = getUserRole()
+  const userEmail = getUserEmail()
+  const isCoach = userRole === "Coach"
+  const isAuthenticated = !!(token && user)
+
+  // Xử lý đăng xuất
+  const handleLogout = () => {
+    dispatch(logoutAction())
+    window.location.href = "/login"
+  }
+
+  // Authentication checks
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isAuthenticated && !isCoach) {
+    switch (userRole) {
+      case "Admin":
+        return <Navigate to="/admin" replace />;
+      case "Member":
+        return <Navigate to="/" replace />;
+      default:
+        return <Navigate to="/login" replace />;
+    }
+  }
+
+  const navItems = [
+    { to: "/coachpage", label: "Trang chủ", icon: "🏠" },
+    { to: "/coachpage/community", label: "Cộng đồng", icon: "👥" },
+    { to: "/coachpage/members", label: "Quản lý học viên", icon: "👨‍🎓" },
+    { to: "/coachpage/schedule", label: "Lịch trình", icon: "📅" },
+    { to: "/coachpage/statistics", label: "Thống kê", icon: "📊" },
+  ]
+
+  return (
+    <>
+      <style jsx>{`
         .coach-navbar-container {
           position: relative;
           z-index: 1050;
@@ -97,15 +145,38 @@ export default function CoachNavbar() {
           justify-content: center;
           margin-right: 1.5rem;
           box-shadow: 0 12px 32px rgba(0, 106, 113, 0.25);
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
           border: 3px solid ${COLORS.color1};
         }
 
+        .coach-logo::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+          transform: rotate(45deg);
+          transition: all 0.8s;
+          opacity: 0;
+        }
+
+        .coach-logo:hover::before {
+          animation: coachShine 1s ease-in-out;
+        }
+
         .coach-logo:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 16px 40px rgba(0, 106, 113, 0.3);
+          transform: translateY(-4px) scale(1.05);
+          box-shadow: 0 20px 48px rgba(0, 106, 113, 0.35);
+        }
+
+        @keyframes coachShine {
+          0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: translateX(100%) translateY(100%) rotate(45deg); opacity: 0; }
         }
 
         .coach-logo img {
@@ -130,11 +201,9 @@ export default function CoachNavbar() {
           position: relative;
         }
 
-      
-
         .coach-brand:hover {
           text-decoration: none;
-          transform: translateX(3px);
+          transform: translateX(4px);
         }
 
         .coach-search {
@@ -158,7 +227,7 @@ export default function CoachNavbar() {
           padding: 1.2rem 1.8rem 1.2rem 4rem;
           width: 100%;
           font-size: 1.05rem;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 6px 20px rgba(0, 106, 113, 0.08);
           backdrop-filter: blur(10px);
           font-weight: 500;
@@ -169,7 +238,7 @@ export default function CoachNavbar() {
           box-shadow: 0 0 0 4px rgba(72, 166, 167, 0.15), 0 12px 40px rgba(0, 106, 113, 0.15);
           outline: none;
           background: ${COLORS.white};
-          transform: translateY(-1px);
+          transform: translateY(-2px);
         }
 
         .coach-search-input::placeholder {
@@ -201,7 +270,7 @@ export default function CoachNavbar() {
           display: flex;
           align-items: center;
           gap: 1rem;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 6px 20px rgba(0, 106, 113, 0.08);
           font-weight: 600;
           text-decoration: none;
@@ -211,7 +280,7 @@ export default function CoachNavbar() {
         .coach-user-info:hover {
           background: ${COLORS.color1};
           border-color: ${COLORS.coachPrimary};
-          transform: translateY(-2px);
+          transform: translateY(-3px);
           box-shadow: 0 12px 40px rgba(0, 106, 113, 0.15);
           text-decoration: none;
           color: ${COLORS.coach};
@@ -233,7 +302,7 @@ export default function CoachNavbar() {
         }
 
         .coach-logout-btn {
-          background: ${COLORS.danger};
+          background: ${COLORS.gradientCoach};
           border: 2px solid transparent;
           color: ${COLORS.white};
           border-radius: 50px;
@@ -241,14 +310,31 @@ export default function CoachNavbar() {
           font-weight: 700;
           font-size: 1.05rem;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 8px 24px rgba(231, 76, 60, 0.2);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 8px 24px rgba(0, 106, 113, 0.2);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .coach-logout-btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.6s;
+        }
+
+        .coach-logout-btn:hover::before {
+          left: 100%;
         }
 
         .coach-logout-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 16px 48px rgba(231, 76, 60, 0.3);
-          background: #c0392b;
+          transform: translateY(-3px);
+          box-shadow: 0 16px 48px rgba(0, 106, 113, 0.3);
+          background: linear-gradient(135deg, #006A71 0%, #004B50 100%);
         }
 
         .coach-nav {
@@ -267,7 +353,7 @@ export default function CoachNavbar() {
           border-radius: 50px;
           font-weight: 700;
           font-size: 1.05rem;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           text-decoration: none;
           position: relative;
           display: flex;
@@ -283,7 +369,7 @@ export default function CoachNavbar() {
           color: ${COLORS.white};
           border-color: transparent;
           box-shadow: 0 12px 32px rgba(0, 106, 113, 0.25);
-          transform: translateY(-1px);
+          transform: translateY(-2px);
         }
 
         .coach-nav-link-active::after {
@@ -307,7 +393,7 @@ export default function CoachNavbar() {
           background: ${COLORS.color1};
           border-color: ${COLORS.coachPrimary};
           color: ${COLORS.coach};
-          transform: translateY(-2px);
+          transform: translateY(-4px);
           box-shadow: 0 12px 40px rgba(0, 106, 113, 0.15);
           text-decoration: none;
         }
@@ -383,103 +469,103 @@ export default function CoachNavbar() {
         }
       `}</style>
 
-            <div className="coach-navbar-container">
-                {/* Top Header Bar */}
-                <div className="coach-navbar-header" style={{ background: "linear-gradient(135deg,#FAFAF9 0%, #CFE8EF 70%, #6AB7C5 100%)" }}>
-                    <div className="container-fluid">
-                        <div className="row align-items-center">
-                            {/* Logo Section */}
-                            <div className="col-lg-3 col-md-4 col-sm-6">
-                                <div className="d-flex align-items-center">
-                                    <div className="coach-logo">
-                                        <img src="A.png" alt="Logo" />
-                                    </div>
-                                    <Link to="/coachpage" className="coach-brand">
-                                        <span className="d-none d-sm-inline">Cai Nghiện Thuốc Lá</span>
-                                        <span className="d-sm-none">Cai Thuốc</span>
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Search Section */}
-                            <div className="col-lg-6 col-md-4 d-none d-md-block">
-                                <div className="coach-search">
-                                    <div className="coach-search-wrapper">
-                                        <div className="coach-search-icon">
-                                            <i className="fas fa-search"></i>
-                                        </div>
-                                        <input type="text" className="coach-search-input" placeholder="Tìm kiếm học viên, lịch trình..." />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Coach Account Section */}
-                            <div className="col-lg-3 col-md-4 col-sm-6">
-                                <div className="d-flex align-items-center justify-content-end">
-                                    <div className="coach-user-section">
-                                        {email && (
-                                            <>
-                                                <Link to="/coachpage/profile" className="coach-user-info">
-                                                    <div className="coach-user-avatar">
-                                                        <i className="fas fa-chalkboard-teacher"></i>
-                                                    </div>
-                                                    <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
-                                                        {email.split("@")[0]}
-                                                    </span>
-                                                </Link>
-                                                <button onClick={logout} className="coach-logout-btn">
-                                                    <i className="fas fa-sign-out-alt me-2"></i>
-                                                    Đăng xuất
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Mobile Search */}
-                        <div className="row d-md-none mt-3">
-                            <div className="col-12">
-                                <div className="coach-search">
-                                    <div className="coach-search-wrapper">
-                                        <div className="coach-search-icon">
-                                            <i className="fas fa-search"></i>
-                                        </div>
-                                        <input type="text" className="coach-search-input" placeholder="Tìm kiếm..." />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+      <div className="coach-navbar-container">
+        {/* Top Header Bar */}
+        <div className="coach-navbar-header" style={{ background: "linear-gradient(135deg,#FAFAF9 0%, #CFE8EF 70%, #6AB7C5 100%)" }}>
+          <div className="container-fluid">
+            <div className="row align-items-center">
+              {/* Logo Section */}
+              <div className="col-lg-3 col-md-4 col-sm-6">
+                <div className="d-flex align-items-center">
+                  <div className="coach-logo">
+                    <img src="/A.png" alt="Coach Logo" />
+                  </div>
+                  <Link to="/coachpage" className="coach-brand">
+                    <span className="d-none d-sm-inline">Coach Dashboard</span>
+                    <span className="d-sm-none">Coach</span>
+                  </Link>
                 </div>
+              </div>
 
-                {/* Main Navigation */}
-                <nav className="coach-navbar-main">
-                    <div className="container-fluid">
-                        <ul className="coach-nav d-flex flex-wrap justify-content-center">
-                            {navItems.map((item) => {
-                                const isActive = location.pathname === item.to
-                                return (
-                                    <li className="coach-nav-item" key={item.to}>
-                                        <Link
-                                            to={item.to}
-                                            className={`coach-nav-link ${isActive ? "coach-nav-link-active" : "coach-nav-link-inactive"}`}
-                                        >
-                                            <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
-                                            {item.label}
-                                            {item.to === "/coachpage/members" && <span className="coach-badge">12</span>}
-                                            {item.to === "/coachpage/schedule" && <span className="coach-badge">!</span>}
-                                        </Link>
-                                    </li>
-                                )
-                            })}
-                        </ul>
+              {/* Search Section */}
+              <div className="col-lg-6 col-md-4 d-none d-md-block">
+                <div className="coach-search">
+                  <div className="coach-search-wrapper">
+                    <div className="coach-search-icon">
+                      <i className="fas fa-search"></i>
                     </div>
-                </nav>
+                    <input type="text" className="coach-search-input" placeholder="Tìm kiếm học viên, lịch trình..." />
+                  </div>
+                </div>
+              </div>
+
+              {/* Coach Account Section */}
+              <div className="col-lg-3 col-md-4 col-sm-6">
+                <div className="d-flex align-items-center justify-content-end">
+                  <div className="coach-user-section">
+                    {userEmail && (
+                      <>
+                        <Link to="/coachpage/profile" className="coach-user-info">
+                          <div className="coach-user-avatar">
+                            <i className="fas fa-chalkboard-teacher"></i>
+                          </div>
+                          <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
+                            {userEmail.split("@")[0]}
+                          </span>
+                        </Link>
+                        <button onClick={handleLogout} className="coach-logout-btn">
+                          <i className="fas fa-sign-out-alt me-2"></i>
+                          Đăng xuất
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <Outlet />
-        </>
-    )
+            {/* Mobile Search */}
+            <div className="row d-md-none mt-3">
+              <div className="col-12">
+                <div className="coach-search">
+                  <div className="coach-search-wrapper">
+                    <div className="coach-search-icon">
+                      <i className="fas fa-search"></i>
+                    </div>
+                    <input type="text" className="coach-search-input" placeholder="Tìm kiếm..." />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Navigation */}
+        <nav className="coach-navbar-main">
+          <div className="container-fluid">
+            <ul className="coach-nav d-flex flex-wrap justify-content-center">
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.to
+                return (
+                  <li className="coach-nav-item" key={item.to}>
+                    <Link
+                      to={item.to}
+                      className={`coach-nav-link ${isActive ? "coach-nav-link-active" : "coach-nav-link-inactive"}`}
+                    >
+                      <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
+                      {item.label}
+                      {item.to === "/coachpage/members" && <span className="coach-badge">12</span>}
+                      {item.to === "/coachpage/schedule" && <span className="coach-badge">!</span>}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </nav>
+      </div>
+
+      <Outlet />
+    </>
+  )
 }

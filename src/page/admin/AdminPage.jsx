@@ -6,41 +6,53 @@ import FeedbackSection from "../../components/FeedbackSection";
 import MembershipPackage from "../../components/MembershipPackage";
 import Footer from "../../components/Footer";
 import { Outlet } from "react-router";
+import { useDispatch } from "react-redux";
+import { fetchHistory } from "../../redux/admin/historyPayment/historyPaymentSlice";
 
 const COLORS = {
-    background: "#FAFAF9",
-    color1: "#CFE8EF",
-    color2: "#6AB7C5",
-    color3: "#336B73",
-    white: "#FFFFFF",
-    text: "#2D3748",
-    textLight: "#718096",
-    gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
-    gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
-    gradientRadial: "radial-gradient(circle at center, #6AB7C5 0%, #336B73 100%)",
-    accent: "#10B981",
-    warning: "#F59E0B",
-    purple: "#8B5CF6",
-    pink: "#EC4899",
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  gradientRadial: "radial-gradient(circle at center, #6AB7C5 0%, #336B73 100%)",
+  accent: "#10B981",
+  warning: "#F59E0B",
+  purple: "#8B5CF6",
+  pink: "#EC4899",
 }
 
 export default function Home() {
-    const [message, setMessage] = useState("Từng Khoảnh Khắc, Một Hơi Thở Tự Do")
-    const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState("Từng Khoảnh Khắc, Một Hơi Thở Tự Do")
+  const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Platform")
-            .then((res) => res.json())
-            .then((data) => {
-                if (data && data.message) setMessage(data.message)
-            })
-            .catch(() => setMessage("Từng Khoảnh Khắc, Một Hơi Thở Tự Do"))
-            .finally(() => setLoading(false))
-    }, [])
+  const dispatch = useDispatch();
 
-    return (
-        <>
-            <style jsx>{`
+  const fetchDataHIstoryPayment = () => {
+    dispatch(fetchHistory());
+  }
+
+  useEffect(() => {
+    fetchDataHIstoryPayment();
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Platform")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.message) setMessage(data.message)
+      })
+      .catch(() => setMessage("Từng Khoảnh Khắc, Một Hơi Thở Tự Do"))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <>
+      <style jsx>{`
         .hero-section {
           background: linear-gradient(135deg, #FAFAF9 0%, #F0F8F9 25%, #E8F4F5 50%, #F0F8F9 75%, #FAFAF9 100%);
           position: relative;
@@ -496,158 +508,158 @@ export default function Home() {
         }
       `}</style>
 
-            <div
-                style={{
-                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    background: COLORS.background,
-                    color: COLORS.text,
-                    minHeight: "100vh",
-                }}
-            >
-                {/* Hero Section với bố cục mới */}
-                <section className="hero-section">
-                    <div className="floating-elements">
-                        <div className="floating-circle circle-1"></div>
-                        <div className="floating-circle circle-2"></div>
-                        <div className="floating-circle circle-3"></div>
+      <div
+        style={{
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          background: COLORS.background,
+          color: COLORS.text,
+          minHeight: "100vh",
+        }}
+      >
+        {/* Hero Section với bố cục mới */}
+        <section className="hero-section">
+          <div className="floating-elements">
+            <div className="floating-circle circle-1"></div>
+            <div className="floating-circle circle-2"></div>
+            <div className="floating-circle circle-3"></div>
+          </div>
+
+          <div className="container-fluid px-4">
+            <div className="row justify-content-center">
+              <div className="col-12 col-xl-11">
+                <div className="hero-grid">
+                  {/* Main Content Card */}
+                  <div className="hero-main-content">
+                    {loading && (
+                      <div className="loading-container">
+                        <div className="loading-spinner"></div>
+                        <span style={{ color: COLORS.textLight, fontWeight: "600" }}>Đang tải nội dung...</span>
+                      </div>
+                    )}
+
+                    <h1 className="hero-title">{message}</h1>
+
+                    <p className="hero-subtitle">
+                      Phương pháp cai thuốc lá hiệu quả nhất Việt Nam. Được hơn 2,500 người tin tưởng và thành công.
+                    </p>
+
+                    {/* Feature Grid */}
+                    <div className="hero-features">
+                      <div className="feature-item">
+                        <div className="feature-icon">🎯</div>
+                        <div className="feature-text">Phương pháp khoa học</div>
+                      </div>
+                      <div className="feature-item">
+                        <div className="feature-icon">🏆</div>
+                        <div className="feature-text">Tỷ lệ thành công 95%</div>
+                      </div>
+                      <div className="feature-item">
+                        <div className="feature-icon">🤝</div>
+                        <div className="feature-text">Hỗ trợ 24/7</div>
+                      </div>
+                      <div className="feature-item">
+                        <div className="feature-icon">💚</div>
+                        <div className="feature-text">An toàn tuyệt đối</div>
+                      </div>
                     </div>
 
-                    <div className="container-fluid px-4">
-                        <div className="row justify-content-center">
-                            <div className="col-12 col-xl-11">
-                                <div className="hero-grid">
-                                    {/* Main Content Card */}
-                                    <div className="hero-main-content">
-                                        {loading && (
-                                            <div className="loading-container">
-                                                <div className="loading-spinner"></div>
-                                                <span style={{ color: COLORS.textLight, fontWeight: "600" }}>Đang tải nội dung...</span>
-                                            </div>
-                                        )}
-
-                                        <h1 className="hero-title">{message}</h1>
-
-                                        <p className="hero-subtitle">
-                                            Phương pháp cai thuốc lá hiệu quả nhất Việt Nam. Được hơn 2,500 người tin tưởng và thành công.
-                                        </p>
-
-                                        {/* Feature Grid */}
-                                        <div className="hero-features">
-                                            <div className="feature-item">
-                                                <div className="feature-icon">🎯</div>
-                                                <div className="feature-text">Phương pháp khoa học</div>
-                                            </div>
-                                            <div className="feature-item">
-                                                <div className="feature-icon">🏆</div>
-                                                <div className="feature-text">Tỷ lệ thành công 95%</div>
-                                            </div>
-                                            <div className="feature-item">
-                                                <div className="feature-icon">🤝</div>
-                                                <div className="feature-text">Hỗ trợ 24/7</div>
-                                            </div>
-                                            <div className="feature-item">
-                                                <div className="feature-icon">💚</div>
-                                                <div className="feature-text">An toàn tuyệt đối</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div className="d-flex flex-column flex-sm-row gap-3 mb-3">
-                                            <a href="#gioithieu" className="btn-primary-modern">
-                                                <i className="fas fa-rocket"></i>
-                                                Bắt đầu ngay
-                                            </a>
-                                            <a href="#lienhe" className="btn-outline-modern">
-                                                <i className="fas fa-phone"></i>
-                                                Tư vấn miễn phí
-                                            </a>
-                                        </div>
-
-                                        {/* Trust Badges */}
-                                        <div className="trust-badges">
-                                            <div className="trust-badge">
-                                                <i className="fas fa-star trust-icon"></i>
-                                                4.9/5 đánh giá
-                                            </div>
-                                            <div className="trust-badge">
-                                                <i className="fas fa-shield-alt trust-icon"></i>
-                                                Chứng nhận Y tế
-                                            </div>
-                                            <div className="trust-badge">
-                                                <i className="fas fa-award trust-icon"></i>
-                                                Top 1 Việt Nam
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Image Card */}
-                                    <div className="hero-image-card">
-                                        <img
-                                            src="https://png.pngtree.com/thumb_back/fh260/background/20240720/pngtree-take-deep-breaths-reminder-note-image_15902731.jpg"
-                                            alt="Quit Smoking Support"
-                                            className="hero-image"
-                                        />
-                                    </div>
-
-                                    {/* Stats Grid */}
-                                    <div className="hero-stats-grid">
-                                        <div className="stats-card-mini">
-                                            <span className="stats-number-mini">2,500+</span>
-                                            <div className="stats-label-mini">Thành công</div>
-                                        </div>
-                                        <div className="stats-card-mini">
-                                            <span className="stats-number-mini">95%</span>
-                                            <div className="stats-label-mini">Hiệu quả</div>
-                                        </div>
-                                        <div className="stats-card-mini">
-                                            <span className="stats-number-mini">24/7</span>
-                                            <div className="stats-label-mini">Hỗ trợ</div>
-                                        </div>
-                                        <div className="stats-card-mini">
-                                            <span className="stats-number-mini">5+</span>
-                                            <div className="stats-label-mini">Năm KN</div>
-                                        </div>
-                                    </div>
-
-                                    {/* CTA Card */}
-                                    <div className="hero-cta-card">
-                                        <h2 className="cta-title">Sẵn sàng thay đổi cuộc sống?</h2>
-                                        <p className="cta-subtitle">
-                                            Tham gia cùng hàng nghìn người đã thành công cai thuốc lá với phương pháp của chúng tôi
-                                        </p>
-                                        <div className="cta-buttons">
-                                            <a href="#membership" className="btn-cta-white">
-                                                <i className="fas fa-crown me-2"></i>
-                                                Xem gói thành viên
-                                            </a>
-                                            <a href="#coach" className="btn-cta-outline">
-                                                <i className="fas fa-comments me-2"></i>
-                                                Tư vấn ngay
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Action Buttons */}
+                    <div className="d-flex flex-column flex-sm-row gap-3 mb-3">
+                      <a href="#gioithieu" className="btn-primary-modern">
+                        <i className="fas fa-rocket"></i>
+                        Bắt đầu ngay
+                      </a>
+                      <a href="#lienhe" className="btn-outline-modern">
+                        <i className="fas fa-phone"></i>
+                        Tư vấn miễn phí
+                      </a>
                     </div>
-                </section>
 
-                {/* Section Divider */}
-                <div className="container">
-                    <div className="section-divider"></div>
+                    {/* Trust Badges */}
+                    <div className="trust-badges">
+                      <div className="trust-badge">
+                        <i className="fas fa-star trust-icon"></i>
+                        4.9/5 đánh giá
+                      </div>
+                      <div className="trust-badge">
+                        <i className="fas fa-shield-alt trust-icon"></i>
+                        Chứng nhận Y tế
+                      </div>
+                      <div className="trust-badge">
+                        <i className="fas fa-award trust-icon"></i>
+                        Top 1 Việt Nam
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Image Card */}
+                  <div className="hero-image-card">
+                    <img
+                      src="https://png.pngtree.com/thumb_back/fh260/background/20240720/pngtree-take-deep-breaths-reminder-note-image_15902731.jpg"
+                      alt="Quit Smoking Support"
+                      className="hero-image"
+                    />
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="hero-stats-grid">
+                    <div className="stats-card-mini">
+                      <span className="stats-number-mini">2,500+</span>
+                      <div className="stats-label-mini">Thành công</div>
+                    </div>
+                    <div className="stats-card-mini">
+                      <span className="stats-number-mini">95%</span>
+                      <div className="stats-label-mini">Hiệu quả</div>
+                    </div>
+                    <div className="stats-card-mini">
+                      <span className="stats-number-mini">24/7</span>
+                      <div className="stats-label-mini">Hỗ trợ</div>
+                    </div>
+                    <div className="stats-card-mini">
+                      <span className="stats-number-mini">5+</span>
+                      <div className="stats-label-mini">Năm KN</div>
+                    </div>
+                  </div>
+
+                  {/* CTA Card */}
+                  <div className="hero-cta-card">
+                    <h2 className="cta-title">Sẵn sàng thay đổi cuộc sống?</h2>
+                    <p className="cta-subtitle">
+                      Tham gia cùng hàng nghìn người đã thành công cai thuốc lá với phương pháp của chúng tôi
+                    </p>
+                    <div className="cta-buttons">
+                      <a href="#membership" className="btn-cta-white">
+                        <i className="fas fa-crown me-2"></i>
+                        Xem gói thành viên
+                      </a>
+                      <a href="#coach" className="btn-cta-outline">
+                        <i className="fas fa-comments me-2"></i>
+                        Tư vấn ngay
+                      </a>
+                    </div>
+                  </div>
                 </div>
-
-                {/* Main Content Sections */}
-                <div style={{ background: COLORS.background }}>
-                    <IntroSection />
-                    <RoadmapSection />
-                    <ExpertSection />
-                    <FeedbackSection />
-                    <MembershipPackage />
-                </div>
-
-                <Footer />
+              </div>
             </div>
-        </>
-    )
+          </div>
+        </section>
+
+        {/* Section Divider */}
+        <div className="container">
+          <div className="section-divider"></div>
+        </div>
+
+        {/* Main Content Sections */}
+        <div style={{ background: COLORS.background }}>
+          <IntroSection />
+          <RoadmapSection />
+          <ExpertSection />
+          <FeedbackSection />
+          <MembershipPackage />
+        </div>
+
+        <Footer />
+      </div>
+    </>
+  )
 }

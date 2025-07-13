@@ -6,6 +6,8 @@ export default function ConfirmRegister() {
     const [message, setMessage] = useState("Đang xác nhận...");
     const token = searchParams.get("token");
 
+
+
     useEffect(() => {
         if (!token) {
             setMessage("Không tìm thấy mã xác nhận.");

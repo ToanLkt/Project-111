@@ -1,49 +1,82 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-// Thêm hàm này ở đây
-function parseJwt(token) {
-    try {
-        return JSON.parse(atob(token.split('.')[1]));
-    } catch {
-        return null;
-    }
-}
+import { useDispatch, useSelector } from "react-redux";
+import { fetchLogin } from "../redux/login/loginSlice";
 
 export default function Login() {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { login } = useAuth();
+    const { user = [], token, loading, error } = useSelector((state) => state.account || {});
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPass, setShowPass] = useState(false);
-    const [error, setError] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
     const [success, setSuccess] = useState("");
     const [showToast, setShowToast] = useState(false);
-    const navigate = useNavigate();
-    const { login } = useAuth();
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-        setError("");
+        setErrorMessage("");
         setSuccess("");
         setShowToast(false);
-        try {
-            const role = await login(email, password); 
-            setSuccess("Đăng nhập thành công!");
+
+        console.log("🚀 Login attempt with:", { email, password: "***" });
+        dispatch(fetchLogin({ email, password }));
+    };
+
+    // Handle Redux error
+    useEffect(() => {
+        if (error) {
+            console.log("❌ Login error:", error);
+            setErrorMessage(error.message || error || "Đăng nhập thất bại");
             setShowToast(true);
+
             setTimeout(() => {
                 setShowToast(false);
-                if (role === "admin") navigate("/admin");
-                else if (role === "coach") navigate("/coachpage");
-                else if (role === "member") navigate("/member");
-                else navigate("/");
-            }, 1200);
-        } catch (err) {
-            setError("Email hoặc mật khẩu không đúng!");
-            setSuccess("");
-            setShowToast(true);
-            setTimeout(() => setShowToast(false), 1500);
+            }, 3000);
         }
-    };
+    }, [error]);
+
+    // Handle successful login
+    useEffect(() => {
+        console.log("🔍 Login useEffect:", { user: !!user, token: !!token, loading, error });
+
+        if (user && token && !loading) {
+            const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || user.role;
+
+            console.log("✅ Login success - Role:", userRole, "- Redirecting...");
+
+            setSuccess("Đăng nhập thành công!");
+            setShowToast(true);
+            setErrorMessage(""); // Clear any previous errors
+
+            // Redirect sau delay
+            setTimeout(() => {
+                setShowToast(false);
+
+                switch (userRole?.toString().trim()) {
+                    case "Admin":
+                        console.log("🚀 Navigating to /admin");
+                        navigate("/admin", { replace: true });
+                        break;
+                    case "Coach":
+                        console.log("🚀 Navigating to /coachpage");
+                        navigate("/coachpage", { replace: true }); // Sửa từ /coach thành /coachpage
+                        break;
+                    case "Member":
+                        console.log("🚀 Navigating to /");
+                        navigate("/", { replace: true });
+                        break;
+                    default:
+                        console.log("🚀 Unknown role, navigating to /");
+                        navigate("/", { replace: true });
+                }
+            }, 1200);
+        }
+    }, [user, token, loading, navigate]);
 
     const handleFacebookLogin = () => {
         alert("Chức năng đăng nhập Facebook chưa được hỗ trợ.");
@@ -80,7 +113,7 @@ export default function Login() {
                         animation: "fadeIn 0.5s",
                     }}
                 >
-                    {success || error}
+                    {success || errorMessage}
                 </div>
             )}
 
@@ -109,7 +142,25 @@ export default function Login() {
                     Đăng nhập
                 </h2>
 
-                {/* Thông báo thành công */}
+                {/* Hiển thị error từ Redux */}
+                {errorMessage && (
+                    <div
+                        style={{
+                            color: "#e74c3c",
+                            marginBottom: 16,
+                            textAlign: "center",
+                            fontWeight: "600",
+                            padding: "10px",
+                            background: "#ffe6e6",
+                            borderRadius: 8,
+                            border: "1px solid #ffcdd2"
+                        }}
+                    >
+                        {errorMessage}
+                    </div>
+                )}
+
+                {/* Hiển thị success */}
                 {success && (
                     <div
                         style={{
@@ -117,22 +168,13 @@ export default function Login() {
                             marginBottom: 16,
                             textAlign: "center",
                             fontWeight: "600",
+                            padding: "10px",
+                            background: "#e8f5e8",
+                            borderRadius: 8,
+                            border: "1px solid #c8e6c9"
                         }}
                     >
                         {success}
-                    </div>
-                )}
-
-                {error && (
-                    <div
-                        style={{
-                            color: "#e74c3c",
-                            marginBottom: 16,
-                            textAlign: "center",
-                            fontWeight: "600",
-                        }}
-                    >
-                        {error}
                     </div>
                 )}
 
@@ -245,87 +287,25 @@ export default function Login() {
 
                 <button
                     type="submit"
+                    disabled={loading}
                     style={{
                         width: "100%",
-                        background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                        background: loading ? "#ccc" : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                         color: "#fff",
                         border: "none",
                         borderRadius: 8,
                         padding: "0.75rem",
                         fontWeight: "700",
                         fontSize: "1.1rem",
-                        cursor: "pointer",
+                        cursor: loading ? "not-allowed" : "pointer",
                         transition: "background 0.3s",
                         marginBottom: 10,
                         boxShadow: "0 2px 8px rgba(72,166,167,0.08)",
                     }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = "#006A71")}
-                    onMouseOut={(e) => (e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)")}
+                    onMouseOver={(e) => !loading && (e.currentTarget.style.background = "#006A71")}
+                    onMouseOut={(e) => !loading && (e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)")}
                 >
-                    Đăng nhập
-                </button>
-
-                {/* Nút chuyển đến trang loginGoogle.jsx */}
-                <button
-                    type="button"
-                    onClick={() => navigate("/logingoogle")}
-                    style={{
-                        width: "100%",
-                        background: "#fff",
-                        color: "#006A71",
-                        border: "2px solid #48A6A7",
-                        borderRadius: 8,
-                        padding: "0.7rem",
-                        fontWeight: "700",
-                        fontSize: "1.05rem",
-                        cursor: "pointer",
-                        marginBottom: 12,
-                        marginTop: 4,
-                        transition: "background 0.2s, color 0.2s",
-                    }}
-                    onMouseOver={e => {
-                        e.currentTarget.style.background = "#48A6A7";
-                        e.currentTarget.style.color = "#fff";
-                    }}
-                    onMouseOut={e => {
-                        e.currentTarget.style.background = "#fff";
-                        e.currentTarget.style.color = "#006A71";
-                    }}
-                >
-                    Đăng nhập bằng Google (chuyển trang)
-                </button>
-
-                <button
-                    type="button"
-                    onClick={handleFacebookLogin}
-                    style={{
-                        width: "100%",
-                        background: "#48A6A7",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "0.65rem",
-                        fontWeight: "600",
-                        fontSize: "1rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 10,
-                        transition: "background 0.3s",
-                        marginBottom: 8,
-                    }}
-                    onMouseOver={(e) => (e.currentTarget.style.background = "#006A71")}
-                    onMouseOut={(e) => (e.currentTarget.style.background = "#48A6A7")}
-                >
-                    <img
-                        src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/facebook/facebook-original.svg"
-                        alt="facebook"
-                        width={22}
-                        height={22}
-                        style={{ borderRadius: "50%", backgroundColor: "#fff" }}
-                    />
-                    Đăng nhập với Facebook
+                    {loading ? "Đang đăng nhập..." : "Đăng nhập"}
                 </button>
 
                 <div
@@ -352,6 +332,34 @@ export default function Login() {
                     </a>
                 </div>
             </form>
+
+            {/* Debug panel - chỉ hiện khi development */}
+            {process.env.NODE_ENV === 'development' && (
+                <div
+                    style={{
+                        position: "fixed",
+                        bottom: 20,
+                        left: 20,
+                        background: "#333",
+                        color: "#fff",
+                        padding: "10px",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontFamily: "monospace",
+                        maxWidth: 300,
+                        zIndex: 1000
+                    }}
+                >
+                    <div><strong>Debug Info:</strong></div>
+                    <div>User: {user ? "✅" : "❌"}</div>
+                    <div>Token: {token ? "✅" : "❌"}</div>
+                    <div>Loading: {loading ? "⏳" : "✅"}</div>
+                    <div>Error: {error ? "❌" : "✅"}</div>
+                    {user && (
+                        <div>Role: {user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || user.role || "N/A"}</div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

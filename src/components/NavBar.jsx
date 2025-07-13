@@ -3,6 +3,10 @@
 import { Link, useLocation } from "react-router-dom"
 import { useAuth } from "../AuthContext/AuthContext"
 import "bootstrap/dist/css/bootstrap.min.css"
+import { useSelector, useDispatch } from "react-redux"
+import { logout as logoutAction } from "../redux/login/loginSlice"
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const COLORS = {
   background: "#FAFAF9",
@@ -21,7 +25,61 @@ const COLORS = {
 export default function NavBar() {
   const location = useLocation()
   const pathname = location.pathname
-  const { role, email, logout } = useAuth()
+  const dispatch = useDispatch()
+  const navigate = useNavigate();
+
+  // Lấy thông tin từ Redux thay vì AuthContext
+  const { user, token, loading } = useSelector((state) => state.account || {})
+  const { logout: authLogout } = useAuth()
+
+  console.log("Redux user:", user)
+  console.log("Redux token:", token)
+
+  // Extract thông tin từ user object
+  const getUserEmail = () => {
+    if (!user) return null
+
+    // Extract email từ các trường có thể có
+    return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] ||
+      user.email ||
+      user.emailAddress ||
+      null
+  }
+
+  const getUserRole = () => {
+    if (!user) return null
+
+    // Extract role từ các trường có thể có
+    return user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+      user.role ||
+      null
+  }
+
+  const getUserName = () => {
+    const email = getUserEmail()
+    if (email) {
+      return email.split("@")[0] // Lấy phần trước @ của email
+    }
+    return "User"
+  }
+
+  const getUserInitial = () => {
+    const name = getUserName()
+    return name.charAt(0).toUpperCase()
+  }
+
+  // Kiểm tra xem user đã đăng nhập và có role member không
+  const isAuthenticated = !!(token && user && getUserRole() === "Member")
+  const isMember = getUserRole() === "Member"
+
+  console.log("Authentication status:", {
+    hasToken: !!token,
+    hasUser: !!user,
+    userRole: getUserRole(),
+    userEmail: getUserEmail(),
+    isAuthenticated: isAuthenticated,
+    isMember: isMember
+  })
 
   const navItems = [
     { to: "/", label: "Trang chủ", icon: "🏠" },
@@ -32,8 +90,58 @@ export default function NavBar() {
     { to: "/feedback", label: "Phản hồi", icon: "💬" },
   ]
 
+  // Xử lý đăng xuất
+  const handleLogout = async () => {
+    try {
+      // Logout từ Redux
+      dispatch(logoutAction())
+
+      // Logout từ AuthContext nếu có
+      if (authLogout) {
+        authLogout()
+      }
+
+      console.log("Logout successful")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
+
+  useEffect(() => {
+    // Auto redirect Admin đến admin panel
+    if (isAuthenticated && getUserRole() === "Admin") {
+      console.log("Admin detected, redirecting to admin panel");
+      navigate("/admin", { replace: true });
+    }
+  }, [isAuthenticated, getUserRole, navigate]);
+
   return (
     <>
+      {/* Debug Info trong development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '10px',
+          borderRadius: '5px',
+          fontSize: '12px',
+          zIndex: 9999,
+          maxWidth: '300px'
+        }}>
+          <div><strong>NavBar Debug:</strong></div>
+          <div>Authenticated: {isAuthenticated.toString()}</div>
+          <div>Is Member: {isMember.toString()}</div>
+          <div>Token: {token ? 'Yes' : 'No'}</div>
+          <div>User: {user ? 'Yes' : 'No'}</div>
+          <div>Email: {getUserEmail() || 'null'}</div>
+          <div>Role: {getUserRole() || 'null'}</div>
+          <div>Loading: {loading.toString()}</div>
+        </div>
+      )}
+
       <style jsx>{`
         .navbar-container {
           position: relative;
@@ -563,28 +671,37 @@ export default function NavBar() {
               {/* Account Section */}
               <div className="col-lg-3 col-md-4 col-sm-6">
                 <div className="d-flex align-items-center justify-content-end gap-3">
-                  {email ? (
+                  {isAuthenticated && isMember ? (
                     <div className="dropdown">
                       <button
                         className="btn navbar-user-dropdown"
                         type="button"
                         data-bs-toggle="dropdown"
                         aria-expanded="false"
+                        disabled={loading}
                       >
-                        <div className="navbar-user-avatar">{email.charAt(0).toUpperCase()}</div>
+                        <div className="navbar-user-avatar">{getUserInitial()}</div>
                         <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
-                          {email.split("@")[0]}
+                          {getUserName()}
                         </span>
                         <i className="fas fa-chevron-down" style={{ fontSize: "0.8rem" }}></i>
                       </button>
                       <ul className="dropdown-menu dropdown-menu-end navbar-dropdown-menu">
                         <li>
+                          <div className="dropdown-item-text">
+                            <small className="text-muted">{getUserEmail()}</small>
+                            <br />
+                            <small className="badge bg-success">{getUserRole()}</small>
+                          </div>
+                        </li>
+                        <li><hr className="dropdown-divider" /></li>
+                        <li>
                           <Link
-                            to={role === "admin" ? "/admin/profile" : "/member/profile"}
+                            to="/member/profile"
                             className="dropdown-item navbar-dropdown-item"
                           >
                             <i className="fas fa-user"></i>
-                            Hồ sơ cá nhân
+                            Thông tin cá nhân
                           </Link>
                         </li>
 
@@ -593,9 +710,10 @@ export default function NavBar() {
                         </li>
                         <li>
                           <button
-                            onClick={logout}
+                            onClick={handleLogout}
                             className="dropdown-item navbar-dropdown-item"
                             style={{ color: "#EF4444" }}
+                            disabled={loading}
                           >
                             <i className="fas fa-sign-out-alt"></i>
                             Đăng xuất
@@ -646,27 +764,29 @@ export default function NavBar() {
           </div>
         </div>
 
-        {/* Main Navigation */}
-        <nav className="navbar navbar-expand-lg navbar-main">
-          <div className="container-fluid">
-            <ul className="navbar-nav mx-auto d-none d-lg-flex">
-              {navItems.map((item) => {
-                const isActive = pathname === item.to
-                return (
-                  <li className="navbar-nav-item" key={item.to}>
-                    <Link
-                      to={item.to}
-                      className={`navbar-nav-link ${isActive ? "navbar-nav-link-active" : "navbar-nav-link-inactive"}`}
-                    >
-                      <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
-                      {item.label}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        </nav>
+        {/* Main Navigation - Chỉ hiển thị khi user đã đăng nhập và là Member */}
+        {isAuthenticated && isMember && (
+          <nav className="navbar navbar-expand-lg navbar-main">
+            <div className="container-fluid">
+              <ul className="navbar-nav mx-auto d-none d-lg-flex">
+                {navItems.map((item) => {
+                  const isActive = pathname === item.to
+                  return (
+                    <li className="navbar-nav-item" key={item.to}>
+                      <Link
+                        to={item.to}
+                        className={`navbar-nav-link ${isActive ? "navbar-nav-link-active" : "navbar-nav-link-inactive"}`}
+                      >
+                        <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          </nav>
+        )}
 
         {/* Mobile Offcanvas Menu */}
         <div
@@ -690,23 +810,67 @@ export default function NavBar() {
           </div>
 
           <div className="offcanvas-body offcanvas-body-custom">
-            {navItems.map((item) => {
-              const isActive = pathname === item.to
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`offcanvas-nav-link ${isActive ? "offcanvas-nav-link-active" : "offcanvas-nav-link-inactive"}`}
-                  data-bs-dismiss="offcanvas"
-                >
-                  <span style={{ fontSize: "1.2rem" }}>{item.icon}</span>
-                  {item.label}
-                </Link>
-              )
-            })}
+            {/* User Info trong Mobile Menu */}
+            {isAuthenticated && isMember && (
+              <div className="mb-4 pb-3" style={{ borderBottom: `1px solid ${COLORS.color1}` }}>
+                <div className="d-flex align-items-center gap-3">
+                  <div className="navbar-user-avatar" style={{ width: "50px", height: "50px" }}>
+                    {getUserInitial()}
+                  </div>
+                  <div>
+                    <h6 className="mb-0 fw-bold">{getUserName()}</h6>
+                    <small className="text-muted">{getUserEmail()}</small>
+                    <br />
+                    <small className="badge bg-success">{getUserRole()}</small>
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {/* Mobile Auth Buttons */}
-            {!email && (
+            {/* Navigation Items - Chỉ hiển thị cho Member */}
+            {isAuthenticated && isMember && (
+              <>
+                {navItems.map((item) => {
+                  const isActive = pathname === item.to
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`offcanvas-nav-link ${isActive ? "offcanvas-nav-link-active" : "offcanvas-nav-link-inactive"}`}
+                      data-bs-dismiss="offcanvas"
+                    >
+                      <span style={{ fontSize: "1.2rem" }}>{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  )
+                })}
+
+                {/* Mobile User Menu khi đã đăng nhập */}
+                <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${COLORS.color1}` }}>
+                  <Link
+                    to="/member/profile"
+                    className="offcanvas-nav-link offcanvas-nav-link-inactive mb-2"
+                    data-bs-dismiss="offcanvas"
+                  >
+                    <i className="fas fa-user"></i>
+                    Thông tin cá nhân
+                  </Link>
+
+                  <button
+                    onClick={handleLogout}
+                    className="offcanvas-nav-link offcanvas-nav-link-inactive w-100 border-0"
+                    style={{ background: "none", color: "#EF4444" }}
+                    data-bs-dismiss="offcanvas"
+                  >
+                    <i className="fas fa-sign-out-alt"></i>
+                    Đăng xuất
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Mobile Auth Buttons khi chưa đăng nhập */}
+            {!isAuthenticated && (
               <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${COLORS.color1}` }}>
                 <Link
                   to="/login"
@@ -724,6 +888,24 @@ export default function NavBar() {
                   <i className="fas fa-user-plus"></i>
                   Đăng ký
                 </Link>
+              </div>
+            )}
+
+            {/* Message khi không phải Member */}
+            {isAuthenticated && !isMember && (
+              <div className="text-center p-4">
+                <div className="alert alert-warning">
+                  <i className="fas fa-exclamation-triangle"></i>
+                  <br />
+                  Bạn cần có quyền Member để truy cập các chức năng này.
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-outline-danger"
+                >
+                  <i className="fas fa-sign-out-alt"></i>
+                  Đăng xuất
+                </button>
               </div>
             )}
           </div>

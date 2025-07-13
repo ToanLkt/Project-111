@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "../../AuthContext/AuthContext"
+import { useSelector } from "react-redux"
 import HistoryPayment from "./HistoryPayment"
 import "bootstrap/dist/css/bootstrap.min.css"
 
@@ -21,17 +21,32 @@ const COLORS = {
 }
 
 export default function MemberProfile() {
-  const { token } = useAuth()
+  // Sử dụng Redux thay vì AuthContext
+  const { user: reduxUser, token, loading: authLoading } = useSelector((state) => state.account || {})
+
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  // Debug logs
+  console.log("MemberProfile Debug:", {
+    reduxUser,
+    token: !!token,
+    authLoading,
+    loading
+  })
+
   useEffect(() => {
     async function fetchProfile() {
       try {
-        if (!token) throw new Error("Không tìm thấy token")
+        if (!token) {
+          console.log("No token found")
+          throw new Error("Không tìm thấy token")
+        }
+
+        console.log("Fetching profile with token:", token.substring(0, 20) + "...")
 
         const url = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile"
         const res = await fetch(url, {
@@ -41,9 +56,17 @@ export default function MemberProfile() {
           },
         })
 
-        if (!res.ok) throw new Error(res.status === 403 ? "Forbidden" : "Unauthorized")
+        console.log("Profile API response status:", res.status)
+
+        if (!res.ok) {
+          const errorText = await res.text()
+          console.error("Profile API error:", errorText)
+          throw new Error(res.status === 403 ? "Forbidden" : "Unauthorized")
+        }
 
         const profile = await res.json()
+        console.log("Profile data received:", profile)
+
         const userData = {
           email: profile.email || "",
           fullName: profile.fullName || "",
@@ -56,6 +79,7 @@ export default function MemberProfile() {
         setUser(userData)
         setFormData(userData)
       } catch (e) {
+        console.error("Profile fetch error:", e)
         setUser(null)
         alert(e.message)
       } finally {
@@ -63,8 +87,15 @@ export default function MemberProfile() {
       }
     }
 
-    if (token) fetchProfile()
-  }, [token])
+    // Chỉ fetch khi có token và không đang loading auth
+    if (token && !authLoading) {
+      fetchProfile()
+    } else if (!authLoading && !token) {
+      // Nếu không đang loading auth nhưng không có token
+      setLoading(false)
+      setUser(null)
+    }
+  }, [token, authLoading])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -116,7 +147,8 @@ export default function MemberProfile() {
     }
   }
 
-  if (loading) {
+  // Hiển thị loading khi đang auth loading hoặc profile loading
+  if (authLoading || loading) {
     return (
       <>
         <style jsx>{`
@@ -148,21 +180,67 @@ export default function MemberProfile() {
             font-size: 1.1rem;
             font-weight: 500;
           }
+
+          .debug-info {
+            position: fixed;
+            top: 100px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+            max-width: 300px;
+          }
         `}</style>
         <div className="loading-container">
           <div className="text-center">
             <div className="loading-spinner"></div>
-            <div className="loading-text">Đang tải thông tin...</div>
+            <div className="loading-text">
+              {authLoading ? "Đang xác thực..." : "Đang tải thông tin..."}
+            </div>
           </div>
         </div>
+
+        {/* Debug info trong development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="debug-info">
+            <div><strong>MemberProfile Debug:</strong></div>
+            <div>Auth Loading: {authLoading.toString()}</div>
+            <div>Profile Loading: {loading.toString()}</div>
+            <div>Has Token: {!!token ? 'Yes' : 'No'}</div>
+            <div>Has Redux User: {!!reduxUser ? 'Yes' : 'No'}</div>
+          </div>
+        )}
       </>
+    )
+  }
+
+  if (!token) {
+    return (
+      <div style={{
+        textAlign: "center",
+        marginTop: 40,
+        color: COLORS.textLight,
+        padding: "2rem"
+      }}>
+        <h3>Không tìm thấy thông tin xác thực</h3>
+        <p>Vui lòng đăng nhập lại</p>
+      </div>
     )
   }
 
   if (!user) {
     return (
-      <div style={{ textAlign: "center", marginTop: 40, color: COLORS.textLight }}>
-        Không thể tải thông tin người dùng
+      <div style={{
+        textAlign: "center",
+        marginTop: 40,
+        color: COLORS.textLight,
+        padding: "2rem"
+      }}>
+        <h3>Không thể tải thông tin người dùng</h3>
+        <p>Vui lòng thử lại sau</p>
       </div>
     )
   }
@@ -170,6 +248,7 @@ export default function MemberProfile() {
   return (
     <>
       <style jsx>{`
+        /* ...existing styles remain the same... */
         .profile-container {
           min-height: 100vh;
           background: ${COLORS.background};

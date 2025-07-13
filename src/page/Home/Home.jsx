@@ -9,6 +9,7 @@ import ExpertSection from "../../components/NewSection"
 import FeedbackSection from "../../components/FeedbackSection"
 import Footer from "../../components/Footer"
 import MembershipPackage from "../../components/MembershipPackage"
+import { useSelector } from "react-redux"
 
 const COLORS = {
   background: "#FAFAF9",
@@ -30,6 +31,9 @@ const COLORS = {
 export default function Home() {
   const [message, setMessage] = useState("Từng Khoảnh Khắc, Một Hơi Thở Tự Do")
   const [loading, setLoading] = useState(true)
+  const { token = [] } = useSelector((state) => state.account)
+
+  console.log("user", token)
 
   useEffect(() => {
     fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Platform")

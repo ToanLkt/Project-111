@@ -1,128 +1,190 @@
 "use client"
 
-import { useEffect, useState, useContext } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import AuthContext from "../AuthContext/AuthContext"
+import { useSelector } from "react-redux"
 import "bootstrap/dist/css/bootstrap.min.css"
 
 const COLORS = {
-    background: "#FAFAF9",
-    color1: "#CFE8EF",
-    color2: "#6AB7C5",
-    color3: "#336B73",
-    white: "#FFFFFF",
-    text: "#2D3748",
-    textLight: "#718096",
-    gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
-    gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
-    success: "#10B981",
-    warning: "#F59E0B",
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  success: "#10B981",
+  warning: "#F59E0B",
 }
 
-function getCurrentPackage(accountId) {
-    if (!accountId) return null
-    try {
-        const data = localStorage.getItem(`current_package_${accountId}`)
-        if (!data) return null
-        const pkg = JSON.parse(data)
-        if (pkg.accountId !== accountId) return null
-        if (new Date(pkg.endDate) > new Date()) return pkg
-        return null
-    } catch {
-        return null
-    }
+function getCurrentPackage(userId) {
+  if (!userId) return null
+  try {
+    const data = localStorage.getItem(`current_package_${userId}`)
+    if (!data) return null
+    const pkg = JSON.parse(data)
+    if (pkg.userId !== userId) return null
+    if (new Date(pkg.endDate) > new Date()) return pkg
+    return null
+  } catch {
+    return null
+  }
 }
 
-function showToast(message) {
-    const old = document.getElementById("toast-msg")
-    if (old) old.remove()
+function showToast(message, type = "warning") {
+  const old = document.getElementById("toast-msg")
+  if (old) old.remove()
 
-    const toast = document.createElement("div")
-    toast.id = "toast-msg"
-    toast.innerText = message
-    toast.style.position = "fixed"
-    toast.style.top = "32px"
-    toast.style.right = "32px"
-    toast.style.background = COLORS.warning
-    toast.style.color = COLORS.white
-    toast.style.padding = "16px 32px"
-    toast.style.borderRadius = "12px"
-    toast.style.fontWeight = "600"
-    toast.style.fontSize = "16px"
-    toast.style.zIndex = "9999"
-    toast.style.boxShadow = "0 8px 32px rgba(245, 158, 11, 0.3)"
-    document.body.appendChild(toast)
+  const toast = document.createElement("div")
+  toast.id = "toast-msg"
+  toast.innerText = message
+  toast.style.position = "fixed"
+  toast.style.top = "32px"
+  toast.style.right = "32px"
+  toast.style.background = type === "warning" ? COLORS.warning : COLORS.success
+  toast.style.color = COLORS.white
+  toast.style.padding = "16px 32px"
+  toast.style.borderRadius = "12px"
+  toast.style.fontWeight = "600"
+  toast.style.fontSize = "16px"
+  toast.style.zIndex = "9999"
+  toast.style.boxShadow = `0 8px 32px ${type === "warning" ? "rgba(245, 158, 11, 0.3)" : "rgba(16, 185, 129, 0.3)"}`
+  document.body.appendChild(toast)
 
-    setTimeout(() => {
-        toast.remove()
-    }, 3000)
+  setTimeout(() => {
+    toast.remove()
+  }, 3000)
 }
 
 export default function MembershipPackage() {
-    const [packages, setPackages] = useState([])
-    const [loading, setLoading] = useState(true)
-    const auth = useContext(AuthContext)
-    const [currentPkg, setCurrentPkg] = useState(() => getCurrentPackage(auth?.accountId))
-    const navigate = useNavigate()
+  const [packages, setPackages] = useState([])
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
-    // Cập nhật lại currentPkg khi accountId thay đổi
-    useEffect(() => {
-        setCurrentPkg(getCurrentPackage(auth?.accountId))
-    }, [auth?.accountId])
+  // Redux state
+  const { user, token } = useSelector((state) => state.account || {})
+  
+  // Extract user info từ Redux user object
+  const getUserId = () => {
+    if (!user) return null
+    return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+           user.userId ||
+           user.id ||
+           null
+  }
 
-    // Cập nhật lại currentPkg mỗi 3s để bắt kịp giao dịch mới
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentPkg(getCurrentPackage(auth?.accountId))
-        }, 3000)
-        return () => clearInterval(interval)
-    }, [auth?.accountId])
+  const getUserRole = () => {
+    if (!user) return null
+    const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+                 user.role ||
+                 null
+    return role ? role.toString().trim() : null
+  }
 
-    useEffect(() => {
-        const fetchPackages = async () => {
-            try {
-                const res = await fetch(
-                    "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership",
-                )
-                const data = await res.json()
-                setPackages(Array.isArray(data) ? data : [])
-            } catch {
-                setPackages([])
-            } finally {
-                setLoading(false)
-            }
+  const userId = getUserId()
+  const userRole = getUserRole()
+  const [currentPkg, setCurrentPkg] = useState(() => getCurrentPackage(userId))
+
+  // Cập nhật lại currentPkg khi userId thay đổi
+  useEffect(() => {
+    setCurrentPkg(getCurrentPackage(userId))
+  }, [userId])
+
+  // Cập nhật lại currentPkg mỗi 3s để bắt kịp giao dịch mới
+  useEffect(() => {
+    if (!userId) return
+    
+    const interval = setInterval(() => {
+      setCurrentPkg(getCurrentPackage(userId))
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [userId])
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        console.log("🚀 Fetching packages...")
+        const res = await fetch(
+          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership",
+        )
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`)
         }
-
-        fetchPackages()
-    }, [])
-
-    const handleRegister = (pkg) => {
-        if (!auth?.token) {
-            showToast("Đăng nhập để mua gói")
-            return
-        }
-        navigate("/payment", { state: { package: pkg } })
+        
+        const data = await res.json()
+        console.log("✅ Packages data:", data)
+        setPackages(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error("❌ Error fetching packages:", error)
+        setPackages([])
+        showToast("Không thể tải danh sách gói thành viên", "warning")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    const getPackageIcon = (category) => {
-        const icons = {
-            basic: "🌱",
-            premium: "⭐",
-            vip: "👑",
-            standard: "📦",
-            pro: "🚀",
-        }
-        return icons[category?.toLowerCase()] || "📋"
+    fetchPackages()
+  }, [])
+
+  const handleRegister = (pkg) => {
+    console.log("🎯 Register attempt:", { 
+      hasToken: !!token, 
+      userRole, 
+      packageId: pkg.package_membership_ID 
+    })
+
+    if (!token) {
+      showToast("Vui lòng đăng nhập để mua gói")
+      navigate("/login")
+      return
     }
 
-    const getPackageColor = (index) => {
-        const colors = [COLORS.color1, COLORS.color2, "#E0F2FE", "#FEF3C7"]
-        return colors[index % colors.length]
+    if (userRole !== "Member") {
+      showToast("Chỉ tài khoản thành viên mới được mua gói!")
+      return
     }
 
-    return (
-        <>
-            <style jsx>{`
+    if (currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID) {
+      showToast("Bạn đã đang sử dụng gói này!")
+      return
+    }
+
+    console.log("✅ Navigating to payment with package:", pkg)
+    navigate("/payment", { state: { package: pkg } })
+  }
+
+  const getPackageIcon = (category) => {
+    const icons = {
+      basic: "🌱",
+      premium: "⭐",
+      vip: "👑",
+      standard: "📦",
+      pro: "🚀",
+      starter: "🎯",
+      advanced: "🔥",
+    }
+    return icons[category?.toLowerCase()] || "📋"
+  }
+
+  const getPackageColor = (index) => {
+    const colors = [COLORS.color1, COLORS.color2, "#E0F2FE", "#FEF3C7", "#F3E8FF", "#FEE2E2"]
+    return colors[index % colors.length]
+  }
+
+  const formatPrice = (price) => {
+    if (price === 0) return "Miễn phí"
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price)
+  }
+
+  return (
+    <>
+      <style jsx>{`
         .membership-section {
           background: ${COLORS.background};
           padding: 5rem 0;
@@ -162,6 +224,12 @@ export default function MembershipPackage() {
           justify-content: center;
           margin: 0 auto 2rem;
           border: 3px solid ${COLORS.color1};
+          animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
         }
 
         .membership-icon {
@@ -204,7 +272,7 @@ export default function MembershipPackage() {
           box-shadow: 0 8px 24px rgba(51, 107, 115, 0.06);
           position: relative;
           overflow: hidden;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .package-card.active {
@@ -219,10 +287,11 @@ export default function MembershipPackage() {
         .package-card.current {
           border-color: ${COLORS.success};
           background: linear-gradient(135deg, ${COLORS.white} 0%, #F0FDF4 100%);
+          transform: scale(1.02);
         }
 
         .package-card:hover:not(.inactive):not(.current) {
-          transform: translateY(-8px);
+          transform: translateY(-8px) scale(1.02);
           box-shadow: 0 20px 40px rgba(51, 107, 115, 0.15);
         }
 
@@ -238,6 +307,7 @@ export default function MembershipPackage() {
 
         .package-card.current::before {
           background: linear-gradient(90deg, ${COLORS.success}, #34D399);
+          height: 4px;
         }
 
         .package-header {
@@ -255,6 +325,11 @@ export default function MembershipPackage() {
           align-items: center;
           justify-content: center;
           font-size: 1.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .package-card:hover .package-icon-badge {
+          transform: scale(1.1) rotate(5deg);
         }
 
         .package-status {
@@ -262,6 +337,8 @@ export default function MembershipPackage() {
           border-radius: 20px;
           font-size: 0.8rem;
           font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .status-active {
@@ -272,6 +349,12 @@ export default function MembershipPackage() {
         .status-current {
           background: ${COLORS.success};
           color: ${COLORS.white};
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
         }
 
         .status-inactive {
@@ -291,8 +374,9 @@ export default function MembershipPackage() {
         .package-description {
           color: ${COLORS.text};
           font-size: 1rem;
-          line-height: 1.5;
+          line-height: 1.6;
           margin-bottom: 1.5rem;
+          min-height: 3rem;
         }
 
         .package-price {
@@ -328,12 +412,31 @@ export default function MembershipPackage() {
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .btn-register {
           background: ${COLORS.gradient};
           color: ${COLORS.white};
           box-shadow: 0 4px 16px rgba(106, 183, 197, 0.3);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .btn-register::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.6s;
+        }
+
+        .btn-register:hover::before {
+          left: 100%;
         }
 
         .btn-register:hover {
@@ -363,6 +466,13 @@ export default function MembershipPackage() {
           font-size: 4rem;
           margin-bottom: 1rem;
           opacity: 0.5;
+          animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-10px); }
+          60% { transform: translateY(-5px); }
         }
 
         .empty-state-text {
@@ -385,187 +495,163 @@ export default function MembershipPackage() {
           margin-bottom: 1rem;
         }
 
-        .skeleton-header {
-          height: 50px;
-          width: 100%;
-          margin-bottom: 1.5rem;
-        }
-
-        .skeleton-title {
-          height: 1.5rem;
-          width: 60%;
-          margin-bottom: 1rem;
-        }
-
-        .skeleton-desc {
-          height: 1rem;
-          width: 100%;
-          margin-bottom: 0.5rem;
-        }
-
-        .skeleton-price {
-          height: 2rem;
-          width: 40%;
-          margin-bottom: 2rem;
-        }
-
-        .skeleton-button {
-          height: 3rem;
-          width: 100%;
-        }
+        .skeleton-header { height: 50px; width: 100%; margin-bottom: 1.5rem; }
+        .skeleton-title { height: 1.5rem; width: 60%; margin-bottom: 1rem; }
+        .skeleton-desc { height: 1rem; width: 100%; margin-bottom: 0.5rem; }
+        .skeleton-price { height: 2rem; width: 40%; margin-bottom: 2rem; }
+        .skeleton-button { height: 3rem; width: 100%; }
 
         @keyframes loading {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
 
+        /* Debug panel */
+        .debug-panel {
+          position: fixed;
+          bottom: 20px;
+          left: 20px;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 15px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-family: monospace;
+          z-index: 9998;
+          max-width: 300px;
+        }
+
         @media (max-width: 768px) {
-          .membership-section {
-            padding: 3rem 0;
-          }
-
-          .membership-container {
-            margin: 0 1rem;
-            padding: 2.5rem 2rem;
-            border-radius: 20px;
-          }
-
-          .membership-title {
-            font-size: 2.2rem;
-          }
-
-          .packages-grid {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-          }
-
-          .package-card {
-            padding: 2rem;
-          }
-
-          .membership-icon-wrapper {
-            width: 60px;
-            height: 60px;
-          }
-
-          .membership-icon {
-            font-size: 2rem;
-          }
+          .membership-section { padding: 3rem 0; }
+          .membership-container { margin: 0 1rem; padding: 2.5rem 2rem; border-radius: 20px; }
+          .membership-title { font-size: 2.2rem; }
+          .packages-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+          .package-card { padding: 2rem; }
+          .membership-icon-wrapper { width: 60px; height: 60px; }
+          .membership-icon { font-size: 2rem; }
+          .debug-panel { display: none; }
         }
 
         @media (max-width: 576px) {
-          .membership-title {
-            font-size: 1.8rem;
-          }
-
-          .package-card {
-            padding: 1.5rem;
-          }
-
-          .package-price {
-            font-size: 1.6rem;
-          }
+          .membership-title { font-size: 1.8rem; }
+          .package-card { padding: 1.5rem; }
+          .package-price { font-size: 1.6rem; }
         }
       `}</style>
 
-            <section id="membership" className="membership-section">
-                <div className="container">
-                    <div className="row justify-content-center">
-                        <div className="col-12 col-xl-10">
-                            <div className="membership-container">
-                                <div className="membership-icon-wrapper">
-                                    <div className="membership-icon">💎</div>
-                                </div>
-
-                                <h2 className="membership-title">Gói thành viên</h2>
-                                <p className="membership-subtitle">Chọn gói phù hợp để bắt đầu hành trình cai thuốc lá của bạn</p>
-
-                                {loading ? (
-                                    <div className="packages-grid">
-                                        {[...Array(3)].map((_, index) => (
-                                            <div key={index} className="loading-card">
-                                                <div className="loading-skeleton skeleton-header"></div>
-                                                <div className="loading-skeleton skeleton-title"></div>
-                                                <div className="loading-skeleton skeleton-desc"></div>
-                                                <div className="loading-skeleton skeleton-desc"></div>
-                                                <div className="loading-skeleton skeleton-price"></div>
-                                                <div className="loading-skeleton skeleton-button"></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : packages.length === 0 ? (
-                                    <div className="empty-state">
-                                        <div className="empty-state-icon">📦</div>
-                                        <div className="empty-state-text">Chưa có gói thành viên nào</div>
-                                        <p style={{ color: COLORS.textLight, marginTop: "0.5rem" }}>
-                                            Các gói thành viên sẽ sớm được cập nhật
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="packages-grid">
-                                        {packages.map((pkg, index) => {
-                                            const isCurrent =
-                                                auth?.token && currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID
-                                            const isActive = pkg.status === "Active"
-                                            const canRegister = isActive && !isCurrent
-
-                                            return (
-                                                <div
-                                                    key={pkg.package_membership_ID}
-                                                    className={`package-card ${isCurrent ? "current" : isActive ? "active" : "inactive"}`}
-                                                >
-                                                    <div className="package-header">
-                                                        <div className="package-icon-badge" style={{ background: getPackageColor(index) }}>
-                                                            {getPackageIcon(pkg.category)}
-                                                        </div>
-                                                        <div
-                                                            className={`package-status ${isCurrent ? "status-current" : isActive ? "status-active" : "status-inactive"
-                                                                }`}
-                                                        >
-                                                            {isCurrent ? "Đang dùng" : isActive ? "Đang mở" : "Đóng"}
-                                                        </div>
-                                                    </div>
-
-                                                    <h3 className="package-category">{pkg.category}</h3>
-                                                    <p className="package-description">{pkg.description}</p>
-
-                                                    <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
-                                                        {pkg.price === 0 ? "Miễn phí" : pkg.price.toLocaleString("vi-VN") + "đ"}
-                                                    </div>
-
-                                                    <div className="package-duration">
-                                                        <i className="fas fa-clock"></i>
-                                                        Thời hạn: {pkg.duration} ngày
-                                                    </div>
-
-                                                    {isCurrent ? (
-                                                        <button className="package-button btn-current">
-                                                            <i className="fas fa-check-circle"></i>
-                                                            Bạn đang sử dụng gói này
-                                                        </button>
-                                                    ) : canRegister ? (
-                                                        <button className="package-button btn-register" onClick={() => handleRegister(pkg)}>
-                                                            <i className="fas fa-shopping-cart"></i>
-                                                            Đăng ký ngay
-                                                        </button>
-                                                    ) : (
-                                                        <button className="package-button btn-disabled" disabled>
-                                                            <i className="fas fa-lock"></i>
-                                                            Không khả dụng
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                )}
-
-
-                            </div>
-                        </div>
-                    </div>
+      <section id="membership" className="membership-section">
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-12 col-xl-10">
+              <div className="membership-container">
+                <div className="membership-icon-wrapper">
+                  <div className="membership-icon">💎</div>
                 </div>
-            </section>
-        </>
-    )
+
+                <h2 className="membership-title">Gói thành viên</h2>
+                <p className="membership-subtitle">
+                  Chọn gói phù hợp để bắt đầu hành trình cai thuốc lá của bạn
+                </p>
+
+                {loading ? (
+                  <div className="packages-grid">
+                    {[...Array(3)].map((_, index) => (
+                      <div key={index} className="loading-card">
+                        <div className="loading-skeleton skeleton-header"></div>
+                        <div className="loading-skeleton skeleton-title"></div>
+                        <div className="loading-skeleton skeleton-desc"></div>
+                        <div className="loading-skeleton skeleton-desc"></div>
+                        <div className="loading-skeleton skeleton-price"></div>
+                        <div className="loading-skeleton skeleton-button"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : packages.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">📦</div>
+                    <div className="empty-state-text">Chưa có gói thành viên nào</div>
+                    <p style={{ color: COLORS.textLight, marginTop: "0.5rem" }}>
+                      Các gói thành viên sẽ sớm được cập nhật
+                    </p>
+                  </div>
+                ) : (
+                  <div className="packages-grid">
+                    {packages.map((pkg, index) => {
+                      const isCurrent =
+                        token && currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID
+                      const isActive = pkg.status === "Active"
+                      const canRegister = isActive && !isCurrent
+
+                      return (
+                        <div
+                          key={pkg.package_membership_ID}
+                          className={`package-card ${isCurrent ? "current" : isActive ? "active" : "inactive"}`}
+                        >
+                          <div className="package-header">
+                            <div className="package-icon-badge" style={{ background: getPackageColor(index) }}>
+                              {getPackageIcon(pkg.category)}
+                            </div>
+                            <div
+                              className={`package-status ${
+                                isCurrent ? "status-current" : isActive ? "status-active" : "status-inactive"
+                              }`}
+                            >
+                              {isCurrent ? "Đang dùng" : isActive ? "Đang mở" : "Đóng"}
+                            </div>
+                          </div>
+
+                          <h3 className="package-category">{pkg.category}</h3>
+                          <p className="package-description">{pkg.description}</p>
+
+                          <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
+                            {formatPrice(pkg.price)}
+                          </div>
+
+                          <div className="package-duration">
+                            <i className="fas fa-clock"></i>
+                            Thời hạn: {pkg.duration} ngày
+                          </div>
+
+                          {isCurrent ? (
+                            <button className="package-button btn-current">
+                              <i className="fas fa-check-circle"></i>
+                              Đang sử dụng
+                            </button>
+                          ) : canRegister ? (
+                            <button className="package-button btn-register" onClick={() => handleRegister(pkg)}>
+                              <i className="fas fa-shopping-cart"></i>
+                              Đăng ký ngay
+                            </button>
+                          ) : (
+                            <button className="package-button btn-disabled" disabled>
+                              <i className="fas fa-lock"></i>
+                              Không khả dụng
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Debug Panel - Development Only */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="debug-panel">
+            <div><strong>🔍 Membership Debug:</strong></div>
+            <div>Token: {token ? "✅" : "❌"}</div>
+            <div>User: {user ? "✅" : "❌"}</div>
+            <div>UserId: {userId || "null"}</div>
+            <div>Role: {userRole || "null"}</div>
+            <div>Packages: {packages.length}</div>
+            <div>Current Pkg: {currentPkg ? "✅" : "❌"}</div>
+            <div>Loading: {loading ? "⏳" : "✅"}</div>
+          </div>
+        )}
+      </section>
+    </>
+  )
 }

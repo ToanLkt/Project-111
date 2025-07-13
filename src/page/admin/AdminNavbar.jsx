@@ -1,40 +1,88 @@
-
-import { Link, useLocation, Outlet } from "react-router-dom"
-import { useAuth } from "../../AuthContext/AuthContext"
+import React from "react";
+import { Link, useLocation, Outlet, Navigate } from "react-router-dom"
+import { useSelector, useDispatch } from "react-redux"
+import { logout as logoutAction } from "../../redux/login/loginSlice"
 import "bootstrap/dist/css/bootstrap.min.css"
 
 const COLORS = {
-    background: "#FAFAF9",
-    color1: "#CFE8EF",
-    color2: "#6AB7C5",
-    color3: "#336B73",
-    white: "#FFFFFF",
-    text: "#2D3748",
-    textLight: "#718096",
-    gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
-    gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
-    gradientAdmin: "linear-gradient(135deg, #336B73 0%, #1A4B52 100%)",
-    gradientAdminLight: "linear-gradient(135deg, #6AB7C5 0%, #336B73 50%)",
-    success: "#10B981",
-    warning: "#F59E0B",
-    admin: "#1A4B52",
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  gradientAdmin: "linear-gradient(135deg, #336B73 0%, #1A4B52 100%)",
+  gradientAdminLight: "linear-gradient(135deg, #6AB7C5 0%, #336B73 50%)",
+  success: "#10B981",
+  warning: "#F59E0B",
+  admin: "#1A4B52",
 }
 
 export default function AdminNavbar() {
-    const location = useLocation()
-    const { email, logout } = useAuth()
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const { user, token, loading } = useSelector((state) => state.account || {});
 
-    const navItems = [
-        { to: "/admin", label: "Trang chủ", icon: "🏠" },
-        { to: "/admin/list", label: "Danh sách", icon: "📋" },
-        { to: "/admin/community", label: "Cộng đồng", icon: "👥" },
-        { to: "/admin/feedback", label: "Phản hồi", icon: "💬" },
-        { to: "/admin/payment", label: "Thanh toán", icon: "💳" },
-    ]
+  // Extract thông tin từ user object
+  const getUserEmail = () => {
+    if (!user) return null
+    return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] ||
+      user.email ||
+      user.emailAddress ||
+      null
+  }
 
-    return (
-        <>
-            <style jsx>{`
+  const getUserRole = () => {
+    if (!user) return null
+    const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+      user.role ||
+      null
+    return role ? role.toString().trim() : null
+  }
+
+  // Logic authentication
+  const userRole = getUserRole()
+  const userEmail = getUserEmail()
+  const isAdmin = userRole === "Admin"
+  const isAuthenticated = !!(token && user)
+
+  // Xử lý đăng xuất
+  const handleLogout = () => {
+    dispatch(logoutAction())
+    window.location.href = "/login"
+  }
+
+  // Authentication checks
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isAuthenticated && !isAdmin) {
+    switch (userRole) {
+      case "Coach":
+        return <Navigate to="/coachpage" replace />;
+      case "Member":
+        return <Navigate to="/" replace />;
+      default:
+        return <Navigate to="/login" replace />;
+    }
+  }
+
+  const navItems = [
+    { to: "/admin", label: "Trang chủ", icon: "🏠" },
+    { to: "/admin/list", label: "Danh sách", icon: "📋" },
+    { to: "/admin/community", label: "Cộng đồng", icon: "👥" },
+    { to: "/admin/feedback", label: "Phản hồi", icon: "💬" },
+    { to: "/admin/payment", label: "Thanh toán", icon: "💳" },
+    { to: "/admin/report", label: "Báo cáo", icon: "📊" },
+  ]
+
+  return (
+    <>
+      <style jsx>{`
         .admin-navbar-container {
           position: relative;
           z-index: 1050;
@@ -146,8 +194,6 @@ export default function AdminNavbar() {
           transition: all 0.3s ease;
           position: relative;
         }
-
-        
 
         .admin-brand:hover {
           text-decoration: none;
@@ -417,103 +463,103 @@ export default function AdminNavbar() {
         }
       `}</style>
 
-            <div className="admin-navbar-container">
-                {/* Top Header Bar */}
-                <div className="admin-navbar-header" style={{ background: "linear-gradient(135deg,#FAFAF9 0%, #CFE8EF 70%, #6AB7C5 100%)" }}>
-                    <div className="container-fluid">
-                        <div className="row align-items-center">
-                            {/* Logo Section */}
-                            <div className="col-lg-3 col-md-4 col-sm-6">
-                                <div className="d-flex align-items-center">
-                                    <div className="admin-logo">
-                                        <img src="/A.png" alt="Admin Logo" />
-                                    </div>
-                                    <Link to="/admin" className="admin-brand">
-                                        <span className="d-none d-sm-inline">Cai Nghiện Thuốc Lá</span>
-                                        <span className="d-sm-none">CNTL</span>
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Search Section */}
-                            <div className="col-lg-6 col-md-4 d-none d-md-block">
-                                <div className="admin-search">
-                                    <div className="admin-search-wrapper">
-                                        <div className="admin-search-icon">
-                                            <i className="fas fa-search"></i>
-                                        </div>
-                                        <input type="text" className="admin-search-input" placeholder="Tìm kiếm quản trị..." />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Admin Account Section */}
-                            <div className="col-lg-3 col-md-4 col-sm-6">
-                                <div className="d-flex align-items-center justify-content-end">
-                                    <div className="admin-user-section">
-                                        {email && (
-                                            <>
-                                                <Link to="/admin/profile" className="admin-user-info">
-                                                    <div className="admin-user-avatar">
-                                                        <i className="fas fa-user-shield"></i>
-                                                    </div>
-                                                    <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
-                                                        {email.split("@")[0]}
-                                                    </span>
-                                                </Link>
-                                                <button onClick={logout} className="admin-logout-btn">
-                                                    <i className="fas fa-sign-out-alt me-2"></i>
-                                                    Đăng xuất
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Mobile Search */}
-                        <div className="row d-md-none mt-3">
-                            <div className="col-12">
-                                <div className="admin-search">
-                                    <div className="admin-search-wrapper">
-                                        <div className="admin-search-icon">
-                                            <i className="fas fa-search"></i>
-                                        </div>
-                                        <input type="text" className="admin-search-input" placeholder="Tìm kiếm..." />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+      <div className="admin-navbar-container">
+        {/* Top Header Bar */}
+        <div className="admin-navbar-header" style={{ background: "linear-gradient(135deg,#FAFAF9 0%, #CFE8EF 70%, #6AB7C5 100%)" }}>
+          <div className="container-fluid">
+            <div className="row align-items-center">
+              {/* Logo Section */}
+              <div className="col-lg-3 col-md-4 col-sm-6">
+                <div className="d-flex align-items-center">
+                  <div className="admin-logo">
+                    <img src="/A.png" alt="Admin Logo" />
+                  </div>
+                  <Link to="/admin" className="admin-brand">
+                    <span className="d-none d-sm-inline">Cai Nghiện Thuốc Lá</span>
+                    <span className="d-sm-none">CNTL</span>
+                  </Link>
                 </div>
+              </div>
 
-                {/* Main Navigation */}
-                <nav className="admin-navbar-main">
-                    <div className="container-fluid">
-                        <ul className="admin-nav d-flex flex-wrap justify-content-center">
-                            {navItems.map((item) => {
-                                const isActive = location.pathname === item.to
-                                return (
-                                    <li className="admin-nav-item" key={item.to}>
-                                        <Link
-                                            to={item.to}
-                                            className={`admin-nav-link ${isActive ? "admin-nav-link-active" : "admin-nav-link-inactive"}`}
-                                        >
-                                            <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
-                                            {item.label}
-                                            {item.to === "/admin/feedback" && <span className="admin-badge">3</span>}
-                                            {item.to === "/admin/payment" && <span className="admin-badge">!</span>}
-                                        </Link>
-                                    </li>
-                                )
-                            })}
-                        </ul>
+              {/* Search Section */}
+              <div className="col-lg-6 col-md-4 d-none d-md-block">
+                <div className="admin-search">
+                  <div className="admin-search-wrapper">
+                    <div className="admin-search-icon">
+                      <i className="fas fa-search"></i>
                     </div>
-                </nav>
+                    <input type="text" className="admin-search-input" placeholder="Tìm kiếm quản trị..." />
+                  </div>
+                </div>
+              </div>
+
+              {/* Admin Account Section */}
+              <div className="col-lg-3 col-md-4 col-sm-6">
+                <div className="d-flex align-items-center justify-content-end">
+                  <div className="admin-user-section">
+                    {userEmail && (
+                      <>
+                        <Link to="/admin/profile" className="admin-user-info">
+                          <div className="admin-user-avatar">
+                            <i className="fas fa-user-shield"></i>
+                          </div>
+                          <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
+                            {userEmail.split("@")[0]}
+                          </span>
+                        </Link>
+                        <button onClick={handleLogout} className="admin-logout-btn">
+                          <i className="fas fa-sign-out-alt me-2"></i>
+                          Đăng xuất
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <Outlet />
-        </>
-    )
+            {/* Mobile Search */}
+            <div className="row d-md-none mt-3">
+              <div className="col-12">
+                <div className="admin-search">
+                  <div className="admin-search-wrapper">
+                    <div className="admin-search-icon">
+                      <i className="fas fa-search"></i>
+                    </div>
+                    <input type="text" className="admin-search-input" placeholder="Tìm kiếm..." />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Navigation */}
+        <nav className="admin-navbar-main">
+          <div className="container-fluid">
+            <ul className="admin-nav d-flex flex-wrap justify-content-center">
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.to
+                return (
+                  <li className="admin-nav-item" key={item.to}>
+                    <Link
+                      to={item.to}
+                      className={`admin-nav-link ${isActive ? "admin-nav-link-active" : "admin-nav-link-inactive"}`}
+                    >
+                      <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
+                      {item.label}
+                      {item.to === "/admin/feedback" && <span className="admin-badge">3</span>}
+                      {item.to === "/admin/payment" && <span className="admin-badge">!</span>}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </nav>
+      </div>
+
+      <Outlet />
+    </>
+  )
 }

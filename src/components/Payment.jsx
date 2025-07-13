@@ -1,11 +1,18 @@
 "use client"
 
-import { useEffect, useState, useContext } from "react"
+import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import AuthContext from "../AuthContext/AuthContext"
-import NavBar from "./NavBar"
+import { useSelector, useDispatch } from "react-redux"
 import Footer from "./Footer"
 import "bootstrap/dist/css/bootstrap.min.css"
+
+// Import actions từ paymentSlice
+import {
+  createPaymentRequest,
+  setCurrentPackage,
+  clearPaymentState,
+  fetchPackagesRequest
+} from "../redux/components/payment/paymentSlice"
 
 // Thông tin ngân hàng
 const BANK_ID = "970422" // MB Bank
@@ -14,265 +21,313 @@ const ACCOUNT_NAME = "Hà Việt Thành"
 const TEMPLATE = "compact2"
 
 const COLORS = {
-    background: "#FAFAF9",
-    color1: "#CFE8EF",
-    color2: "#6AB7C5",
-    color3: "#336B73",
-    white: "#FFFFFF",
-    text: "#2D3748",
-    textLight: "#718096",
-    gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
-    gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
-    success: "#10B981",
-    warning: "#F59E0B",
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  success: "#10B981",
+  warning: "#F59E0B",
 }
 
 // API kiểm tra giao dịch
 const TRANSACTION_API =
-    "https://docs.google.com/spreadsheets/d/1Er2mUA9EE7PdsIc9YPzOFlxo_ErhmjRPGaYNYBXS00A/gviz/tq?tqx=out:json"
+  "https://docs.google.com/spreadsheets/d/1Er2mUA9EE7PdsIc9YPzOFlxo_ErhmjRPGaYNYBXS00A/gviz/tq?tqx=out:json"
 
 function showToast(message) {
-    const old = document.getElementById("toast-paid")
-    if (old) old.remove()
+  console.log('📢 Showing toast:', message)
 
-    const toast = document.createElement("div")
-    toast.id = "toast-paid"
-    toast.innerText = message
-    toast.style.position = "fixed"
-    toast.style.top = "32px"
-    toast.style.right = "32px"
-    toast.style.background = COLORS.success
-    toast.style.color = COLORS.white
-    toast.style.padding = "16px 32px"
-    toast.style.borderRadius = "12px"
-    toast.style.fontWeight = "600"
-    toast.style.fontSize = "16px"
-    toast.style.zIndex = "9999"
-    toast.style.boxShadow = "0 8px 32px rgba(16, 185, 129, 0.3)"
-    document.body.appendChild(toast)
+  const old = document.getElementById("toast-paid")
+  if (old) {
+    console.log('🗑️ Removing old toast')
+    old.remove()
+  }
 
-    setTimeout(() => {
-        toast.remove()
-    }, 5000)
+  const toast = document.createElement("div")
+  toast.id = "toast-paid"
+  toast.innerText = message
+  toast.style.position = "fixed"
+  toast.style.top = "32px"
+  toast.style.right = "32px"
+  toast.style.background = COLORS.success
+  toast.style.color = COLORS.white
+  toast.style.padding = "16px 32px"
+  toast.style.borderRadius = "12px"
+  toast.style.fontWeight = "600"
+  toast.style.fontSize = "16px"
+  toast.style.zIndex = "9999"
+  toast.style.boxShadow = "0 8px 32px rgba(16, 185, 129, 0.3)"
+  toast.style.transition = "all 0.3s ease"
+
+  document.body.appendChild(toast)
+  console.log('✅ Toast added to DOM')
+
+  setTimeout(() => {
+    if (toast && toast.parentNode) {
+      toast.remove()
+      console.log('🗑️ Toast auto-removed after 5s')
+    }
+  }, 5000)
 }
 
 // Hàm format ngày chuẩn "YYYY-MM-DDTHH:mm:ss"
 function formatDate(dt) {
-    return (
-        dt.getFullYear() +
-        "-" +
-        String(dt.getMonth() + 1).padStart(2, "0") +
-        "-" +
-        String(dt.getDate()).padStart(2, "0") +
-        "T" +
-        String(dt.getHours()).padStart(2, "0") +
-        ":" +
-        String(dt.getMinutes()).padStart(2, "0") +
-        ":" +
-        String(dt.getSeconds()).padStart(2, "0")
-    )
-}
-
-// Lấy accountId từ token JWT của user hiện tại
-function parseJwt(token) {
-    try {
-        return JSON.parse(atob(token.split(".")[1]))
-    } catch {
-        return null
-    }
+  return (
+    dt.getFullYear() +
+    "-" +
+    String(dt.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(dt.getDate()).padStart(2, "0") +
+    "T" +
+    String(dt.getHours()).padStart(2, "0") +
+    ":" +
+    String(dt.getMinutes()).padStart(2, "0") +
+    ":" +
+    String(dt.getSeconds()).padStart(2, "0")
+  )
 }
 
 // Hàm lấy thời gian hiện tại theo múi giờ Việt Nam (ISO string)
 function getVietnamNowISO() {
-    const now = new Date()
-    const vn = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }))
-    return vn.toISOString()
+  const now = new Date()
+  const vn = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }))
+  return vn.toISOString()
 }
 
 export default function Payment() {
-    const location = useLocation()
-    const navigate = useNavigate()
-    const auth = useContext(AuthContext)
-    const token = auth?.token
-    const accountId = auth?.accountId
+  const location = useLocation()
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
 
-    const [packages, setPackages] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [showQR, setShowQR] = useState(false)
-    const [buyingPkg, setBuyingPkg] = useState(null)
-    const [transactionCode, setTransactionCode] = useState("")
+  // Redux state
+  const { user, token } = useSelector((state) => state.account || {})
+  const {
+    // Payment state
+    paymentLoading,
+    paymentSuccess,
+    paymentError,
 
-    useEffect(() => {
-        const fetchPackages = async () => {
-            try {
-                const res = await fetch(
-                    "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership",
-                )
-                const data = await res.json()
-                setPackages(Array.isArray(data) ? data : [])
-            } catch {
-                setPackages([])
-            } finally {
-                setLoading(false)
-            }
+    // Package state
+    packages,
+    packagesLoading,
+    packagesError,
+
+    // Current package
+    currentPackage,
+
+    // Completed payments
+    completedPayments
+  } = useSelector((state) => {
+    console.log('🔍 Current Redux payment state:', state.payment)
+    return state.payment || {}
+  })
+
+  // Extract user info từ Redux user object
+  const getUserId = () => {
+    if (!user) return null
+    return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+      user.userId ||
+      user.id ||
+      null
+  }
+
+  const accountId = getUserId()
+
+  const [showQR, setShowQR] = useState(false)
+  const [buyingPkg, setBuyingPkg] = useState(null)
+  const [transactionCode, setTransactionCode] = useState("")
+
+  // Fetch packages khi component mount
+  useEffect(() => {
+    console.log("🚀 Dispatching fetchPackagesRequest...")
+    dispatch(fetchPackagesRequest())
+  }, [dispatch])
+
+  // Sinh mã giao dịch mới mỗi lần mở QR
+  useEffect(() => {
+    if (showQR && buyingPkg) {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+      setTransactionCode(code)
+    }
+  }, [showQR, buyingPkg])
+
+  // Handle payment success
+  useEffect(() => {
+    console.log('🔍 Payment success useEffect triggered, paymentSuccess:', paymentSuccess)
+
+    if (paymentSuccess) {
+      console.log('✅ Payment successful! Starting success flow...')
+
+      // Hiển thị thông báo thành công
+      showToast("✅ Thanh toán thành công!")
+      console.log('📢 Success toast displayed')
+
+      // Đóng QR popup ngay lập tức
+      setShowQR(false)
+      console.log('❌ QR modal closed')
+
+      // Chuyển về trang Home sau 2 giây
+      const navigateTimeout = setTimeout(() => {
+        console.log('🏠 Navigating to home page...')
+        navigate("/")
+      }, 2000)
+
+      // Clear payment state sau khi đã xử lý xong
+      const clearTimeout = setTimeout(() => {
+        console.log('🧹 Clearing payment state...')
+        dispatch(clearPaymentState())
+      }, 3000)
+
+      // Cleanup timeouts nếu component unmount
+      return () => {
+        clearTimeout(navigateTimeout)
+        clearTimeout(clearTimeout)
+      }
+    }
+  }, [paymentSuccess, navigate, dispatch])
+
+  // Handle payment error
+  useEffect(() => {
+    console.log('🔍 Payment error state changed:', paymentError)
+
+    if (paymentError) {
+      console.log('❌ Triggering error flow:', paymentError)
+      showToast(`❌ Thanh toán thất bại: ${paymentError}`)
+      dispatch(clearPaymentState())
+    }
+  }, [paymentError, dispatch])
+
+  // Debug Redux state changes
+  useEffect(() => {
+    console.log('🔍 Redux payment state updated:', {
+      paymentLoading,
+      paymentSuccess,
+      paymentError,
+      packagesLoading,
+      packagesError,
+      packagesCount: packages?.length || 0,
+      currentPackage: !!currentPackage,
+      completedPayments: completedPayments?.length || 0
+    })
+  }, [paymentLoading, paymentSuccess, paymentError, packagesLoading, packagesError, packages, currentPackage, completedPayments])
+
+  // Check giao dịch khi mở popup QR
+  useEffect(() => {
+    if (!showQR || !buyingPkg || !transactionCode) return
+
+    let stop = false
+    let timeoutId
+
+    const price = buyingPkg.price
+    const content = `THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID}${transactionCode}`
+
+    async function checkPaid() {
+      if (stop) return
+
+      try {
+        const response = await fetch(TRANSACTION_API)
+        const text = await response.text()
+        const json = JSON.parse(text.substring(47, text.length - 2))
+
+        const rows = json.table.rows.map((row) =>
+          Object.fromEntries(row.c.map((cell, i) => [json.table.cols[i].label, cell?.v])),
+        )
+
+        if (rows.length === 0) return
+
+        console.log("🔍 Checking payment with content:", content)
+
+        const lastPaid = rows
+          .slice()
+          .reverse()
+          .find(
+            (row) =>
+              Number(row["Giá trị"] || 0) === price &&
+              (row["Mô tả"] || "").toUpperCase().includes(content.toUpperCase()),
+          )
+
+        console.log("💳 Payment found:", !!lastPaid)
+
+        if (lastPaid) {
+          // Kiểm tra xem đã thanh toán gói này chưa
+          const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
+          const isAlreadyPaid = completedPayments?.includes(paymentKey)
+
+          if (!isAlreadyPaid) {
+            console.log('💳 New payment detected, creating payment record...')
+
+            const nowVN = getVietnamNowISO()
+            const startDate = new Date(new Date(nowVN).setHours(0, 0, 0, 0)).toISOString()
+            const endDate = new Date(new Date(nowVN).getTime() + (buyingPkg.duration || 30) * 24 * 60 * 60 * 1000).toISOString()
+
+            // Dispatch payment creation via Redux
+            console.log('📤 Dispatching createPaymentRequest...')
+            dispatch(createPaymentRequest({
+              packageMembershipId: buyingPkg.package_membership_ID,
+              totalPrice: buyingPkg.price,
+              paymentStatus: "Success",
+              duration: buyingPkg.duration,
+              transactionCode,
+              timeBuy: nowVN,
+              startDate,
+              endDate
+            }))
+
+            // Set current package in Redux
+            dispatch(setCurrentPackage({
+              package_membership_ID: buyingPkg.package_membership_ID,
+              category: buyingPkg.category,
+              description: buyingPkg.description,
+              price: buyingPkg.price,
+              duration: buyingPkg.duration,
+              endDate: endDate,
+              accountId: accountId,
+            }))
+          } else {
+            console.log('⚠️ Payment already processed for this package')
+          }
+
+          // Dừng việc check payment
+          stop = true
+          clearTimeout(timeoutId)
         }
-
-        fetchPackages()
-    }, [])
-
-    // Sinh mã giao dịch mới mỗi lần mở QR
-    useEffect(() => {
-        if (showQR && buyingPkg) {
-            const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-            setTransactionCode(code)
-        }
-    }, [showQR, buyingPkg])
-
-    // Hàm gọi API tạo payment
-    async function createPayment({ packageMembershipId, totalPrice, paymentStatus, duration, transactionCode }) {
-        const nowVN = getVietnamNowISO()
-        const startDate = new Date(new Date(nowVN).setHours(0, 0, 0, 0)).toISOString()
-        const endDate = new Date(new Date(nowVN).getTime() + (duration || 30) * 24 * 60 * 60 * 1000).toISOString()
-        const timeBuy = nowVN
-
-        const body = {
-            packageMembershipId,
-            timeBuy,
-            totalPrice,
-            startDate,
-            endDate,
-            paymentStatus: paymentStatus === "SUCCESS" ? "Success" : paymentStatus,
-            transactionCode,
-        }
-
-        console.log("Body gửi lên:", body)
-
-        try {
-            const res = await fetch(
-                "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Payment/create",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify(body),
-                },
-            )
-
-            if (res.ok) {
-                showToast("Đã xác nhận")
-            }
-        } catch (e) {
-            console.error("Lỗi tạo payment:", e)
-        }
+      } catch (e) {
+        console.error("❌ Check payment error:", e)
+      }
     }
 
-    // Check giao dịch khi mở popup QR
-    useEffect(() => {
-        if (!showQR || !buyingPkg || !transactionCode) return
-
-        let stop = false
-        let timeoutId
-
-        const price = buyingPkg.price
-        const content = `THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID}${transactionCode}`
-
-        async function checkPaid() {
-            if (stop) return
-
-            try {
-                const response = await fetch(TRANSACTION_API)
-                const text = await response.text()
-                const json = JSON.parse(text.substring(47, text.length - 2))
-
-                const rows = json.table.rows.map((row) =>
-                    Object.fromEntries(row.c.map((cell, i) => [json.table.cols[i].label, cell?.v])),
-                )
-
-                if (rows.length === 0) return
-
-                console.log("content cần tìm:", content)
-                console.log("transactionCode:", transactionCode)
-                console.log("buyingPkg:", buyingPkg)
-
-                const lastPaid = rows
-                    .slice()
-                    .reverse()
-                    .find(
-                        (row) =>
-                            Number(row["Giá trị"] || 0) === price &&
-                            (row["Mô tả"] || "").toUpperCase().includes(content.toUpperCase()),
-                    )
-
-                console.log("lastPaid tìm được:", lastPaid)
-
-                const endDate = formatDate(new Date(Date.now() + (buyingPkg.duration || 30) * 24 * 60 * 60 * 1000))
-
-                if (lastPaid) {
-                    if (!localStorage.getItem(`paid_success_${buyingPkg.package_membership_ID}_${accountId}`)) {
-                        showToast("✅ Giao dịch thành công!")
-
-                        createPayment({
-                            packageMembershipId: buyingPkg.package_membership_ID,
-                            totalPrice: buyingPkg.price,
-                            paymentStatus: "SUCCESS",
-                            duration: buyingPkg.duration,
-                            transactionCode,
-                        })
-
-                        localStorage.setItem(`paid_success_${buyingPkg.package_membership_ID}_${accountId}`, "true")
-                        localStorage.setItem(
-                            `current_package_${accountId}`,
-                            JSON.stringify({
-                                package_membership_ID: buyingPkg.package_membership_ID,
-                                category: buyingPkg.category,
-                                description: buyingPkg.description,
-                                price: buyingPkg.price,
-                                duration: buyingPkg.duration,
-                                endDate: endDate,
-                                accountId: accountId,
-                            }),
-                        )
-
-                        navigate("/member")
-                    }
-
-                    stop = true
-                    clearTimeout(timeoutId)
-                    setTimeout(() => setShowQR(false), 2000)
-                }
-            } catch (e) {
-                console.error("Lỗi checkPaid:", e)
-            }
-        }
-
-        const interval = setInterval(checkPaid, 2000)
-        return () => {
-            stop = true
-            clearInterval(interval)
-        }
-    }, [showQR, buyingPkg, transactionCode, accountId])
-
-    const getPackageIcon = (category) => {
-        const icons = {
-            basic: "🌱",
-            premium: "⭐",
-            vip: "👑",
-            standard: "📦",
-            pro: "🚀",
-        }
-        return icons[category?.toLowerCase()] || "📋"
+    const interval = setInterval(checkPaid, 2000)
+    return () => {
+      stop = true
+      clearInterval(interval)
     }
+  }, [showQR, buyingPkg, transactionCode, accountId, dispatch, completedPayments])
 
-    const getPackageColor = (index) => {
-        const colors = [COLORS.color1, COLORS.color2, "#E0F2FE", "#FEF3C7"]
-        return colors[index % colors.length]
+  const getPackageIcon = (category) => {
+    const icons = {
+      basic: "🌱",
+      premium: "⭐",
+      vip: "👑",
+      standard: "📦",
+      pro: "🚀",
+      starter: "🎯",
+      advanced: "🔥",
     }
+    return icons[category?.toLowerCase()] || "📋"
+  }
 
-    return (
-        <>
-            <style jsx>{`
+  const getPackageColor = (index) => {
+    const colors = [COLORS.color1, COLORS.color2, "#E0F2FE", "#FEF3C7", "#F3E8FF", "#FEE2E2"]
+    return colors[index % colors.length]
+  }
+
+  return (
+    <>
+      <style jsx>{`
         .payment-section {
           min-height: 80vh;
           background: ${COLORS.background};
@@ -649,6 +704,30 @@ export default function Payment() {
           100% { background-position: -200% 0; }
         }
 
+        .error-message {
+          text-align: center;
+          color: #e74c3c;
+          padding: 2rem;
+          background: #ffe6e6;
+          border-radius: 12px;
+          margin: 2rem 0;
+        }
+
+        /* Debug panel */
+        .debug-panel {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 15px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-family: monospace;
+          z-index: 9998;
+          max-width: 300px;
+        }
+
         @media (max-width: 768px) {
           .payment-section {
             padding: 2rem 0;
@@ -678,6 +757,10 @@ export default function Payment() {
             width: 200px;
             height: 200px;
           }
+
+          .debug-panel {
+            display: none;
+          }
         }
 
         @media (max-width: 576px) {
@@ -696,166 +779,202 @@ export default function Payment() {
         }
       `}</style>
 
-            <NavBar />
+      <section className="payment-section">
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-12 col-md-10 col-lg-8">
+              <div className="payment-container">
+                <h2 className="payment-title">💳 Thanh toán & Đăng ký</h2>
+                <p className="payment-subtitle">Chọn gói thành viên phù hợp để bắt đầu hành trình của bạn</p>
 
-            <section className="payment-section">
-                <div className="container row justify-content-center">
-                    <div className="col-12 col-md-10 col-lg-8">
-                        <div className="col-12">
-                            <div className="payment-container">
-                                <h2 className="payment-title">Thanh toán & Đăng ký</h2>
-                                <p className="payment-subtitle">Chọn gói thành viên phù hợp để bắt đầu hành trình của bạn</p>
+                {/* Show loading skeleton while fetching packages */}
+                {packagesLoading ? (
+                  <div className="packages-grid">
+                    {[...Array(3)].map((_, index) => (
+                      <div key={index} className="package-card">
+                        <div className="loading-skeleton" style={{ height: "2rem", width: "60%" }}></div>
+                        <div className="loading-skeleton" style={{ height: "1rem", width: "100%" }}></div>
+                        <div className="loading-skeleton" style={{ height: "1rem", width: "80%" }}></div>
+                        <div className="loading-skeleton" style={{ height: "2rem", width: "40%" }}></div>
+                        <div className="loading-skeleton" style={{ height: "3rem", width: "100%" }}></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : packagesError ? (
+                  <div className="error-message">
+                    <h4>❌ Lỗi tải gói thành viên</h4>
+                    <p>{packagesError}</p>
+                    <button
+                      className="package-button btn-buy"
+                      style={{ maxWidth: "200px", margin: "1rem auto" }}
+                      onClick={() => dispatch(fetchPackagesRequest())}
+                    >
+                      🔄 Thử lại
+                    </button>
+                  </div>
+                ) : packages && packages.length > 0 ? (
+                  <div className="packages-grid">
+                    {packages.map((pkg, index) => {
+                      // Kiểm tra gói hiện tại từ Redux
+                      const isCurrent = currentPackage &&
+                        currentPackage.package_membership_ID === pkg.package_membership_ID &&
+                        new Date(currentPackage.endDate) > new Date()
 
-                                {loading ? (
-                                    <div className="packages-grid">
-                                        {[...Array(3)].map((_, index) => (
-                                            <div key={index} className="package-card">
-                                                <div className="loading-skeleton" style={{ height: "2rem", width: "60%" }}></div>
-                                                <div className="loading-skeleton" style={{ height: "1rem", width: "100%" }}></div>
-                                                <div className="loading-skeleton" style={{ height: "1rem", width: "80%" }}></div>
-                                                <div className="loading-skeleton" style={{ height: "2rem", width: "40%" }}></div>
-                                                <div className="loading-skeleton" style={{ height: "3rem", width: "100%" }}></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="packages-grid">
-                                        {packages.map((pkg, index) => {
-                                            // Lấy gói đang dùng từ localStorage
-                                            const currentPkg = (() => {
-                                                try {
-                                                    const data = localStorage.getItem(`current_package_${accountId}`)
-                                                    if (!data) return null
-                                                    const parsed = JSON.parse(data)
-                                                    if (new Date(parsed.endDate) > new Date()) return parsed
-                                                    return null
-                                                } catch {
-                                                    return null
-                                                }
-                                            })()
+                      const isActive = pkg.status === "Active"
+                      const canBuy = isActive && !isCurrent
 
-                                            const isCurrent = currentPkg && currentPkg.package_membership_ID === pkg.package_membership_ID
-                                            const isActive = pkg.status === "Active"
-                                            const canBuy = isActive && !isCurrent
-
-                                            return (
-                                                <div
-                                                    key={pkg.package_membership_ID}
-                                                    className={`package-card ${isCurrent ? "current" : isActive ? "active" : "inactive"}`}
-                                                >
-                                                    <div className="package-header">
-                                                        <div className="package-icon-badge" style={{ background: getPackageColor(index) }}>
-                                                            {getPackageIcon(pkg.category)}
-                                                        </div>
-                                                        <div
-                                                            className={`package-status ${isCurrent ? "status-current" : isActive ? "status-active" : "status-inactive"
-                                                                }`}
-                                                        >
-                                                            {isCurrent ? "Đang dùng" : isActive ? "Đang mở" : "Đóng"}
-                                                        </div>
-                                                    </div>
-
-                                                    <h3 className="package-category">{pkg.category}</h3>
-                                                    <p className="package-description">{pkg.description}</p>
-
-                                                    <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
-                                                        {pkg.price === 0 ? "Miễn phí" : pkg.price.toLocaleString("vi-VN") + "đ"}
-                                                    </div>
-
-                                                    <div className="package-duration">
-                                                        <i className="fas fa-clock"></i>
-                                                        Thời hạn: {pkg.duration} ngày
-                                                    </div>
-
-                                                    {isCurrent ? (
-                                                        <button className="package-button btn-current">
-                                                            <i className="fas fa-check-circle"></i>
-                                                            Bạn đang sử dụng gói này
-                                                        </button>
-                                                    ) : canBuy ? (
-                                                        <button
-                                                            className="package-button btn-buy"
-                                                            onClick={() => {
-                                                                setBuyingPkg(pkg)
-                                                                setShowQR(true)
-                                                            }}
-                                                        >
-                                                            <i className="fas fa-shopping-cart"></i>
-                                                            Mua gói ngay
-                                                        </button>
-                                                    ) : (
-                                                        <button className="package-button btn-disabled" disabled>
-                                                            <i className="fas fa-lock"></i>
-                                                            Không khả dụng
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                )}
-
-                                <div className="text-center">
-                                    <button className="back-button" onClick={() => navigate(-1)}>
-                                        <i className="fas fa-arrow-left me-2"></i>
-                                        Quay lại
-                                    </button>
-                                </div>
+                      return (
+                        <div
+                          key={pkg.package_membership_ID}
+                          className={`package-card ${isCurrent ? "current" : isActive ? "active" : "inactive"}`}
+                        >
+                          <div className="package-header">
+                            <div className="package-icon-badge" style={{ background: getPackageColor(index) }}>
+                              {getPackageIcon(pkg.category)}
                             </div>
+                            <div
+                              className={`package-status ${isCurrent ? "status-current" : isActive ? "status-active" : "status-inactive"}`}
+                            >
+                              {isCurrent ? "Đang dùng" : isActive ? "Đang mở" : "Đóng"}
+                            </div>
+                          </div>
+
+                          <h3 className="package-category">{pkg.category}</h3>
+                          <p className="package-description">{pkg.description}</p>
+
+                          <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
+                            {pkg.price === 0 ? "Miễn phí" : pkg.price.toLocaleString("vi-VN") + "đ"}
+                          </div>
+
+                          <div className="package-duration">
+                            <i className="fas fa-clock"></i>
+                            Thời hạn: {pkg.duration} ngày
+                          </div>
+
+                          {isCurrent ? (
+                            <button className="package-button btn-current">
+                              <i className="fas fa-check-circle"></i>
+                              Bạn đang sử dụng gói này
+                            </button>
+                          ) : canBuy ? (
+                            <button
+                              className="package-button btn-buy"
+                              disabled={paymentLoading}
+                              onClick={() => {
+                                setBuyingPkg(pkg)
+                                setShowQR(true)
+                              }}
+                            >
+                              {paymentLoading ? (
+                                <>
+                                  <div className="loading-spinner"></div>
+                                  Đang xử lý...
+                                </>
+                              ) : (
+                                <>
+                                  <i className="fas fa-shopping-cart"></i>
+                                  Mua gói ngay
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <button className="package-button btn-disabled" disabled>
+                              <i className="fas fa-lock"></i>
+                              Không khả dụng
+                            </button>
+                          )}
                         </div>
-                    </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="error-message">
+                    <h4>📦 Không có gói thành viên nào</h4>
+                    <p>Hiện tại chưa có gói thành viên nào được cung cấp.</p>
+                  </div>
+                )}
+
+                <div className="text-center">
+                  <button className="back-button" onClick={() => navigate(-1)}>
+                    <i className="fas fa-arrow-left me-2"></i>
+                    Quay lại
+                  </button>
                 </div>
-            </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            {/* QR Modal */}
-            {showQR && buyingPkg && (
-                <div className="qr-overlay">
-                    <div className="qr-modal">
-                        <button className="qr-close" onClick={() => setShowQR(false)}>
-                            <i className="fas fa-times"></i>
-                        </button>
+      {/* QR Modal */}
+      {showQR && buyingPkg && (
+        <div className="qr-overlay">
+          <div className="qr-modal">
+            <button className="qr-close" onClick={() => setShowQR(false)}>
+              <i className="fas fa-times"></i>
+            </button>
 
-                        <img
-                            src={`https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-${TEMPLATE}.jpg?amount=${buyingPkg.price
-                                }&addInfo=THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID
-                                }${transactionCode}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`}
-                            alt="QR chuyển khoản"
-                            className="qr-image"
-                        />
+            <img
+              src={`https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-${TEMPLATE}.jpg?amount=${buyingPkg.price
+                }&addInfo=THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID
+                }${transactionCode}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`}
+              alt="QR chuyển khoản"
+              className="qr-image"
+            />
 
-                        <h3 className="qr-title">
-                            <i className="fas fa-qrcode me-2"></i>
-                            Thanh toán tự động
-                        </h3>
+            <h3 className="qr-title">
+              <i className="fas fa-qrcode me-2"></i>
+              Thanh toán tự động
+            </h3>
 
-                        <div className="qr-info">
-                            <div className="qr-info-item">
-                                <span className="qr-info-label">Số tiền:</span>
-                                <span className="qr-info-value">{buyingPkg.price.toLocaleString("vi-VN")}đ</span>
-                            </div>
-                            <div className="qr-info-item">
-                                <span className="qr-info-label">Người thụ hưởng:</span>
-                                <span className="qr-info-value">{ACCOUNT_NAME}</span>
-                            </div>
-                            <div className="qr-info-item">
-                                <span className="qr-info-label">Nội dung:</span>
-                                <span className="qr-content-highlight">
-                                    THANHTOAN{buyingPkg.category.toUpperCase()}
-                                    {buyingPkg.package_membership_ID}
-                                    {transactionCode}
-                                </span>
-                            </div>
-                        </div>
+            <div className="qr-info">
+              <div className="qr-info-item">
+                <span className="qr-info-label">Số tiền:</span>
+                <span className="qr-info-value">{buyingPkg.price.toLocaleString("vi-VN")}đ</span>
+              </div>
+              <div className="qr-info-item">
+                <span className="qr-info-label">Người thụ hưởng:</span>
+                <span className="qr-info-value">{ACCOUNT_NAME}</span>
+              </div>
+              <div className="qr-info-item">
+                <span className="qr-info-label">Nội dung:</span>
+                <span className="qr-content-highlight">
+                  THANHTOAN{buyingPkg.category.toUpperCase()}
+                  {buyingPkg.package_membership_ID}
+                  {transactionCode}
+                </span>
+              </div>
+            </div>
 
-                        <div className="qr-status">
-                            <div className="loading-spinner"></div>
-                            <span>Đang chờ thanh toán...</span>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <div className="qr-status">
+              <div className="loading-spinner"></div>
+              <span>
+                {paymentLoading ? "Đang xử lý thanh toán..." : "Đang chờ thanh toán..."}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
-            <Footer />
-        </>
-    )
+      <Footer />
+
+      {/* Debug Panel - Development Only */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="debug-panel">
+          <div><strong>🔍 Payment Debug:</strong></div>
+          <div>Token: {token ? "✅" : "❌"}</div>
+          <div>User: {user ? "✅" : "❌"}</div>
+          <div>AccountId: {accountId || "null"}</div>
+          <div>Packages: {packages?.length || 0}</div>
+          <div>Packages Loading: {packagesLoading ? "⏳" : "✅"}</div>
+          <div>Packages Error: {packagesError ? "❌" : "✅"}</div>
+          <div>Current Package: {currentPackage ? "✅" : "❌"}</div>
+          <div>Payment Loading: {paymentLoading ? "⏳" : "✅"}</div>
+          <div>Payment Success: {paymentSuccess ? "✅" : "❌"}</div>
+          <div>Payment Error: {paymentError ? "❌" : "✅"}</div>
+          <div>Completed Payments: {completedPayments?.length || 0}</div>
+        </div>
+      )}
+    </>
+  )
 }
