@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { updateTodayCigarettesRequest } from "../../redux/components/payment/paymentSlice";
+import { updateTodayCigarettesRequest } from "../../redux/member/plan/planSlice"; // Đổi import
 
 export default function StartInformation() {
     // Bảng màu chủ đề
@@ -131,8 +131,8 @@ export default function StartInformation() {
                     startDate: quitStartDate
                 }));
 
-                // Dispatch Redux action để update cigarettes per day
-                console.log('📤 Dispatching updateTodayCigarettesRequest...');
+                // Dispatch Redux action từ planSlice
+                console.log('📤 Dispatching updateTodayCigarettesRequest from planSlice...');
                 dispatch(updateTodayCigarettesRequest({
                     todayCigarettes: Number(form.cigarettesPerDay)
                 }));

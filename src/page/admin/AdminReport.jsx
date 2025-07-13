@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useContext } from "react";
-import AuthContext from "../../AuthContext/AuthContext";
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 const COACH_API = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach";
 const MEMBER_API = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member";
@@ -16,60 +17,197 @@ function AdminReport() {
     const [totalRevenue, setTotalRevenue] = useState(0);
     const [successfulPayments, setSuccessfulPayments] = useState(0);
     const [recentPayments, setRecentPayments] = useState([]);
+    const [error, setError] = useState(null);
 
-    const auth = useContext(AuthContext);
-    const adminToken = auth?.token;
+    // Redux state thay vì AuthContext
+    const { user, token } = useSelector((state) => {
+        console.log('🔍 AdminReport Redux state:', state.account);
+        return state.account || {};
+    });
+
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    // Extract user info từ Redux user object
+    const getUserRole = () => {
+        if (!user) return null;
+        const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+            user.role ||
+            null;
+        return role ? role.toString().trim() : null;
+    };
+
+    const userRole = getUserRole();
+    const adminToken = token;
+
+    // Check admin authorization
+    useEffect(() => {
+        if (!token) {
+            console.log('❌ No token found, redirecting to login...');
+            navigate("/login");
+            return;
+        }
+
+        if (userRole && userRole !== "Admin") {
+            console.log('❌ User is not admin, role:', userRole);
+            setError("Bạn không có quyền truy cập trang này!");
+            return;
+        }
+    }, [token, userRole, navigate]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
+                setError(null);
+
+                if (!adminToken) {
+                    throw new Error("Token không tồn tại");
+                }
+
                 const headers = {
                     "Authorization": `Bearer ${adminToken}`,
                     "Content-Type": "application/json"
                 };
 
-                // Lấy dữ liệu member
-                const memberRes = await fetch(MEMBER_API, { headers });
-                const memberData = await memberRes.json();
-                setMemberCount(Array.isArray(memberData) ? memberData.length : 0);
+                console.log('🚀 Fetching admin data with token...');
 
-                // Lấy dữ liệu coach
-                const coachRes = await fetch(COACH_API, { headers });
-                const coachData = await coachRes.json();
-                setCoachCount(Array.isArray(coachData) ? coachData.length : 0);
+                // Fetch all data in parallel
+                const [memberRes, coachRes, paymentRes, packageRes] = await Promise.all([
+                    fetch(MEMBER_API, { headers }).catch(err => {
+                        console.error('❌ Member API error:', err);
+                        return { ok: false, status: 500 };
+                    }),
+                    fetch(COACH_API, { headers }).catch(err => {
+                        console.error('❌ Coach API error:', err);
+                        return { ok: false, status: 500 };
+                    }),
+                    fetch(PAYMENT_API, { headers }).catch(err => {
+                        console.error('❌ Payment API error:', err);
+                        return { ok: false, status: 500 };
+                    }),
+                    fetch(PACKAGE_API, { headers }).catch(err => {
+                        console.error('❌ Package API error:', err);
+                        return { ok: false, status: 500 };
+                    })
+                ]);
 
-                // Lấy dữ liệu payment
-                const paymentRes = await fetch(PAYMENT_API, { headers });
-                const paymentData = await paymentRes.json();
-                if (Array.isArray(paymentData)) {
-                    setPaymentCount(paymentData.length);
-                    const successful = paymentData.filter(p => p.paymentStatus === "Success");
-                    setSuccessfulPayments(successful.length);
-                    // Tổng doanh thu = tổng tất cả số tiền trong lịch sử thanh toán (chỉ tính giao dịch thành công)
-                    setTotalRevenue(successful.reduce((sum, p) => sum + (p.totalPrice || 0), 0));
-                    setRecentPayments(paymentData.slice(-5).reverse());
+                // Process member data
+                if (memberRes.ok) {
+                    const memberData = await memberRes.json();
+                    setMemberCount(Array.isArray(memberData) ? memberData.length : 0);
+                    console.log('✅ Members loaded:', Array.isArray(memberData) ? memberData.length : 0);
+                } else {
+                    console.error('❌ Failed to fetch members:', memberRes.status);
                 }
 
-                // Lấy dữ liệu package
-                const packageRes = await fetch(PACKAGE_API, { headers });
-                const packageData = await packageRes.json();
-                if (Array.isArray(packageData)) {
-                    setPackageCount(packageData.length);
-                    setActivePackageCount(packageData.filter(pkg => pkg.status === "Active").length);
+                // Process coach data
+                if (coachRes.ok) {
+                    const coachData = await coachRes.json();
+                    setCoachCount(Array.isArray(coachData) ? coachData.length : 0);
+                    console.log('✅ Coaches loaded:', Array.isArray(coachData) ? coachData.length : 0);
+                } else {
+                    console.error('❌ Failed to fetch coaches:', coachRes.status);
                 }
+
+                // Process payment data
+                if (paymentRes.ok) {
+                    const paymentData = await paymentRes.json();
+                    if (Array.isArray(paymentData)) {
+                        setPaymentCount(paymentData.length);
+                        const successful = paymentData.filter(p => p.paymentStatus === "Success");
+                        setSuccessfulPayments(successful.length);
+
+                        // Calculate total revenue from successful payments
+                        const revenue = successful.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
+                        setTotalRevenue(revenue);
+
+                        // Get recent payments (last 5)
+                        setRecentPayments(paymentData.slice(-5).reverse());
+
+                        console.log('✅ Payments loaded:', {
+                            total: paymentData.length,
+                            successful: successful.length,
+                            revenue
+                        });
+                    }
+                } else {
+                    console.error('❌ Failed to fetch payments:', paymentRes.status);
+                }
+
+                // Process package data
+                if (packageRes.ok) {
+                    const packageData = await packageRes.json();
+                    if (Array.isArray(packageData)) {
+                        setPackageCount(packageData.length);
+                        setActivePackageCount(packageData.filter(pkg => pkg.status === "Active").length);
+                        console.log('✅ Packages loaded:', {
+                            total: packageData.length,
+                            active: packageData.filter(pkg => pkg.status === "Active").length
+                        });
+                    }
+                } else {
+                    console.error('❌ Failed to fetch packages:', packageRes.status);
+                }
+
             } catch (error) {
-                console.error("Lỗi khi lấy dữ liệu:", error);
+                console.error("❌ Error fetching admin data:", error);
+                setError(`Lỗi khi tải dữ liệu: ${error.message}`);
             } finally {
                 setLoading(false);
             }
         };
 
-        if (adminToken) {
+        if (adminToken && userRole === "Admin") {
             fetchData();
         }
-    }, [adminToken]);
+    }, [adminToken, userRole]);
 
+    // Debug user info
+    useEffect(() => {
+        console.log('🔍 Admin user info debug:', {
+            hasToken: !!token,
+            hasUser: !!user,
+            userRole,
+            userKeys: user ? Object.keys(user) : []
+        });
+    }, [token, user, userRole]);
+
+    // Error state
+    if (error) {
+        return (
+            <div style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                minHeight: "60vh",
+                fontSize: "1.2rem",
+                color: "#FF5722",
+                textAlign: "center",
+                padding: "2rem"
+            }}>
+                <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>❌</div>
+                <div style={{ fontWeight: 600, marginBottom: "1rem" }}>{error}</div>
+                <button
+                    onClick={() => navigate("/")}
+                    style={{
+                        padding: "12px 24px",
+                        background: "#006A71",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontWeight: 600
+                    }}
+                >
+                    Về trang chủ
+                </button>
+            </div>
+        );
+    }
+
+    // Loading state
     if (loading) {
         return (
             <div style={{
@@ -91,6 +229,30 @@ function AdminReport() {
             margin: "40px auto",
             padding: "0 20px"
         }}>
+            {/* Debug panel - Development only */}
+            {process.env.NODE_ENV === 'development' && (
+                <div style={{
+                    position: "fixed",
+                    top: 10,
+                    right: 10,
+                    background: "rgba(0,0,0,0.8)",
+                    color: "white",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    fontSize: "10px",
+                    fontFamily: "monospace",
+                    zIndex: 999
+                }}>
+                    <div>Token: {token ? "✅" : "❌"}</div>
+                    <div>User: {user ? "✅" : "❌"}</div>
+                    <div>Role: {userRole || "null"}</div>
+                    <div>Members: {memberCount}</div>
+                    <div>Coaches: {coachCount}</div>
+                    <div>Payments: {paymentCount}</div>
+                    <div>Revenue: {totalRevenue.toLocaleString()}</div>
+                </div>
+            )}
+
             {/* Header */}
             <div style={{
                 background: "linear-gradient(135deg, #006A71 0%, #48A6A7 100%)",
@@ -115,6 +277,15 @@ function AdminReport() {
                 }}>
                     Thống kê chi tiết các hoạt động trong hệ thống
                 </p>
+                {user && (
+                    <p style={{
+                        fontSize: "0.9rem",
+                        margin: "5px 0 0 0",
+                        opacity: 0.8
+                    }}>
+                        👋 Xin chào, {user.fullName || user.email || "Admin"}
+                    </p>
+                )}
             </div>
 
             {/* Main Stats Cards */}

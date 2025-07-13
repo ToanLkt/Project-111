@@ -165,6 +165,7 @@ export default function MembershipPackage() {
   }
 
   // Kiểm tra gói hiện tại
+  //kiểm tra dùng api 
   const isCurrentPackage = (pkg) => {
     if (!currentPackage || !userId) return false
 
