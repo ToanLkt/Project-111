@@ -44,16 +44,10 @@ export default function Coach() {
 
   const accountId = getAccountId(user);
 
-  console.log("🔍 User Debug Info:")
-  console.log("Raw user object:", user)
-  console.log("Extracted accountId:", accountId)
-  console.log("Token available:", !!token)
-
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [loadingMessages, setLoadingMessages] = useState(true)
-  const [refreshInterval, setRefreshInterval] = useState(null)
   const [coaches, setCoaches] = useState([])
   const [selectedCoach, setSelectedCoach] = useState(null)
   const [loadingCoaches, setLoadingCoaches] = useState(true)
@@ -71,21 +65,12 @@ export default function Coach() {
     }
   }, [selectedCoach, accountId])
 
+  // Auto scroll when messages change
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])  // Lấy cuộc hội thoại với coach
+  }, [messages])
   const fetchConversationWithCoach = async (coachId) => {
-    console.log("=== fetchConversationWithCoach Debug ===")
-    console.log("Coach ID:", coachId)
-    console.log("Token available:", !!token)
-    console.log("User:", user)
-    console.log("Extracted account ID:", accountId)
-
     if (!token || !accountId || !coachId) {
-      console.error("❌ Missing required data for conversation:")
-      console.error("- Token:", !!token)
-      console.error("- Account ID:", accountId)
-      console.error("- Coach ID:", coachId)
       setLoadingMessages(false)
       return
     }
@@ -94,14 +79,6 @@ export default function Coach() {
       setLoadingMessages(true)
       const apiUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${coachId}`
 
-      console.log("🔍 Fetching conversation...")
-      console.log("API URL:", apiUrl)
-      console.log("Request headers:", {
-        "Authorization": `Bearer ${token ? token.substring(0, 20) + '...' : 'MISSING'}`,
-        "Content-Type": "application/json"
-      })
-
-      // Fetch conversation với coach - API sẽ trả về tất cả tin nhắn giữa member và coach
       const response = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -109,23 +86,12 @@ export default function Coach() {
         }
       })
 
-      console.log("📡 Conversation API Response status:", response.status)
-      console.log("📡 Conversation API Response ok:", response.ok)
-
       if (response.ok) {
         const data = await response.json()
-        console.log("✅ Conversation data received:", data)
-        console.log("Data type:", typeof data, "Is array:", Array.isArray(data))
-        console.log("Data length:", Array.isArray(data) ? data.length : 'Not array')
 
-        // Parse messages from API response
         let formattedMessages = []
         if (Array.isArray(data) && data.length > 0) {
-          console.log("Processing", data.length, "messages")
           formattedMessages = data.map(msg => ({
-            // Logic: Kiểm tra senderId để xác định ai gửi tin nhắn
-            // - Nếu senderId = accountId (member) → tin nhắn từ member (user)
-            // - Nếu senderId = coachId → tin nhắn từ coach
             from: msg.senderId === accountId ? "user" : "coach",
             text: msg.message || "Tin nhắn trống",
             timestamp: msg.sentTime || msg.createdAt || new Date().toISOString(),
@@ -134,12 +100,8 @@ export default function Coach() {
             chatId: msg.chatId
           }))
 
-          // Sắp xếp tin nhắn theo thời gian (cũ đến mới)
           formattedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          console.log("Formatted messages:", formattedMessages)
         } else {
-          console.log("No messages found, showing welcome message")
-          // Tin nhắn chào hỏi ban đầu nếu chưa có conversation
           formattedMessages = [
             { from: "coach", text: `Chào bạn! Tôi là ${selectedCoach?.fullName || 'Coach'}. Bạn cần hỗ trợ gì hôm nay?` }
           ]
@@ -147,22 +109,11 @@ export default function Coach() {
 
         setMessages(formattedMessages)
       } else {
-        const errorText = await response.text()
-        console.error("❌ Conversation API error:")
-        console.error("Status:", response.status)
-        console.error("Status text:", response.statusText)
-        console.error("Response body:", errorText)
-
         setMessages([
           { from: "coach", text: `Chào bạn! Tôi là ${selectedCoach?.fullName || 'Coach'}. Bạn cần hỗ trợ gì hôm nay?` }
         ])
       }
     } catch (error) {
-      console.error("💥 Conversation fetch error:")
-      console.error("Error name:", error.name)
-      console.error("Error message:", error.message)
-      console.error("Full error:", error)
-
       setMessages([
         { from: "coach", text: `Chào bạn! Tôi là ${selectedCoach?.fullName || 'Coach'}. Bạn cần hỗ trợ gì hôm nay?` }
       ])
@@ -172,45 +123,16 @@ export default function Coach() {
   }
 
   const handleSend = async (e) => {
-    e.preventDefault()    // Debug: Log tất cả conditions
-    console.log("=== handleSend Debug ===")
-    console.log("Input value:", input)
-    console.log("Input trimmed:", input.trim())
-    console.log("Selected coach:", selectedCoach)
-    console.log("Extracted account ID:", accountId)
-    console.log("Token available:", !!token)
+    e.preventDefault()
 
-    // Kiểm tra từng điều kiện
-    if (!input.trim()) {
-      console.error("❌ Không thể gửi: Input rỗng")
-      return
-    }
-
-    if (!selectedCoach) {
-      console.error("❌ Không thể gửi: Chưa chọn coach")
-      return
-    }
-
-    if (!accountId) {
-      console.error("❌ Không thể gửi: Không có account ID")
-      console.log("User object:", user)
-      console.log("All user properties:", Object.keys(user || {}))
-      return
-    }
-
-    if (!token) {
-      console.error("❌ Không thể gửi: Không có token")
-      return
-    }
-
-    console.log("✅ Tất cả điều kiện OK, bắt đầu gửi tin nhắn...")
+    if (!input.trim() || !selectedCoach || !accountId || !token) return
 
     const userMsg = {
       from: "user",
       text: input,
       timestamp: new Date().toISOString(),
       senderId: accountId,
-      receiverId: selectedCoach.accountId // Coach accountId as receiverId
+      receiverId: selectedCoach.accountId
     }
     setMessages((prev) => [...prev, userMsg])
     const currentInput = input
@@ -218,20 +140,11 @@ export default function Coach() {
     setLoading(true)
 
     try {
-      // Gửi tin nhắn tới coach với receiverId = coach.accountId
       const payload = {
         senderId: accountId,
         receiverId: selectedCoach.accountId,
         message: currentInput
       }
-
-      console.log("🚀 Sending message to API...")
-      console.log("API URL:", "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/send")
-      console.log("Request headers:", {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token ? token.substring(0, 20) + '...' : 'MISSING'}`
-      })
-      console.log("Request payload:", payload)
 
       const response = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/send", {
         method: "POST",
@@ -242,23 +155,9 @@ export default function Coach() {
         body: JSON.stringify(payload),
       })
 
-      console.log("📡 API Response status:", response.status)
-      console.log("📡 API Response ok:", response.ok)
-
       if (response.ok) {
-        const responseData = await response.json()
-        console.log("✅ Message sent successfully:", responseData)
-        // Refresh conversation sau khi gửi tin nhắn thành công
-        setTimeout(() => {
-          fetchConversationWithCoach(selectedCoach.accountId)
-        }, 1000)
+        // Tin nhắn đã được gửi thành công
       } else {
-        const errorData = await response.text()
-        console.error("❌ Failed to send message")
-        console.error("Response status:", response.status)
-        console.error("Response statusText:", response.statusText)
-        console.error("Response body:", errorData)
-
         // Show user-friendly error
         let errorMessage = "Lỗi khi gửi tin nhắn"
         if (response.status === 401) {
@@ -272,21 +171,13 @@ export default function Coach() {
         }
 
         alert(errorMessage)
-
-        // Remove optimistic message on failure
         setMessages((prev) => prev.slice(0, -1))
-        setInput(currentInput) // Restore input
+        setInput(currentInput)
       }
     } catch (error) {
-      console.error("💥 Network/JavaScript error:")
-      console.error("Error name:", error.name)
-      console.error("Error message:", error.message)
-      console.error("Full error:", error)
-
       alert("Lỗi kết nối - vui lòng kiểm tra internet và thử lại")
-
       setMessages((prev) => prev.slice(0, -1))
-      setInput(currentInput) // Restore input
+      setInput(currentInput)
     } finally {
       setLoading(false)
     }
@@ -313,14 +204,11 @@ export default function Coach() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Coaches data:", data)
         setCoaches(data || [])
       } else {
-        console.error("Failed to fetch coaches:", response.status)
         setCoaches([])
       }
     } catch (error) {
-      console.error("Error fetching coaches:", error)
       setCoaches([])
     } finally {
       setLoadingCoaches(false)
@@ -350,80 +238,11 @@ export default function Coach() {
     });
   };
 
-  // Auto refresh conversation mỗi 5 giây khi có tin nhắn và đã chọn coach
-  useEffect(() => {
-    if (messages.length > 0 && selectedCoach) {
-      const interval = setInterval(() => {
-        fetchConversationWithCoach(selectedCoach.accountId)
-      }, 5000) // Refresh mỗi 5 giây
-
-      setRefreshInterval(interval)
-
-      return () => {
-        if (interval) clearInterval(interval)
-      }
-    }
-  }, [messages.length, selectedCoach])
-
-  // Cleanup interval khi component unmount
-  useEffect(() => {
-    return () => {
-      if (refreshInterval) clearInterval(refreshInterval)
-    }
-  }, [])
-
   // Chọn coach để chat
   const selectCoach = (coach) => {
     setSelectedCoach(coach)
     setMessages([])
   }
-
-  // Debug function để test API
-  const testAPI = async () => {
-    if (!selectedCoach || !token || !user?.accountId) {
-      console.log("Missing data for API test")
-      return
-    }
-
-    console.log("=== Member API Test ===")
-    console.log("Member Account ID:", user?.accountId)
-    console.log("Selected Coach Account ID:", selectedCoach?.accountId)
-    console.log("Token:", token ? "Available" : "Missing")
-
-    // Test conversation API
-    try {
-      const convResponse = await fetch(`https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${selectedCoach.accountId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      console.log("Conversation API status:", convResponse.status)
-      const convData = await convResponse.json()
-      console.log("Conversation API response:", convData)
-
-      // Analyze the conversation data
-      if (Array.isArray(convData)) {
-        console.log("Messages analysis:")
-        convData.forEach((msg, index) => {
-          console.log(`Message ${index + 1}:`, {
-            fromMe: msg.senderId === user?.accountId,
-            senderId: msg.senderId,
-            receiverId: msg.receiverId,
-            message: msg.message,
-            time: msg.sentTime
-          })
-        })
-      }
-    } catch (error) {
-      console.error("Conversation API error:", error)
-    }
-  }
-
-  // Expose test function to window
-  useEffect(() => {
-    window.testMemberAPI = testAPI
-  }, [selectedCoach, token, user])
 
   return (
     <>
@@ -1041,20 +860,6 @@ export default function Coach() {
               </button>
               <button className="quick-action-btn" onClick={() => setInput("Tôi cần động lực")}>
                 ⚡ Động lực
-              </button>
-              <button className="quick-action-btn" onClick={testAPI}>
-                🔍 Test API
-              </button>
-              <button className="quick-action-btn" onClick={() => {
-                console.log("=== Current State Debug ===")
-                console.log("User:", user)
-                console.log("Token available:", !!token)
-                console.log("Selected coach:", selectedCoach)
-                console.log("Messages:", messages)
-                console.log("Input:", input)
-                console.log("Loading:", loading)
-              }}>
-                🐛 Debug State
               </button>
             </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../../AuthContext/AuthContext";
-import Footer from "../../components/Footer"; // Thêm import Footer
+import Footer from "../../components/Footer";
 import { updateTodayCigarettesRequest } from "../../redux/components/payment/paymentSlice"; // Thêm import action
 
 export default function Plan() {
@@ -150,6 +150,37 @@ export default function Plan() {
 
         const [cigarettesToday, setCigarettesToday] = useState("");
         const [submitted, setSubmitted] = useState(false);
+        const [reportingFail, setReportingFail] = useState(false);
+        const [phaseData, setPhaseData] = useState(null);
+
+        // Fetch phase data để lấy maxCigarettes
+        useEffect(() => {
+            if (!token) return;
+
+            fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan", {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('📊 Phase data for CigaretteInput loaded:', data);
+                    setPhaseData(data);
+                })
+                .catch(err => {
+                    console.error('❌ Error loading phase data for CigaretteInput:', err);
+                });
+        }, [token]);
+
+        // Kiểm tra xem có phải fail không dựa trên maxCigarettes
+        const isFailCondition = (cigaretteCount) => {
+            if (!phaseData || phaseData.maxCigarettes === undefined) return cigaretteCount > 0;
+            return cigaretteCount > phaseData.maxCigarettes;
+        };
 
         // Handle form submission
         const handleCigaretteSubmit = async (e) => {
@@ -181,6 +212,15 @@ export default function Plan() {
                 console.log('✅ Cigarettes data submitted successfully');
                 setSubmitted(true);
 
+                // Kiểm tra điều kiện fail dựa trên maxCigarettes
+                const cigaretteCount = Number(cigarettesToday);
+                if (isFailCondition(cigaretteCount)) {
+                    console.log(`🚨 Fail condition met: ${cigaretteCount} > ${phaseData?.maxCigarettes || 0} - Updating fail stats`);
+                    await handleFailReport();
+                } else {
+                    console.log(`✅ Success condition: ${cigaretteCount} <= ${phaseData?.maxCigarettes || 0} - No fail reported, success days will auto-increment`);
+                }
+
                 // Reload lại phaseData để cập nhật thống kê mới
                 window.location.reload(); // Hoặc có thể dispatch một action để refresh data
 
@@ -191,6 +231,87 @@ export default function Plan() {
 
             } catch (error) {
                 console.error('❌ Error submitting cigarettes:', error);
+            }
+        };
+
+        // Handle báo cáo thất bại - CẬP NHẬT METHOD
+        const handleFailReport = async () => {
+            if (!token) return;
+
+            setReportingFail(true);
+            try {
+                console.log('📊 Reporting fail to update phase statistics...');
+
+                // Thử với PUT method thay vì POST
+                const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        failedDays: 1, // Cập nhật số ngày thất bại
+                        date: new Date().toISOString().split('T')[0], // Chỉ gửi ngày, không có time
+                        cigarettesSmoked: Number(cigarettesToday)
+                    })
+                });
+
+                if (!res.ok) {
+                    console.log(`❌ PUT failed with ${res.status}, trying POST...`);
+
+                    // Nếu PUT thất bại, thử POST
+                    const postRes = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            failedDays: 1,
+                            date: new Date().toISOString().split('T')[0],
+                            cigarettesSmoked: Number(cigarettesToday)
+                        })
+                    });
+
+                    if (!postRes.ok) {
+                        // Nếu cả PUT và POST đều thất bại, thử với endpoint khác
+                        console.log(`❌ POST also failed with ${postRes.status}, trying alternative endpoint...`);
+
+                        const altRes = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/report-fail", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                failedDays: 1,
+                                date: new Date().toISOString().split('T')[0],
+                                cigarettesSmoked: Number(cigarettesToday)
+                            })
+                        });
+
+                        if (!altRes.ok) {
+                            throw new Error(`All methods failed. Last status: ${altRes.status}`);
+                        }
+                    }
+                }
+
+                console.log('✅ Fail report submitted successfully');
+
+                // Thông báo cho người dùng về việc cập nhật
+                console.log('📊 Updated failedDays in statistics');
+
+            } catch (error) {
+                console.error('❌ Error reporting fail:', error);
+                console.log('🔍 Debug info for fail report:', {
+                    token: token ? 'Available' : 'Missing',
+                    cigarettesToday: cigarettesToday,
+                    errorDetails: error.message
+                });
+                // Không hiển thị lỗi cho user nếu chỉ là vấn đề cập nhật thống kê
+                console.log('📝 Note: Statistics update failed, but cigarette data was saved successfully');
+            } finally {
+                setReportingFail(false);
             }
         };
 
@@ -207,10 +328,30 @@ export default function Plan() {
                 <h3 style={{ color: "#48A6A7", fontWeight: 700, marginBottom: 14 }}>
                     Nhập số điếu thuốc bạn đã hút hôm nay
                 </h3>
+
+                {/* Hiển thị giới hạn maxCigarettes */}
+                {phaseData && phaseData.maxCigarettes !== undefined && (
+                    <div style={{
+                        background: "#FEF2F2",
+                        border: "1px solid #FECACA",
+                        borderRadius: "8px",
+                        padding: "0.75rem",
+                        marginBottom: "1rem",
+                        fontSize: "0.9rem"
+                    }}>
+                        <div style={{ color: "#DC2626", fontWeight: 600 }}>
+                            📊 Giới hạn cho phép: <strong>{phaseData.maxCigarettes} điếu/ngày</strong>
+                        </div>
+                        <div style={{ color: "#7F1D1D", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                            Vượt quá giới hạn này sẽ được tính là thất bại
+                        </div>
+                    </div>
+                )}
                 <form onSubmit={handleCigaretteSubmit} style={{ display: "flex", justifyContent: "center", gap: 12 }}>
                     <input
                         type="number"
                         min={0}
+                        max={phaseData?.maxCigarettes ? phaseData.maxCigarettes + 10 : 50} // Cho phép nhập vượt để test fail
                         value={cigarettesToday}
                         onChange={e => {
                             setCigarettesToday(e.target.value);
@@ -221,33 +362,35 @@ export default function Plan() {
                             width: 100,
                             padding: "0.5rem",
                             borderRadius: 8,
-                            border: "1px solid #9ACBD0",
+                            border: `1px solid ${Number(cigarettesToday) > 0 && isFailCondition(Number(cigarettesToday)) ? "#DC2626" : "#9ACBD0"}`,
                             fontSize: "1.1rem",
                             textAlign: "center",
                             color: "#006A71",
                             background: "#fff"
                         }}
                         required
-                        disabled={todayCigarettesLoading}
+                        disabled={todayCigarettesLoading || reportingFail}
                     />
                     <button
                         type="submit"
-                        disabled={todayCigarettesLoading || !token}
+                        disabled={todayCigarettesLoading || reportingFail || !token}
                         style={{
-                            background: todayCigarettesLoading ? "#ccc" : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                            background: todayCigarettesLoading || reportingFail ? "#ccc" :
+                                (Number(cigarettesToday) > 0 && isFailCondition(Number(cigarettesToday))) ?
+                                    "linear-gradient(90deg, #DC2626 60%, #B91C1C 100%)" :
+                                    "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                             color: "#fff",
                             border: "none",
                             borderRadius: 8,
                             padding: "0.5rem 1.2rem",
                             fontWeight: 600,
                             fontSize: "1.05rem",
-                            cursor: todayCigarettesLoading || !token ? "not-allowed" : "pointer",
+                            cursor: todayCigarettesLoading || reportingFail || !token ? "not-allowed" : "pointer",
                             boxShadow: "0 2px 8px rgba(72,166,167,0.10)"
                         }}
-                        onMouseOver={e => !todayCigarettesLoading && (e.currentTarget.style.background = "#006A71")}
-                        onMouseOut={e => !todayCigarettesLoading && (e.currentTarget.style.background = "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)")}
                     >
-                        {todayCigarettesLoading ? "Đang lưu..." : "Lưu"}
+                        {todayCigarettesLoading ? "Đang lưu..." :
+                            reportingFail ? "Đang cập nhật..." : "Lưu"}
                     </button>
                 </form>
 
@@ -255,6 +398,30 @@ export default function Plan() {
                 {submitted && (
                     <div style={{ color: "#27ae60", marginTop: 10, fontWeight: 500 }}>
                         ✅ Đã lưu: {cigarettesToday} điếu thuốc hôm nay!
+                        {isFailCondition(Number(cigarettesToday)) && (
+                            <div style={{ color: "#DC2626", fontSize: "0.9rem", marginTop: "0.25rem" }}>
+                                ❌ Vượt giới hạn - Đã cập nhật thống kê thất bại
+                            </div>
+                        )}
+                        {!isFailCondition(Number(cigarettesToday)) && Number(cigarettesToday) > 0 && (
+                            <div style={{ color: "#16A34A", fontSize: "0.9rem", marginTop: "0.25rem" }}>
+                                ✅ Trong giới hạn cho phép
+                            </div>
+                        )}
+                        {/* Thêm thông báo debug cho fail condition */}
+                        {isFailCondition(Number(cigarettesToday)) && Number(cigarettesToday) > 0 && (
+                            <div style={{
+                                marginTop: "0.5rem",
+                                padding: "0.5rem",
+                                background: "#FEF3CD",
+                                border: "1px solid #FCD34D",
+                                borderRadius: "6px",
+                                fontSize: "0.8rem",
+                                color: "#92400E"
+                            }}>
+                                🔧 Debug: Sẽ cập nhật failedDays = 1 trong API fail-stat
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -262,6 +429,68 @@ export default function Plan() {
                 {todayCigarettesError && (
                     <div style={{ color: "#e74c3c", marginTop: 10, fontWeight: 500 }}>
                         Lỗi: {todayCigarettesError}
+                    </div>
+                )}
+
+                {/* Warning message cho việc hút thuốc */}
+                {Number(cigarettesToday) > 0 && (
+                    <div style={{
+                        marginTop: "1rem",
+                        padding: "0.75rem",
+                        background: isFailCondition(Number(cigarettesToday)) ? "#FEF2F2" : "#F0FDF4",
+                        border: `1px solid ${isFailCondition(Number(cigarettesToday)) ? "#FECACA" : "#BBF7D0"}`,
+                        borderRadius: "8px",
+                        textAlign: "left"
+                    }}>
+                        <div style={{
+                            color: isFailCondition(Number(cigarettesToday)) ? "#DC2626" : "#16A34A",
+                            fontWeight: 600,
+                            fontSize: "0.9rem"
+                        }}>
+                            {isFailCondition(Number(cigarettesToday)) ? "❌ Vượt quá giới hạn:" : "✅ Trong giới hạn:"}
+                        </div>
+
+                        {isFailCondition(Number(cigarettesToday)) ? (
+                            <>
+                                <div style={{ color: "#7F1D1D", fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                                    • Số điếu hút ({cigarettesToday}) {'>'} Giới hạn ({phaseData?.maxCigarettes || 0})
+                                </div>
+                                <div style={{ color: "#7F1D1D", fontSize: "0.85rem" }}>
+                                    • Điều này sẽ được tính vào thống kê thất bại
+                                </div>
+                                <div style={{ color: "#7F1D1D", fontSize: "0.85rem" }}>
+                                    • Hãy cố gắng giảm xuống dưới {phaseData?.maxCigarettes || 0} điếu/ngày!
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div style={{ color: "#15803D", fontSize: "0.85rem", marginTop: "0.25rem" }}>
+                                    • Số điếu hút ({cigarettesToday}) ≤ Giới hạn ({phaseData?.maxCigarettes || 0})
+                                </div>
+                                <div style={{ color: "#15803D", fontSize: "0.85rem" }}>
+                                    • Tuyệt vời! Bạn đang kiểm soát tốt việc cai thuốc!
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* Hiển thị khi nhập số > giới hạn nhưng chưa submit */}
+                {Number(cigarettesToday) > 0 && !submitted && isFailCondition(Number(cigarettesToday)) && (
+                    <div style={{
+                        marginTop: "1rem",
+                        padding: "0.75rem",
+                        background: "#FEF3CD",
+                        border: "1px solid #FCD34D",
+                        borderRadius: "8px",
+                        textAlign: "center"
+                    }}>
+                        <div style={{ color: "#92400E", fontWeight: 600, fontSize: "0.9rem" }}>
+                            ⚠️ Cảnh báo: Số điếu này vượt quá giới hạn cho phép!
+                        </div>
+                        <div style={{ color: "#A16207", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                            Nếu tiếp tục, điều này sẽ được tính là thất bại
+                        </div>
                     </div>
                 )}
             </section>
@@ -340,6 +569,7 @@ export default function Plan() {
     // Thêm component Progress Phases
     function ProgressPhasesSection() {
         const [phaseData, setPhaseData] = useState(null);
+        const [failStats, setFailStats] = useState(null);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState(null);
 
@@ -349,29 +579,110 @@ export default function Plan() {
                 return;
             }
 
-            // Fetch phase data từ API
-            fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan", {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-                .then(res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return res.json();
+            // Fetch cả hai API cùng lúc
+            Promise.all([
+                // API Plan - Lấy thông tin kế hoạch cụ thể
+                fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan", {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }),
+                // API Phase fail-stat - Lấy thống kê thất bại
+                fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat", {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
                 })
-                .then(data => {
-                    console.log('📊 Phase data loaded:', data);
-                    setPhaseData(data);
+            ])
+                .then(async ([planRes, failRes]) => {
+                    // Xử lý response Plan API
+                    if (!planRes.ok) throw new Error(`Plan API HTTP ${planRes.status}`);
+                    const planData = await planRes.json();
+                    console.log('📊 Plan data loaded:', planData);
+                    setPhaseData(planData);
+
+                    // Xử lý response Fail Stats API
+                    if (!failRes.ok) throw new Error(`Fail Stats API HTTP ${failRes.status}`);
+                    const failData = await failRes.json();
+                    console.log('📈 Raw fail data:', failData);
+
+                    // Xử lý cấu trúc API response - có thể là array hoặc object
+                    let processedFailData = null;
+                    if (Array.isArray(failData) && failData.length > 0) {
+                        // Nếu là array, lấy item đầu tiên hoặc tìm item có data
+                        processedFailData = failData.find(item => item.failedDays !== undefined) || failData[0];
+                    } else if (failData && typeof failData === 'object') {
+                        // Nếu là object, sử dụng trực tiếp
+                        processedFailData = failData;
+                    }
+
+                    console.log('📈 Processed fail data:', processedFailData);
+                    console.log('📈 failedDays value:', processedFailData?.failedDays);
+                    console.log('📈 totalDays value:', processedFailData?.totalDays);
+                    console.log('📈 Full fail data structure:', JSON.stringify(failData, null, 2));
+                    setFailStats(processedFailData);
                 })
                 .catch(err => {
-                    console.error('❌ Error loading phase data:', err);
+                    console.error('❌ Error loading data:', err);
                     setError(err.message);
                 })
                 .finally(() => {
                     setLoading(false);
                 });
         }, [token]);
+
+        // Function để refresh data
+        const refreshData = () => {
+            setLoading(true);
+            setError(null);
+
+            Promise.all([
+                fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan", {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }),
+                fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat", {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+            ])
+                .then(async ([planRes, failRes]) => {
+                    if (!planRes.ok) throw new Error(`Plan API HTTP ${planRes.status}`);
+                    const planData = await planRes.json();
+                    console.log('🔄 Plan data refreshed:', planData);
+                    setPhaseData(planData);
+
+                    if (!failRes.ok) throw new Error(`Fail Stats API HTTP ${failRes.status}`);
+                    const failData = await failRes.json();
+                    console.log('🔄 Raw fail stats refreshed:', failData);
+
+                    // Xử lý cấu trúc API response cho refresh
+                    let processedFailData = null;
+                    if (Array.isArray(failData) && failData.length > 0) {
+                        processedFailData = failData.find(item => item.failedDays !== undefined) || failData[0];
+                    } else if (failData && typeof failData === 'object') {
+                        processedFailData = failData;
+                    }
+
+                    console.log('🔄 Processed refreshed fail data:', processedFailData);
+                    console.log('🔄 Refreshed failedDays:', processedFailData?.failedDays);
+                    console.log('🔄 Refreshed totalDays:', processedFailData?.totalDays);
+                    setFailStats(processedFailData);
+                })
+                .catch(err => {
+                    console.error('❌ Error refreshing data:', err);
+                    setError(err.message);
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+        };
 
         if (loading) {
             return (
@@ -383,7 +694,7 @@ export default function Plan() {
                     textAlign: "center"
                 }}>
                     <div style={{ color: "#48A6A7", fontSize: "1.1rem" }}>
-                        🔄 Đang tải thông tin tiến trình...
+                        🔄 Đang tải thông tin kế hoạch và thống kê...
                     </div>
                 </section>
             );
@@ -400,7 +711,7 @@ export default function Plan() {
                     border: "1px solid #FECACA"
                 }}>
                     <div style={{ color: "#DC2626", fontSize: "1.1rem" }}>
-                        ❌ Không thể tải thông tin tiến trình
+                        ❌ Không thể tải thông tin kế hoạch
                     </div>
                     {error && <div style={{ color: "#7F1D1D", fontSize: "0.9rem", marginTop: "0.5rem" }}>
                         {error}
@@ -435,7 +746,9 @@ export default function Plan() {
                 dateRange: `${phaseData.startDatePhase1} - ${phaseData.endDatePhase1}`,
                 color: "#EF4444",
                 bgColor: "#FEF2F2",
-                borderColor: "#FECACA"
+                borderColor: "#FECACA",
+                failedDays: currentPhase === 1 ? (failStats?.failedDays || 0) : 0,
+                totalDays: currentPhase === 1 ? (phaseData?.numberOfDays || 0) : 0
             },
             {
                 number: 2,
@@ -444,7 +757,9 @@ export default function Plan() {
                 dateRange: `${phaseData.startDatePhase2} - ${phaseData.endDatePhase2}`,
                 color: "#F97316",
                 bgColor: "#FFF7ED",
-                borderColor: "#FDBA74"
+                borderColor: "#FDBA74",
+                failedDays: currentPhase === 2 ? (failStats?.failedDays || 0) : 0,
+                totalDays: currentPhase === 2 ? (phaseData?.numberOfDays || 0) : 0
             },
             {
                 number: 3,
@@ -453,7 +768,9 @@ export default function Plan() {
                 dateRange: `${phaseData.startDatePhase3} - ${phaseData.endDatePhase3}`,
                 color: "#EAB308",
                 bgColor: "#FEFCE8",
-                borderColor: "#FDE047"
+                borderColor: "#FDE047",
+                failedDays: currentPhase === 3 ? (failStats?.failedDays || 0) : 0,
+                totalDays: currentPhase === 3 ? (phaseData?.numberOfDays || 0) : 0
             },
             {
                 number: 4,
@@ -462,7 +779,9 @@ export default function Plan() {
                 dateRange: `${phaseData.startDatePhase4} - ${phaseData.endDatePhase4}`,
                 color: "#22C55E",
                 bgColor: "#F0FDF4",
-                borderColor: "#BBF7D0"
+                borderColor: "#BBF7D0",
+                failedDays: currentPhase === 4 ? (failStats?.failedDays || 0) : 0,
+                totalDays: currentPhase === 4 ? (phaseData?.numberOfDays || 0) : 0
             },
             {
                 number: 5,
@@ -471,7 +790,9 @@ export default function Plan() {
                 dateRange: `${phaseData.startDatePhase5} - ${phaseData.endDatePhase5}`,
                 color: "#8B5CF6",
                 bgColor: "#FAF5FF",
-                borderColor: "#DDD6FE"
+                borderColor: "#DDD6FE",
+                failedDays: currentPhase === 5 ? (failStats?.failedDays || 0) : 0,
+                totalDays: currentPhase === 5 ? (phaseData?.numberOfDays || 0) : 0
             }
         ];
 
@@ -506,7 +827,7 @@ export default function Plan() {
                         fontWeight: 700,
                         marginBottom: "0.5rem"
                     }}>
-                        🎯 Tiến trình cai thuốc của bạn
+                        🎯 Kế hoạch cai thuốc cá nhân
                     </h3>
                     <p style={{
                         color: "#6B7280",
@@ -514,6 +835,101 @@ export default function Plan() {
                     }}>
                         Theo dõi hành trình cai thuốc qua 5 giai đoạn quan trọng
                     </p>
+
+                    {/* Nút refresh data */}
+                    <button
+                        onClick={refreshData}
+                        disabled={loading}
+                        style={{
+                            background: loading ? "#ccc" : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 8,
+                            padding: "0.5rem 1rem",
+                            fontWeight: 600,
+                            fontSize: "0.9rem",
+                            cursor: loading ? "not-allowed" : "pointer",
+                            boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
+                            marginTop: "0.75rem"
+                        }}
+                    >
+                        {loading ? "🔄 Đang tải..." : "🔄 Làm mới dữ liệu"}
+                    </button>
+
+                    {/* Thông tin kế hoạch tổng quan từ API Plan */}
+                    {phaseData && (
+                        <div style={{
+                            background: "linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)",
+                            border: "2px solid #BAE6FD",
+                            borderRadius: "12px",
+                            padding: "1.5rem",
+                            marginTop: "1rem",
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                            gap: "1rem",
+                            textAlign: "center"
+                        }}>
+                            {phaseData.planName && (
+                                <div>
+                                    <div style={{ color: "#0369A1", fontSize: "1.2rem", fontWeight: 700 }}>
+                                        {phaseData.planName}
+                                    </div>
+                                    <div style={{ color: "#0284C7", fontSize: "0.875rem", fontWeight: 500 }}>
+                                        Tên kế hoạch
+                                    </div>
+                                </div>
+                            )}
+
+                            {phaseData.planDescription && (
+                                <div style={{ gridColumn: "1 / -1" }}>
+                                    <div style={{ color: "#0369A1", fontSize: "1rem", fontWeight: 600 }}>
+                                        📝 Mô tả kế hoạch
+                                    </div>
+                                    <div style={{
+                                        color: "#0284C7",
+                                        fontSize: "0.9rem",
+                                        marginTop: "0.5rem",
+                                        fontStyle: "italic"
+                                    }}>
+                                        {phaseData.planDescription}
+                                    </div>
+                                </div>
+                            )}
+
+                            {phaseData.expectedEndDate && (
+                                <div>
+                                    <div style={{ color: "#0369A1", fontSize: "1.1rem", fontWeight: 700 }}>
+                                        {new Date(phaseData.expectedEndDate).toLocaleDateString('vi-VN')}
+                                    </div>
+                                    <div style={{ color: "#0284C7", fontSize: "0.875rem", fontWeight: 500 }}>
+                                        Ngày dự kiến hoàn thành
+                                    </div>
+                                </div>
+                            )}
+
+                            {phaseData.planDuration && (
+                                <div>
+                                    <div style={{ color: "#0369A1", fontSize: "1.1rem", fontWeight: 700 }}>
+                                        {phaseData.planDuration} ngày
+                                    </div>
+                                    <div style={{ color: "#0284C7", fontSize: "0.875rem", fontWeight: 500 }}>
+                                        Thời gian kế hoạch
+                                    </div>
+                                </div>
+                            )}
+
+                            {phaseData.maxCigarettes !== undefined && (
+                                <div>
+                                    <div style={{ color: "#DC2626", fontSize: "1.1rem", fontWeight: 700 }}>
+                                        {phaseData.maxCigarettes} điếu
+                                    </div>
+                                    <div style={{ color: "#B91C1C", fontSize: "0.875rem", fontWeight: 500 }}>
+                                        Giới hạn điếu/ngày
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Progress Timeline */}
@@ -626,6 +1042,53 @@ export default function Plan() {
                                         📅 {phase.dateRange}
                                     </div>
 
+                                    {/* Thống kê thất bại từ API */}
+                                    {(phase.failedDays > 0 || phase.totalDays > 0) && (
+                                        <div style={{
+                                            background: "#FEF2F2",
+                                            border: "1px solid #FECACA",
+                                            borderRadius: "8px",
+                                            padding: "0.75rem",
+                                            marginTop: "0.75rem"
+                                        }}>
+                                            <div style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                fontSize: "0.875rem"
+                                            }}>
+                                                <span style={{ color: "#DC2626", fontWeight: 600 }}>
+                                                    📊 Thống kê giai đoạn:
+                                                </span>
+                                            </div>
+                                            <div style={{
+                                                display: "grid",
+                                                gridTemplateColumns: "1fr 1fr",
+                                                gap: "0.5rem",
+                                                marginTop: "0.5rem",
+                                                fontSize: "0.8rem"
+                                            }}>
+                                                <div style={{ color: "#DC2626" }}>
+                                                    ❌ Ngày thất bại: <strong>{phase.failedDays}</strong>
+                                                </div>
+                                                <div style={{ color: "#16A34A" }}>
+                                                    📈 Tổng ngày: <strong>{phase.totalDays}</strong>
+                                                </div>
+                                            </div>
+                                            {phase.totalDays > 0 && (
+                                                <div style={{
+                                                    marginTop: "0.5rem",
+                                                    fontSize: "0.8rem",
+                                                    color: "#6B7280"
+                                                }}>
+                                                    Tỷ lệ thành công: <strong style={{ color: "#16A34A" }}>
+                                                        {((phase.totalDays - phase.failedDays) / phase.totalDays * 100).toFixed(1)}%
+                                                    </strong>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Progress bar for current phase */}
                                     {isCurrent && quitStartDate && (
                                         <div style={{ marginTop: "1rem" }}>
@@ -670,7 +1133,7 @@ export default function Plan() {
                 }}>
                     <div style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
                         gap: "1rem"
                     }}>
                         <div>
@@ -678,7 +1141,7 @@ export default function Plan() {
                                 {currentPhase}/5
                             </div>
                             <div style={{ color: "#15803D", fontSize: "0.875rem", fontWeight: 500 }}>
-                                Giai đoạn hoàn thành
+                                Giai đoạn hiện tại
                             </div>
                         </div>
                         <div>
@@ -697,7 +1160,94 @@ export default function Plan() {
                                 Tiền đã tiết kiệm
                             </div>
                         </div>
+
+                        {/* Hiển thị giới hạn điếu thuốc */}
+                        <div>
+                            <div style={{ color: "#DC2626", fontSize: "1.5rem", fontWeight: 700 }}>
+                                {phaseData.maxCigarettes !== undefined ? phaseData.maxCigarettes : "N/A"}
+                            </div>
+                            <div style={{ color: "#B91C1C", fontSize: "0.875rem", fontWeight: 500 }}>
+                                Giới hạn điếu/ngày
+                            </div>
+                        </div>
+                        {/* Thêm thống kê từ fail-stat API */}
+                        {failStats && (
+                            <>
+                                <div>
+                                    <div style={{ color: "#DC2626", fontSize: "1.5rem", fontWeight: 700 }}>
+                                        {(() => {
+                                            console.log('🔍 failStats object:', failStats);
+                                            console.log('🔍 failStats.failedDays:', failStats.failedDays);
+                                            const value = failStats.failedDays || 0;
+                                            console.log('🔍 Final failedDays value:', value);
+                                            return value;
+                                        })()}
+                                    </div>
+                                    <div style={{ color: "#B91C1C", fontSize: "0.875rem", fontWeight: 500 }}>
+                                        Tổng ngày thất bại
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style={{ color: "#2563EB", fontSize: "1.5rem", fontWeight: 700 }}>
+                                        {phaseData.numberOfDays || 0}
+                                    </div>
+                                    <div style={{ color: "#1D4ED8", fontSize: "0.875rem", fontWeight: 500 }}>
+                                        Tổng ngày tham gia
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
+
+                    {/* Thêm tỷ lệ thành công tổng quan */}
+                    {failStats && (
+                        <div style={{
+                            marginTop: "1.5rem",
+                            padding: "1rem",
+                            background: "#F8FAFC",
+                            borderRadius: "8px",
+                            border: "1px solid #E2E8F0"
+                        }}>
+                            <div style={{ color: "#374151", fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem" }}>
+                                📈 Tỷ lệ thành công tổng quan
+                            </div>
+                            <div style={{ color: "#6B7280", fontSize: "0.8rem", marginBottom: "1rem", fontStyle: "italic" }}>
+                                * Thất bại được tính khi số điếu hút {'>'} giới hạn ({phaseData.maxCigarettes || 0} điếu/ngày)
+                            </div>
+                            {(() => {
+                                const totalFail = failStats.failedDays || 0;
+                                const totalDays = phaseData.numberOfDays || 0;
+                                const successDays = totalDays - totalFail;
+                                const successRate = totalDays > 0 ? (successDays / totalDays * 100) : 0;
+
+                                return (
+                                    <div style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "1rem"
+                                    }}>
+                                        <div style={{
+                                            fontSize: "2rem",
+                                            fontWeight: 700,
+                                            color: successRate >= 80 ? "#16A34A" :
+                                                successRate >= 60 ? "#EAB308" : "#DC2626"
+                                        }}>
+                                            {successRate.toFixed(1)}%
+                                        </div>
+                                        <div style={{
+                                            color: "#6B7280",
+                                            fontSize: "0.9rem",
+                                            textAlign: "left"
+                                        }}>
+                                            <div>Ngày thành công: {successDays}</div>
+                                            <div>Ngày thất bại: {totalFail}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
                 </div>
             </section>
         );

@@ -39,11 +39,6 @@ export default function CoachChat() {
 
   const accountId = getAccountId(user);
 
-  console.log("🔍 CoachChat User Debug Info:")
-  console.log("Raw user object:", user)
-  console.log("Extracted accountId:", accountId)
-  console.log("Token available:", !!token)
-
   // Early return if no user data or accountId
   if (!user || !accountId) {
     return (
@@ -108,38 +103,9 @@ export default function CoachChat() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
-
-  // Auto refresh conversation mỗi 3 giây khi đang chat với member
-  useEffect(() => {
-    if (selectedMember && accountId) {
-      const interval = setInterval(() => {
-        fetchConversation(selectedMember.accountId)
-      }, 3000) // Refresh mỗi 3 giây
-
-      setRefreshInterval(interval)
-
-      return () => {
-        if (interval) clearInterval(interval)
-      }
-    } else {
-      if (refreshInterval) {
-        clearInterval(refreshInterval)
-        setRefreshInterval(null)
-      }
-    }
-  }, [selectedMember, accountId])
-
-  // Cleanup interval khi component unmount
-  useEffect(() => {
-    return () => {
-      if (refreshInterval) clearInterval(refreshInterval)
-    }
-  }, [])
-  // Lấy danh sách members có conversation với coach
+  }, [messages]);  // Lấy danh sách members có conversation với coach
   const fetchMembers = async () => {
     if (!token || !accountId) {
-      console.log("Missing token or accountId for fetchMembers")
       setLoadingMembers(false)
       return
     }
@@ -147,18 +113,8 @@ export default function CoachChat() {
     try {
       setLoadingMembers(true)
 
-      console.log("🔍 CoachChat fetchMembers Debug:")
-      console.log("Coach accountId:", accountId)
-      console.log("Token available:", !!token)
-
       // Fetch conversations để lấy danh sách members đã chat với coach
-      // Thử nhiều cách để lấy conversations:
-      // 1. Lấy conversations mà coach là receiver (tin nhắn gửi CHO coach)
-      // 2. Lấy conversations mà coach là sender (tin nhắn coach GỬI ĐI)
-
-      console.log("🔍 Fetching conversations where coach is RECEIVER...")
       const receiverUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${accountId}`
-      console.log("📡 URL 1 (Coach as receiver):", receiverUrl)
 
       const receiverResponse = await fetch(receiverUrl, {
         headers: {
@@ -167,32 +123,22 @@ export default function CoachChat() {
         }
       })
 
-      console.log("📡 Receiver API Response status:", receiverResponse.status)
-      console.log("📡 Receiver API Response ok:", receiverResponse.ok)
-
       let allConversations = []
 
       if (receiverResponse.ok) {
         const receiverData = await receiverResponse.json()
-        console.log("✅ Conversations where coach is receiver:", receiverData)
         if (Array.isArray(receiverData)) {
           allConversations = [...allConversations, ...receiverData]
         }
-      } else {
-        console.log("❌ No conversations found where coach is receiver")
       }
 
-      // Bây giờ thử lấy conversations mà coach là sender
-      console.log("🔍 Trying to fetch conversations by iterating through potential member IDs...")
-
-      // Thử với một số member IDs phổ biến để test
+      // Thử với một số member IDs để tìm conversations khác
       const testMemberIds = [2, 3, 4, 5, 10, 11, 12, 15, 20, 21]
 
       for (const memberId of testMemberIds) {
-        if (memberId === accountId) continue // Skip chính coach
+        if (memberId === accountId) continue
 
         try {
-          console.log(`🔍 Testing conversations with member ID: ${memberId}`)
           const memberUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${memberId}`
 
           const memberResponse = await fetch(memberUrl, {
@@ -204,50 +150,26 @@ export default function CoachChat() {
 
           if (memberResponse.ok) {
             const memberData = await memberResponse.json()
-            console.log(`✅ Found conversations with member ${memberId}:`, memberData)
 
             if (Array.isArray(memberData) && memberData.length > 0) {
-              // Chỉ lấy conversations có coach tham gia
               const coachConversations = memberData.filter(conv =>
                 conv.senderId === accountId || conv.receiverId === accountId
               )
               if (coachConversations.length > 0) {
-                console.log(`✅ Coach participated in ${coachConversations.length} conversations with member ${memberId}`)
                 allConversations = [...allConversations, ...coachConversations]
               }
             }
           }
         } catch (error) {
-          console.log(`❌ Error fetching conversations with member ${memberId}:`, error.message)
+          // Ignore errors for individual member fetches
         }
-      }
-
-      console.log("🔍 Total conversations found:", allConversations.length)
-      console.log("📊 All conversations data:", allConversations)
-
-      if (allConversations.length > 0) {
-        // Extract unique members từ conversations
+      } if (allConversations.length > 0) {
         const uniqueMembers = extractMembersFromConversations(allConversations, accountId)
-        console.log("✅ CoachChat: Extracted unique members:", uniqueMembers)
-
         setMembers(uniqueMembers)
-
-        if (uniqueMembers.length === 0) {
-          console.log("⚠️ CoachChat: No unique members found in conversations")
-        }
       } else {
-        console.log("⚠️ CoachChat: No conversations found for coach")
         setMembers([])
       }
-
     } catch (error) {
-      console.error("❌ CoachChat fetchMembers: Network/Parse Error:", error)
-      console.error("Error name:", error.name)
-      console.error("Error message:", error.message)
-      console.error("Error stack:", error.stack)
-
-      // Show specific network error
-      alert(`Lỗi kết nối khi tải danh sách members:\n${error.message}`)
       setMembers([])
     } finally {
       setLoadingMembers(false)
@@ -257,19 +179,12 @@ export default function CoachChat() {
   // Lấy cuộc hội thoại với member cụ thể
   const fetchConversation = async (memberAccountId) => {
     if (!token || !accountId || !memberAccountId) {
-      console.log("Missing required data for conversation")
-      console.log("Token:", !!token, "Coach accountId:", accountId, "Member accountId:", memberAccountId)
       setLoadingMessages(false)
       return
     }
 
     try {
       setLoadingMessages(true)
-      // Fetch conversation từ perspective của coach 
-      console.log("🔍 CoachChat fetchConversation Debug:")
-      console.log("Coach accountId:", accountId)
-      console.log("Member accountId:", memberAccountId)
-      console.log("API URL:", `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${memberAccountId}`)
 
       const response = await fetch(`https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${memberAccountId}`, {
         headers: {
@@ -278,20 +193,12 @@ export default function CoachChat() {
         }
       })
 
-      console.log("📡 CoachChat API Response status:", response.status)
-      console.log("📡 CoachChat API Response ok:", response.ok)
-
       if (response.ok) {
         const data = await response.json()
-        console.log("✅ CoachChat conversation data received:", data)
 
-        // Parse messages from API response
         let formattedMessages = []
         if (Array.isArray(data) && data.length > 0) {
           formattedMessages = data.map(msg => ({
-            // Logic: Kiểm tra senderId để xác định ai gửi tin nhắn
-            // - Nếu senderId = accountId (coach) → tin nhắn từ coach
-            // - Nếu senderId = memberAccountId → tin nhắn từ member
             from: msg.senderId === accountId ? "coach" : "member",
             text: msg.message || "Tin nhắn trống",
             timestamp: msg.sentTime || msg.createdAt || new Date().toISOString(),
@@ -300,18 +207,14 @@ export default function CoachChat() {
             chatId: msg.chatId
           }))
 
-          // Sắp xếp tin nhắn theo thời gian (cũ đến mới)
           formattedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          console.log("✅ CoachChat formatted messages:", formattedMessages)
         }
 
         setMessages(formattedMessages)
       } else {
-        console.log("❌ CoachChat: No conversation found or API error")
         setMessages([])
       }
     } catch (error) {
-      console.error("❌ CoachChat: Error fetching conversation:", error)
       setMessages([])
     } finally {
       setLoadingMessages(false)
@@ -322,46 +225,14 @@ export default function CoachChat() {
   const handleSend = async (e) => {
     e.preventDefault()
 
-    // Debug: Log tất cả conditions
-    console.log("=== CoachChat handleSend Debug ===")
-    console.log("Input value:", inputValue)
-    console.log("Input trimmed:", inputValue.trim())
-    console.log("Selected member:", selectedMember)
-    console.log("Extracted account ID:", accountId)
-    console.log("Token available:", !!token)
+    if (!inputValue.trim() || !selectedMember || !accountId || !token) return
 
-    // Kiểm tra từng điều kiện
-    if (!inputValue.trim()) {
-      console.error("❌ CoachChat: Không thể gửi: Input rỗng")
-      return
-    }
-
-    if (!selectedMember) {
-      console.error("❌ CoachChat: Không thể gửi: Chưa chọn member")
-      return
-    }
-
-    if (!accountId) {
-      console.error("❌ CoachChat: Không thể gửi: Không có account ID")
-      console.log("User object:", user)
-      console.log("All user properties:", Object.keys(user || {}))
-      return
-    }
-
-    if (!token) {
-      console.error("❌ CoachChat: Không thể gửi: Không có token")
-      return
-    }
-
-    console.log("✅ CoachChat: Tất cả điều kiện OK, bắt đầu gửi tin nhắn...")
-
-    // Tạo tin nhắn optimistic cho UI
     const coachMsg = {
       from: "coach",
       text: inputValue,
       timestamp: new Date().toISOString(),
-      senderId: accountId, // Coach ID
-      receiverId: selectedMember.accountId // Member ID
+      senderId: accountId,
+      receiverId: selectedMember.accountId
     }
     setMessages((prev) => [...prev, coachMsg])
     const currentInput = inputValue
@@ -369,16 +240,11 @@ export default function CoachChat() {
     setLoading(true)
 
     try {
-      // Gửi tin nhắn reply từ coach tới member đã chọn
       const payload = {
         senderId: accountId,
         receiverId: selectedMember.accountId,
         message: currentInput
       }
-
-      console.log("📤 CoachChat: Đang gửi message payload:", payload)
-      console.log("🚀 CoachChat: Sending message to API...")
-      console.log("API URL:", "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/send")
 
       const response = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/send", {
         method: "POST",
@@ -389,26 +255,13 @@ export default function CoachChat() {
         body: JSON.stringify(payload),
       })
 
-      console.log("📡 CoachChat: API Response status:", response.status)
-      console.log("📡 CoachChat: API Response ok:", response.ok)
-
-      if (response.ok) {
-        const responseData = await response.json()
-        console.log("✅ CoachChat: Message sent successfully:", responseData)
-        // Có thể refresh conversation để đảm bảo đồng bộ
-        setTimeout(() => fetchConversation(selectedMember.accountId), 1000)
-      } else {
-        console.error("❌ CoachChat: Failed to send message")
-        const errorData = await response.text()
-        console.error("Error details:", errorData)
-        // Remove optimistic message on failure
+      if (!response.ok) {
         setMessages((prev) => prev.slice(0, -1))
-        setInputValue(currentInput) // Restore input
+        setInputValue(currentInput)
       }
     } catch (error) {
-      console.error("❌ CoachChat: Error sending message:", error)
       setMessages((prev) => prev.slice(0, -1))
-      setInputValue(currentInput) // Restore input
+      setInputValue(currentInput)
     } finally {
       setLoading(false)
     }
@@ -451,15 +304,9 @@ export default function CoachChat() {
 
   // Helper function để extract members từ conversations (sử dụng khi có API)
   const extractMembersFromConversations = (conversations, coachId) => {
-    console.log("🔍 extractMembersFromConversations Debug:")
-    console.log("Input conversations:", conversations)
-    console.log("Coach ID:", coachId)
-
     const memberMap = new Map()
 
-    conversations.forEach((conv, index) => {
-      console.log(`Processing conversation ${index}:`, conv)
-
+    conversations.forEach((conv) => {
       // Tìm member ID (người không phải coach)
       // Kiểm tra ai là sender và ai là receiver
       let memberAccountId, memberName, lastMessage, timestamp
@@ -478,11 +325,8 @@ export default function CoachChat() {
         timestamp = conv.sentTime || conv.createdAt || new Date().toISOString()
       } else {
         // Conversation không liên quan đến coach này
-        console.log(`Conversation ${index} không liên quan đến coach ${coachId}`)
         return
       }
-
-      console.log(`Extracted member: ID=${memberAccountId}, Name=${memberName}`)
 
       // Chỉ thêm member nếu không phải chính coach
       if (memberAccountId && memberAccountId !== coachId) {
@@ -522,28 +366,10 @@ export default function CoachChat() {
       new Date(b.timestamp || 0) - new Date(a.timestamp || 0)
     )
 
-    console.log("Final extracted members:", membersArray)
     return membersArray
   }
 
-  // Debug function để log thông tin chat
-  const logChatInfo = () => {
-    console.log("🔍 CoachChat Debug Info:")
-    console.log("- Coach ID (accountId):", accountId)
-    console.log("- Selected Member:", selectedMember)
-    console.log("- Messages count:", messages.length)
-    console.log("- Members list:", members)
-    console.log("- API Flow:")
-    console.log("  • Member gửi tin nhắn với receiverId = coach.accountId")
-    console.log("  • Coach fetch conversation với member.accountId")
-    console.log("  • Coach reply với receiverId = member.accountId")
-    console.log("- API Base:", "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net")
-  }
 
-  // Expose debug function to window for testing
-  useEffect(() => {
-    window.coachChatDebug = logChatInfo
-  }, [accountId, selectedMember, messages, members])
 
   return (
     <>
