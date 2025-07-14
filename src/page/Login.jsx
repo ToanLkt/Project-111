@@ -8,7 +8,7 @@ export default function Login() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { login } = useAuth();
-    const { user = [], token, loading, error } = useSelector((state) => state.account || {});
+    const { user = null, token, loading, error } = useSelector((state) => state.account || {});
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -23,7 +23,15 @@ export default function Login() {
         setSuccess("");
         setShowToast(false);
 
+        if (!email || !password) {
+            setErrorMessage("Vui lòng nhập đầy đủ email và mật khẩu");
+            setShowToast(true);
+            return;
+        }
+
         console.log("🚀 Login attempt with:", { email, password: "***" });
+        console.log("🔍 Current Redux state:", { user: !!user, token: !!token, loading, error });
+
         dispatch(fetchLogin({ email, password }));
     };
 
@@ -42,11 +50,21 @@ export default function Login() {
 
     // Handle successful login
     useEffect(() => {
-        console.log("🔍 Login useEffect:", { user: !!user, token: !!token, loading, error });
+        console.log("🔍 Login useEffect:", {
+            user: !!user,
+            token: !!token,
+            loading,
+            error,
+            userObject: user
+        });
 
-        if (user && token && !loading) {
-            const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || user.role;
+        if (user && token && !loading && !error) {
+            // Lấy role từ user object (sử dụng cả JWT claims và fallback)
+            const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+                user.role ||
+                null;
 
+            console.log("✅ Login success - User:", user);
             console.log("✅ Login success - Role:", userRole, "- Redirecting...");
 
             setSuccess("Đăng nhập thành công!");
@@ -64,7 +82,7 @@ export default function Login() {
                         break;
                     case "Coach":
                         console.log("🚀 Navigating to /coachpage");
-                        navigate("/coachpage", { replace: true }); // Sửa từ /coach thành /coachpage
+                        navigate("/coachpage", { replace: true });
                         break;
                     case "Member":
                         console.log("🚀 Navigating to /");
@@ -76,7 +94,32 @@ export default function Login() {
                 }
             }, 1200);
         }
-    }, [user, token, loading, navigate]);
+    }, [user, token, loading, error, navigate]);
+
+    // Check if already logged in on mount
+    useEffect(() => {
+        if (user && token && !loading) {
+            const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+                user.role ||
+                null;
+
+            console.log("🔍 User already logged in on mount, redirecting...", { userRole, user });
+
+            switch (userRole?.toString().trim()) {
+                case "Admin":
+                    navigate("/admin", { replace: true });
+                    break;
+                case "Coach":
+                    navigate("/coachpage", { replace: true });
+                    break;
+                case "Member":
+                    navigate("/", { replace: true });
+                    break;
+                default:
+                    navigate("/", { replace: true });
+            }
+        }
+    }, []); // Run only on mount
 
     const handleFacebookLogin = () => {
         alert("Chức năng đăng nhập Facebook chưa được hỗ trợ.");
@@ -333,33 +376,7 @@ export default function Login() {
                 </div>
             </form>
 
-            {/* Debug panel - chỉ hiện khi development */}
-            {process.env.NODE_ENV === 'development' && (
-                <div
-                    style={{
-                        position: "fixed",
-                        bottom: 20,
-                        left: 20,
-                        background: "#333",
-                        color: "#fff",
-                        padding: "10px",
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontFamily: "monospace",
-                        maxWidth: 300,
-                        zIndex: 1000
-                    }}
-                >
-                    <div><strong>Debug Info:</strong></div>
-                    <div>User: {user ? "✅" : "❌"}</div>
-                    <div>Token: {token ? "✅" : "❌"}</div>
-                    <div>Loading: {loading ? "⏳" : "✅"}</div>
-                    <div>Error: {error ? "❌" : "✅"}</div>
-                    {user && (
-                        <div>Role: {user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || user.role || "N/A"}</div>
-                    )}
-                </div>
-            )}
+
         </div>
     );
 }

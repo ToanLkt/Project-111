@@ -208,15 +208,7 @@ export default function StartInformation() {
         }
     }, [token, navigate]);
 
-    // Debug user info
-    React.useEffect(() => {
-        console.log('🔍 User info debug:', {
-            hasToken: !!token,
-            hasUser: !!user,
-            accountId,
-            userKeys: user ? Object.keys(user) : []
-        });
-    }, [token, user, accountId]);
+
 
     return (
         <section
@@ -299,25 +291,7 @@ export default function StartInformation() {
                     Hãy cung cấp các thông tin quan trọng dưới đây để cá nhân hóa lộ trình hỗ trợ bạn cai thuốc lá hiệu quả!
                 </p>
 
-                {/* Debug panel - Development only */}
-                {process.env.NODE_ENV === 'development' && (
-                    <div style={{
-                        position: "absolute",
-                        top: 10,
-                        right: 10,
-                        background: "rgba(0,0,0,0.8)",
-                        color: "white",
-                        padding: "8px 12px",
-                        borderRadius: "6px",
-                        fontSize: "10px",
-                        fontFamily: "monospace",
-                        zIndex: 999
-                    }}>
-                        <div>Token: {token ? "✅" : "❌"}</div>
-                        <div>User: {user ? "✅" : "❌"}</div>
-                        <div>ID: {accountId || "null"}</div>
-                    </div>
-                )}
+
 
                 {/* Hiển thị trạng thái đã submit trước đó */}
                 {hasSubmittedBefore && !submitted && (
@@ -583,24 +557,7 @@ export default function StartInformation() {
                             {loading ? "Đang gửi..." : !token ? "Cần đăng nhập" : hasSubmittedBefore ? "Cập nhật thông tin" : "Gửi thông tin"}
                         </button>
 
-                        {/* Debug reset button - chỉ hiển thị trong development */}
-                        {process.env.NODE_ENV === 'development' && hasSubmittedBefore && (
-                            <button
-                                type="button"
-                                onClick={handleReset}
-                                style={{
-                                    padding: "1rem",
-                                    background: "#e74c3c",
-                                    border: "none",
-                                    borderRadius: 12,
-                                    color: "#fff",
-                                    fontWeight: 600,
-                                    cursor: "pointer"
-                                }}
-                            >
-                                🔄 Reset
-                            </button>
-                        )}
+
                     </div>
                 </form>
             </div>

@@ -277,14 +277,16 @@ export default function NavBar() {
           background: ${COLORS.white};
           color: ${COLORS.color3};
           border-radius: 50px;
-          padding: 0.8rem 1.8rem;
+          padding: 0.8rem 1.5rem;
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.8rem;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
           font-weight: 600;
           backdrop-filter: blur(10px);
+          white-space: nowrap;
+          min-width: fit-content;
         }
 
         .navbar-user-dropdown:hover {
@@ -295,33 +297,53 @@ export default function NavBar() {
         }
 
         .navbar-user-avatar {
-          width: 45px;
-          height: 45px;
+          width: 40px;
+          height: 40px;
           background: ${COLORS.gradient};
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           font-weight: 700;
           box-shadow: 0 6px 16px rgba(106, 183, 197, 0.25);
           border: 2px solid ${COLORS.white};
+          flex-shrink: 0;
+        }
+
+        .navbar-user-name {
+          flex-shrink: 0;
+          max-width: 120px;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .navbar-auth-btn {
           border-radius: 50px;
-          padding: 1rem 2.5rem;
+          padding: 0.9rem 2rem;
           font-weight: 700;
-          font-size: 1.05rem;
+          font-size: 0.95rem;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           text-decoration: none;
           display: inline-flex;
           align-items: center;
-          gap: 0.8rem;
+          gap: 0.6rem;
           position: relative;
           overflow: hidden;
           box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
+          white-space: nowrap;
+          min-width: fit-content;
+          flex-shrink: 0;
+        }
+
+        .navbar-auth-btn-icon {
+          font-size: 0.9rem;
+          flex-shrink: 0;
+        }
+
+        .navbar-auth-btn-text {
+          flex-shrink: 0;
         }
 
         .navbar-auth-btn::before {
@@ -384,27 +406,43 @@ export default function NavBar() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 1rem;
+          gap: 0.8rem;
+          flex-wrap: nowrap;
+          width: 100%;
         }
 
         .navbar-nav-item {
           position: relative;
+          flex-shrink: 0;
         }
 
         .navbar-nav-link {
-          padding: 1.2rem 2.5rem;
+          padding: 1rem 1.8rem;
           border-radius: 50px;
           font-weight: 700;
-          font-size: 1.05rem;
+          font-size: 0.95rem;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           text-decoration: none;
           position: relative;
           display: flex;
           align-items: center;
-          gap: 0.8rem;
+          gap: 0.6rem;
           border: 2px solid ${COLORS.color1};
           backdrop-filter: blur(10px);
           box-shadow: 0 6px 20px rgba(51, 107, 115, 0.06);
+          white-space: nowrap;
+          min-width: fit-content;
+        }
+
+        .navbar-nav-link-icon {
+          font-size: 1rem;
+          flex-shrink: 0;
+          width: 20px;
+          text-align: center;
+        }
+
+        .navbar-nav-link-text {
+          flex-shrink: 0;
         }
 
         .navbar-nav-link-active {
@@ -549,6 +587,71 @@ export default function NavBar() {
           transform: scale(1.1);
         }
 
+        /* Responsive Media Queries - Cải thiện */
+        @media (max-width: 1400px) {
+          .navbar-nav-link {
+            padding: 0.9rem 1.5rem;
+            font-size: 0.9rem;
+            gap: 0.5rem;
+          }
+          
+          .navbar-nav {
+            gap: 0.6rem;
+          }
+          
+          .navbar-auth-btn {
+            padding: 0.8rem 1.8rem;
+            font-size: 0.9rem;
+          }
+        }
+
+        @media (max-width: 1200px) {
+          .navbar-nav-link {
+            padding: 0.8rem 1.3rem;
+            font-size: 0.85rem;
+          }
+          
+          .navbar-nav {
+            gap: 0.5rem;
+          }
+          
+          .navbar-auth-btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.85rem;
+          }
+          
+          .navbar-user-dropdown {
+            padding: 0.7rem 1.3rem;
+          }
+          
+          .navbar-user-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+          }
+        }
+
+        @media (max-width: 992px) {
+          .navbar-nav-link {
+            padding: 0.7rem 1.2rem;
+            font-size: 0.8rem;
+            gap: 0.4rem;
+          }
+          
+          .navbar-nav-link-icon {
+            font-size: 0.9rem;
+          }
+          
+          .navbar-nav {
+            gap: 0.4rem;
+          }
+          
+          .navbar-auth-btn {
+            padding: 0.7rem 1.3rem;
+            font-size: 0.8rem;
+          }
+        }
+
         @media (max-width: 768px) {
           .navbar-search-input {
             font-size: 1rem;
@@ -574,20 +677,23 @@ export default function NavBar() {
           }
 
           .navbar-nav {
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            display: none !important;
           }
 
-          .navbar-nav-link {
-            padding: 1rem 1.8rem;
-            font-size: 1rem;
+          .navbar-auth-btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+          }
+          
+          .navbar-user-dropdown {
+            padding: 0.7rem 1.2rem;
           }
         }
 
         @media (max-width: 576px) {
           .navbar-auth-btn {
-            padding: 0.8rem 1.8rem;
-            font-size: 1rem;
+            padding: 0.7rem 1.3rem;
+            font-size: 0.85rem;
           }
 
           .navbar-brand {
@@ -598,6 +704,39 @@ export default function NavBar() {
             width: 50px;
             height: 50px;
           }
+          
+          .navbar-user-dropdown {
+            padding: 0.6rem 1rem;
+          }
+          
+          .navbar-user-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 0.9rem;
+          }
+        }
+
+        /* Prevent text wrapping và overflow */
+        .container-fluid {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+        
+        .navbar-main .container-fluid {
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+        }
+        
+        /* Đảm bảo navbar không bị overflow */
+        .navbar-main {
+          overflow-x: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        
+        .navbar-main::-webkit-scrollbar {
+          display: none;
+        }
         }
       `}</style>
 
@@ -644,10 +783,10 @@ export default function NavBar() {
                         disabled={loading}
                       >
                         <div className="navbar-user-avatar">{getUserInitial()}</div>
-                        <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
+                        <span className="navbar-user-name d-none d-sm-inline text-truncate">
                           {getUserName()}
                         </span>
-                        <i className="fas fa-chevron-down" style={{ fontSize: "0.8rem" }}></i>
+                        <i className="fas fa-chevron-down" style={{ fontSize: "0.7rem", flexShrink: 0 }}></i>
                       </button>
                       <ul className="dropdown-menu dropdown-menu-end navbar-dropdown-menu">
                         <li>
@@ -687,12 +826,12 @@ export default function NavBar() {
                   ) : (
                     <>
                       <Link to="/login" className="navbar-auth-btn navbar-auth-btn-login d-none d-sm-inline-flex">
-                        <i className="fas fa-sign-in-alt"></i>
-                        Đăng nhập
+                        <i className="fas fa-sign-in-alt navbar-auth-btn-icon"></i>
+                        <span className="navbar-auth-btn-text">Đăng nhập</span>
                       </Link>
                       <Link to="/register" className="navbar-auth-btn navbar-auth-btn-register">
-                        <i className="fas fa-user-plus"></i>
-                        Đăng ký
+                        <i className="fas fa-user-plus navbar-auth-btn-icon"></i>
+                        <span className="navbar-auth-btn-text">Đăng ký</span>
                       </Link>
                     </>
                   )}
@@ -731,22 +870,24 @@ export default function NavBar() {
         {isAuthenticated && isMember && (
           <nav className="navbar navbar-expand-lg navbar-main">
             <div className="container-fluid">
-              <ul className="navbar-nav mx-auto d-none d-lg-flex">
-                {navItems.map((item) => {
-                  const isActive = pathname === item.to
-                  return (
-                    <li className="navbar-nav-item" key={item.to}>
-                      <Link
-                        to={item.to}
-                        className={`navbar-nav-link ${isActive ? "navbar-nav-link-active" : "navbar-nav-link-inactive"}`}
-                      >
-                        <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
-                        {item.label}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
+              <div className="w-100 d-flex justify-content-center">
+                <ul className="navbar-nav d-none d-lg-flex">
+                  {navItems.map((item) => {
+                    const isActive = pathname === item.to
+                    return (
+                      <li className="navbar-nav-item" key={item.to}>
+                        <Link
+                          to={item.to}
+                          className={`navbar-nav-link ${isActive ? "navbar-nav-link-active" : "navbar-nav-link-inactive"}`}
+                        >
+                          <span className="navbar-nav-link-icon">{item.icon}</span>
+                          <span className="navbar-nav-link-text">{item.label}</span>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
             </div>
           </nav>
         )}

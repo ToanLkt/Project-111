@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 
 const COACH_API = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach";
 const MEMBER_API = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member";
-const PAYMENT_API = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Payment";
+// THAY ĐỔI: Sử dụng purchase-history API
+const PURCHASE_HISTORY_API = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/purchase-history";
 const PACKAGE_API = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership";
 
 function AdminReport() {
@@ -72,8 +73,8 @@ function AdminReport() {
 
                 console.log('🚀 Fetching admin data with token...');
 
-                // Fetch all data in parallel
-                const [memberRes, coachRes, paymentRes, packageRes] = await Promise.all([
+                // THAY ĐỔI: Fetch data từ purchase-history API
+                const [memberRes, coachRes, purchaseHistoryRes, packageRes] = await Promise.all([
                     fetch(MEMBER_API, { headers }).catch(err => {
                         console.error('❌ Member API error:', err);
                         return { ok: false, status: 500 };
@@ -82,8 +83,9 @@ function AdminReport() {
                         console.error('❌ Coach API error:', err);
                         return { ok: false, status: 500 };
                     }),
-                    fetch(PAYMENT_API, { headers }).catch(err => {
-                        console.error('❌ Payment API error:', err);
+                    // SỬA: Gọi purchase-history API
+                    fetch(PURCHASE_HISTORY_API, { headers }).catch(err => {
+                        console.error('❌ Purchase History API error:', err);
                         return { ok: false, status: 500 };
                     }),
                     fetch(PACKAGE_API, { headers }).catch(err => {
@@ -110,29 +112,55 @@ function AdminReport() {
                     console.error('❌ Failed to fetch coaches:', coachRes.status);
                 }
 
-                // Process payment data
-                if (paymentRes.ok) {
-                    const paymentData = await paymentRes.json();
-                    if (Array.isArray(paymentData)) {
-                        setPaymentCount(paymentData.length);
-                        const successful = paymentData.filter(p => p.paymentStatus === "Success");
+                // THAY ĐỔI: Process purchase history data
+                if (purchaseHistoryRes.ok) {
+                    const purchaseData = await purchaseHistoryRes.json();
+                    console.log('🔍 Purchase History raw data:', purchaseData);
+
+                    if (Array.isArray(purchaseData)) {
+                        // Tổng số giao dịch
+                        setPaymentCount(purchaseData.length);
+
+                        // Lọc giao dịch thành công (paymentStatus === "Success")
+                        const successful = purchaseData.filter(purchase => {
+                            const status = purchase.paymentStatus;
+                            console.log('🔍 Payment status:', status);
+                            return status === "Success" || status === "success";
+                        });
+
                         setSuccessfulPayments(successful.length);
 
-                        // Calculate total revenue from successful payments
-                        const revenue = successful.reduce((sum, p) => sum + (p.totalPrice || 0), 0);
+                        // TÍNH TỔNG DOANH THU từ tổng totalPrice của giao dịch thành công
+                        const revenue = successful.reduce((sum, purchase) => {
+                            const totalPrice = purchase.totalPrice || 0;
+                            console.log('💰 Adding totalPrice:', totalPrice);
+                            return sum + totalPrice;
+                        }, 0);
+
                         setTotalRevenue(revenue);
 
                         // Get recent payments (last 5)
-                        setRecentPayments(paymentData.slice(-5).reverse());
+                        setRecentPayments(purchaseData.slice(-5).reverse());
 
-                        console.log('✅ Payments loaded:', {
-                            total: paymentData.length,
+                        console.log('✅ Purchase History loaded:', {
+                            total: purchaseData.length,
                             successful: successful.length,
-                            revenue
+                            totalRevenue: revenue,
+                            recentCount: purchaseData.slice(-5).length
                         });
+                    } else {
+                        console.warn('⚠️ Purchase History data is not an array:', purchaseData);
+                        setPaymentCount(0);
+                        setSuccessfulPayments(0);
+                        setTotalRevenue(0);
                     }
                 } else {
-                    console.error('❌ Failed to fetch payments:', paymentRes.status);
+                    console.error('❌ Failed to fetch purchase history:', purchaseHistoryRes.status);
+                    if (purchaseHistoryRes.status === 401) {
+                        setError("Không có quyền truy cập dữ liệu lịch sử mua hàng");
+                    } else if (purchaseHistoryRes.status === 403) {
+                        setError("Bị từ chối truy cập dữ liệu lịch sử mua hàng");
+                    }
                 }
 
                 // Process package data
@@ -248,8 +276,10 @@ function AdminReport() {
                     <div>Role: {userRole || "null"}</div>
                     <div>Members: {memberCount}</div>
                     <div>Coaches: {coachCount}</div>
-                    <div>Payments: {paymentCount}</div>
-                    <div>Revenue: {totalRevenue.toLocaleString()}</div>
+                    <div>Total Payments: {paymentCount}</div>
+                    <div>Success Payments: {successfulPayments}</div>
+                    <div>Total Revenue: {totalRevenue.toLocaleString()}</div>
+                    <div>Success Rate: {paymentCount > 0 ? Math.round((successfulPayments / paymentCount) * 100) : 0}%</div>
                 </div>
             )}
 
@@ -319,14 +349,14 @@ function AdminReport() {
                         title="Tổng doanh thu"
                         value={`${totalRevenue.toLocaleString("vi-VN")}đ`}
                         color="#FF9800"
-                        subtitle="Từ các giao dịch thành công"
+                        subtitle="Từ lịch sử mua hàng (totalPrice)"
                     />
                     <StatCard
                         icon="✅"
                         title="Giao dịch thành công"
                         value={successfulPayments}
                         color="#8BC34A"
-                        subtitle={`Trên tổng ${paymentCount} giao dịch`}
+                        subtitle={`Trên tổng ${paymentCount} giao dịch (paymentStatus = Success)`}
                     />
                 </div>
 
@@ -357,7 +387,7 @@ function AdminReport() {
                     />
                 </div>
 
-                {/* Recent Payments */}
+                {/* THAY ĐỔI: Recent Payments từ purchase-history */}
                 {recentPayments.length > 0 && (
                     <div style={{
                         background: "#F8F9FA",
@@ -371,40 +401,46 @@ function AdminReport() {
                             fontSize: "1.3rem",
                             fontWeight: 700
                         }}>
-                            🕒 Giao dịch gần đây
+                            🕒 Giao dịch gần đây (từ purchase-history)
                         </h3>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {recentPayments.map((payment, index) => (
-                                <div key={index} style={{
-                                    background: "#fff",
-                                    padding: "12px 16px",
-                                    borderRadius: 8,
-                                    border: "1px solid #E0E0E0",
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center"
-                                }}>
-                                    <span style={{ fontWeight: 600, color: "#333" }}>
-                                        Gói #{payment.packageMembershipId}
-                                    </span>
-                                    <span style={{
-                                        color: payment.paymentStatus === "Success" ? "#4CAF50" : "#FF5722",
-                                        fontWeight: 600
+                            {recentPayments.map((payment, index) => {
+                                const status = payment.paymentStatus;
+                                const totalPrice = payment.totalPrice || 0;
+                                const packageId = payment.packageMembershipId || payment.packageId || payment.package_membership_ID;
+
+                                return (
+                                    <div key={index} style={{
+                                        background: "#fff",
+                                        padding: "12px 16px",
+                                        borderRadius: 8,
+                                        border: "1px solid #E0E0E0",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center"
                                     }}>
-                                        {payment.totalPrice?.toLocaleString("vi-VN")}đ
-                                    </span>
-                                    <span style={{
-                                        padding: "4px 8px",
-                                        borderRadius: 4,
-                                        fontSize: "0.85rem",
-                                        fontWeight: 600,
-                                        background: payment.paymentStatus === "Success" ? "#E8F5E8" : "#FFEBEE",
-                                        color: payment.paymentStatus === "Success" ? "#2E7D32" : "#C62828"
-                                    }}>
-                                        {payment.paymentStatus === "Success" ? "Thành công" : "Thất bại"}
-                                    </span>
-                                </div>
-                            ))}
+                                        <span style={{ fontWeight: 600, color: "#333" }}>
+                                            Gói #{packageId || "N/A"}
+                                        </span>
+                                        <span style={{
+                                            color: status === "Success" ? "#4CAF50" : "#FF5722",
+                                            fontWeight: 600
+                                        }}>
+                                            {totalPrice.toLocaleString("vi-VN")}đ
+                                        </span>
+                                        <span style={{
+                                            padding: "4px 8px",
+                                            borderRadius: 4,
+                                            fontSize: "0.85rem",
+                                            fontWeight: 600,
+                                            background: status === "Success" ? "#E8F5E8" : "#FFEBEE",
+                                            color: status === "Success" ? "#2E7D32" : "#C62828"
+                                        }}>
+                                            {status === "Success" ? "Thành công" : "Thất bại"}
+                                        </span>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
                 )}
@@ -419,7 +455,8 @@ function AdminReport() {
                 color: "#666",
                 fontSize: "0.9rem"
             }}>
-                📅 Cập nhật lúc: {new Date().toLocaleString("vi-VN")}
+                📅 Cập nhật lúc: {new Date().toLocaleString("vi-VN")} |
+                📋 Dữ liệu từ purchase-history API
             </div>
         </div>
     );

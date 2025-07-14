@@ -33,7 +33,7 @@ import CoachPage from "../page/coach/CoachPage";
 import CoachProfile from "../page/coach/CoachProfile";
 import CoachCommunity from "../page/coach/CoachCommunity";
 import CoachMembers from "../page/coach/CoachMembers";
-import CoachSchedule from "../page/coach/CoachSchedule";
+import CoachChat from "../page/coach/CoachChat";
 import CoachStatistics from "../page/coach/CoachStatistics";
 
 // Other imports
@@ -65,7 +65,7 @@ export default function AppRoutes() {
       <Route path="coachpage" element={<CoachNavbar />}>
         <Route index element={<CoachPage />} />
         <Route path="members" element={<CoachMembers />} />
-        <Route path="schedule" element={<CoachSchedule />} />
+        <Route path="chat" element={<CoachChat />} />
         <Route path="statistics" element={<CoachStatistics />} />
         <Route path="profile" element={<CoachProfile />} />
         <Route path="community" element={<CoachCommunity />} />
