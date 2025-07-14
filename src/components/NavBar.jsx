@@ -32,9 +32,6 @@ export default function NavBar() {
   const { user, token, loading } = useSelector((state) => state.account || {})
   const { logout: authLogout } = useAuth()
 
-  console.log("Redux user:", user)
-  console.log("Redux token:", token)
-
   // Extract thông tin từ user object
   const getUserEmail = () => {
     if (!user) return null
@@ -72,15 +69,6 @@ export default function NavBar() {
   const isAuthenticated = !!(token && user && getUserRole() === "Member")
   const isMember = getUserRole() === "Member"
 
-  console.log("Authentication status:", {
-    hasToken: !!token,
-    hasUser: !!user,
-    userRole: getUserRole(),
-    userEmail: getUserEmail(),
-    isAuthenticated: isAuthenticated,
-    isMember: isMember
-  })
-
   const navItems = [
     { to: "/", label: "Trang chủ", icon: "🏠" },
     { to: "/plan", label: "Lộ trình", icon: "🗺️" },
@@ -117,31 +105,6 @@ export default function NavBar() {
 
   return (
     <>
-      {/* Debug Info trong development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          background: 'rgba(0,0,0,0.8)',
-          color: 'white',
-          padding: '10px',
-          borderRadius: '5px',
-          fontSize: '12px',
-          zIndex: 9999,
-          maxWidth: '300px'
-        }}>
-          <div><strong>NavBar Debug:</strong></div>
-          <div>Authenticated: {isAuthenticated.toString()}</div>
-          <div>Is Member: {isMember.toString()}</div>
-          <div>Token: {token ? 'Yes' : 'No'}</div>
-          <div>User: {user ? 'Yes' : 'No'}</div>
-          <div>Email: {getUserEmail() || 'null'}</div>
-          <div>Role: {getUserRole() || 'null'}</div>
-          <div>Loading: {loading.toString()}</div>
-        </div>
-      )}
-
       <style jsx>{`
         .navbar-container {
           position: relative;

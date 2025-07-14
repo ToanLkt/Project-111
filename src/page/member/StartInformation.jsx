@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { updateTodayCigarettesRequest } from "../../redux/member/plan/planSlice"; // Đổi import
+import { updateTodayCigarettesRequest } from "../../redux/member/plan/planSlice";
 
 export default function StartInformation() {
     // Bảng màu chủ đề
@@ -49,6 +49,35 @@ export default function StartInformation() {
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState(null);
+    const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
+
+    // Load dữ liệu đã submit trước đó khi component mount
+    useEffect(() => {
+        if (accountId) {
+            const savedInfo = localStorage.getItem(`user_quit_info_${accountId}`);
+            const isSubmitted = localStorage.getItem(`info_submitted_${accountId}`);
+
+            if (savedInfo && isSubmitted === "true") {
+                try {
+                    const parsedInfo = JSON.parse(savedInfo);
+                    setForm({
+                        cigarettesPerDay: parsedInfo.cigarettesPerDay || "",
+                        smokingTime: parsedInfo.smokingTime || "",
+                        goalTime: parsedInfo.goalTime || "",
+                        reason: parsedInfo.reason || "",
+                        costPerCigarette: parsedInfo.costPerCigarette || "",
+                        medicalHistory: parsedInfo.medicalHistory || "",
+                        mostSmokingTime: parsedInfo.mostSmokingTime || ""
+                    });
+                    setHasSubmittedBefore(true);
+                    setSubmitted(true);
+                    console.log('📋 Loaded saved user info:', parsedInfo);
+                } catch (err) {
+                    console.error('❌ Error loading saved info:', err);
+                }
+            }
+        }
+    }, [accountId]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -107,32 +136,30 @@ export default function StartInformation() {
 
             console.log('✅ Form submitted successfully');
             setSubmitted(true);
+            setHasSubmittedBefore(true);
 
-            // Lưu thông tin vào Redux state và localStorage
+            // Lưu thông tin vào localStorage
             if (accountId) {
                 console.log('💾 Saving user data for accountId:', accountId);
 
                 // Lưu flag đã gửi thông tin
                 localStorage.setItem(`info_submitted_${accountId}`, "true");
 
-                // Lưu thời điểm bắt đầu cai thuốc
-                const quitStartDate = new Date().toISOString();
-                localStorage.setItem(`quit_start_${accountId}`, quitStartDate);
+                // Lưu thời điểm bắt đầu cai thuốc (chỉ lưu lần đầu)
+                const existingStartDate = localStorage.getItem(`quit_start_${accountId}`);
+                if (!existingStartDate) {
+                    const quitStartDate = new Date().toISOString();
+                    localStorage.setItem(`quit_start_${accountId}`, quitStartDate);
+                }
 
-                // Lưu thông tin form vào localStorage để sử dụng sau
+                // Lưu thông tin form
                 localStorage.setItem(`user_quit_info_${accountId}`, JSON.stringify({
-                    cigarettesPerDay: Number(form.cigarettesPerDay),
-                    smokingTime: form.smokingTime,
-                    goalTime: form.goalTime,
-                    reason: form.reason,
-                    costPerCigarette: Number(form.costPerCigarette),
-                    medicalHistory: form.medicalHistory,
-                    mostSmokingTime: form.mostSmokingTime,
-                    startDate: quitStartDate
+                    ...body,
+                    startDate: existingStartDate || new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
                 }));
 
-                // Dispatch Redux action từ planSlice
-                console.log('📤 Dispatching updateTodayCigarettesRequest from planSlice...');
+                // Dispatch Redux action
                 dispatch(updateTodayCigarettesRequest({
                     todayCigarettes: Number(form.cigarettesPerDay)
                 }));
@@ -149,6 +176,27 @@ export default function StartInformation() {
             setApiError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Hàm reset dữ liệu (để test)
+    const handleReset = () => {
+        if (accountId) {
+            localStorage.removeItem(`info_submitted_${accountId}`);
+            localStorage.removeItem(`user_quit_info_${accountId}`);
+            localStorage.removeItem(`quit_start_${accountId}`);
+            setForm({
+                cigarettesPerDay: "",
+                smokingTime: "",
+                goalTime: "",
+                reason: "",
+                costPerCigarette: "",
+                medicalHistory: "",
+                mostSmokingTime: ""
+            });
+            setSubmitted(false);
+            setHasSubmittedBefore(false);
+            console.log('🔄 Reset all saved data');
         }
     };
 
@@ -271,6 +319,22 @@ export default function StartInformation() {
                     </div>
                 )}
 
+                {/* Hiển thị trạng thái đã submit trước đó */}
+                {hasSubmittedBefore && !submitted && (
+                    <div style={{
+                        background: "linear-gradient(90deg, #e8f5e8 0%, #f0f8f0 100%)",
+                        border: "2px solid #27ae60",
+                        borderRadius: 12,
+                        padding: "1rem",
+                        marginBottom: "1.5rem",
+                        textAlign: "center",
+                        color: "#27ae60",
+                        fontWeight: 600
+                    }}>
+                        ✅ Bạn đã gửi thông tin trước đó. Có thể cập nhật lại thông tin bên dưới.
+                    </div>
+                )}
+
                 <form
                     onSubmit={handleSubmit}
                     style={{
@@ -297,7 +361,7 @@ export default function StartInformation() {
                                 marginBottom: 20
                             }}
                         >
-                            🎉 Cảm ơn bạn đã cung cấp thông tin!
+                            🎉 {hasSubmittedBefore ? "Thông tin đã được cập nhật!" : "Cảm ơn bạn đã cung cấp thông tin!"}
                         </div>
                     )}
 
@@ -495,28 +559,49 @@ export default function StartInformation() {
                             }}
                         />
                     </div>
-                    <button
-                        type="submit"
-                        disabled={loading || !token}
-                        style={{
-                            width: "100%",
-                            padding: "1rem",
-                            background: (loading || !token)
-                                ? "#b2bec3"
-                                : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
-                            border: "none",
-                            borderRadius: 12,
-                            color: "#fff",
-                            fontWeight: 800,
-                            fontSize: "1.15rem",
-                            letterSpacing: 1,
-                            cursor: (loading || !token) ? "not-allowed" : "pointer",
-                            boxShadow: "0 2px 8px rgba(44,130,201,0.10)",
-                            transition: "all 0.2s ease",
-                        }}
-                    >
-                        {loading ? "Đang gửi..." : !token ? "Cần đăng nhập" : "Gửi thông tin"}
-                    </button>
+                    <div style={{ display: "flex", gap: "1rem" }}>
+                        <button
+                            type="submit"
+                            disabled={loading || !token}
+                            style={{
+                                flex: 1,
+                                padding: "1rem",
+                                background: (loading || !token)
+                                    ? "#b2bec3"
+                                    : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                                border: "none",
+                                borderRadius: 12,
+                                color: "#fff",
+                                fontWeight: 800,
+                                fontSize: "1.15rem",
+                                letterSpacing: 1,
+                                cursor: (loading || !token) ? "not-allowed" : "pointer",
+                                boxShadow: "0 2px 8px rgba(44,130,201,0.10)",
+                                transition: "all 0.2s ease",
+                            }}
+                        >
+                            {loading ? "Đang gửi..." : !token ? "Cần đăng nhập" : hasSubmittedBefore ? "Cập nhật thông tin" : "Gửi thông tin"}
+                        </button>
+
+                        {/* Debug reset button - chỉ hiển thị trong development */}
+                        {process.env.NODE_ENV === 'development' && hasSubmittedBefore && (
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                style={{
+                                    padding: "1rem",
+                                    background: "#e74c3c",
+                                    border: "none",
+                                    borderRadius: 12,
+                                    color: "#fff",
+                                    fontWeight: 600,
+                                    cursor: "pointer"
+                                }}
+                            >
+                                🔄 Reset
+                            </button>
+                        )}
+                    </div>
                 </form>
             </div>
         </section>

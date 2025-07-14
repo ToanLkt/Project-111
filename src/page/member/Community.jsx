@@ -1,9 +1,35 @@
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect } from "react"
+import { useSelector, useDispatch } from "react-redux"
 import Footer from "../../components/Footer"
-import AuthContext from "../../AuthContext/AuthContext"
 
 export default function Community() {
-    const { token, fullName } = useContext(AuthContext)
+    // Lấy dữ liệu từ Redux thay vì AuthContext
+    const { user, token } = useSelector((state) => state.account || {})
+    const dispatch = useDispatch()
+
+    // Extract fullName từ Redux user object
+    const getFullName = () => {
+        if (!user) return null
+        return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ||
+            user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"] ||
+            user.fullName ||
+            user.name ||
+            "Người dùng"
+    }
+
+    const fullName = getFullName()
+
+    // Extract user ID từ Redux user object
+    const getUserId = () => {
+        if (!user) return null
+        return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+            user.userId ||
+            user.id ||
+            null
+    }
+
+    const accountId = getUserId()
+
     const [allPosts, setAllPosts] = useState([])
     const [posts, setPosts] = useState([])
     const [content, setContent] = useState("")
@@ -15,22 +41,32 @@ export default function Community() {
 
     // Lấy danh sách bài post
     useEffect(() => {
+        console.log('🔐 Redux Token:', token ? 'Có token' : 'Không có token')
+        console.log('👤 Redux User:', user)
+        console.log('📝 Full Name:', fullName)
+
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/CommunityPost/get")
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.json()
+            })
             .then((data) => {
-                const reversed = data.reverse()
+                console.log('✅ Posts loaded:', data?.length || 0)
+                const reversed = Array.isArray(data) ? data.reverse() : []
                 setAllPosts(reversed)
                 setPosts(reversed)
+                // Fetch comments cho mỗi post
                 reversed.forEach((post) => {
                     const postId = post.communityPostId || post.postId || post.id
                     if (postId) fetchComments(postId)
                 })
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('❌ Error loading posts:', error)
                 setAllPosts([])
                 setPosts([])
             })
-    }, [token])
+    }, [token, user])
 
     // Lọc bài viết khi search thay đổi
     useEffect(() => {
@@ -48,10 +84,12 @@ export default function Community() {
         }
     }, [search, allPosts])
 
+    // Fetch comments cho posts khi cần
     useEffect(() => {
         posts.forEach((post) => {
-            if (post.communityPostId && comments[post.communityPostId] === undefined) {
-                fetchComments(post.communityPostId)
+            const postId = post.communityPostId || post.postId || post.id
+            if (postId && comments[postId] === undefined) {
+                fetchComments(postId)
             }
         })
     }, [posts])
@@ -59,12 +97,16 @@ export default function Community() {
     const fetchComments = async (postId) => {
         setCommentLoading((prev) => ({ ...prev, [postId]: true }))
         try {
+            console.log(`🔍 Fetching comments for post ${postId}...`)
             const res = await fetch(
                 `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Comment/${postId}`,
             )
+            if (!res.ok) throw new Error(`HTTP ${res.status}`)
             const data = await res.json()
-            setComments((prev) => ({ ...prev, [postId]: data }))
-        } catch {
+            console.log(`✅ Comments loaded for post ${postId}:`, data?.length || 0)
+            setComments((prev) => ({ ...prev, [postId]: Array.isArray(data) ? data : [] }))
+        } catch (error) {
+            console.error(`❌ Error loading comments for post ${postId}:`, error)
             setComments((prev) => ({ ...prev, [postId]: [] }))
         }
         setCommentLoading((prev) => ({ ...prev, [postId]: false }))
@@ -72,7 +114,10 @@ export default function Community() {
 
     const handlePost = async (e) => {
         e.preventDefault()
-        if (!content.trim()) return
+        if (!content.trim()) {
+            alert("Vui lòng nhập nội dung bài viết!")
+            return
+        }
         if (!token) {
             alert("Bạn cần đăng nhập để đăng bài!")
             return
@@ -80,6 +125,7 @@ export default function Community() {
 
         setLoading(true)
         try {
+            console.log('📝 Creating new post...')
             const res = await fetch(
                 "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/CommunityPost/up",
                 {
@@ -88,29 +134,33 @@ export default function Community() {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ content }),
+                    body: JSON.stringify({ content: content.trim() }),
                 },
             )
 
             if (!res.ok) {
-                alert("Đăng bài thất bại!")
-                setLoading(false)
-                return
+                const errorText = await res.text()
+                console.error('❌ Post creation failed:', errorText)
+                throw new Error(`HTTP ${res.status}: ${errorText}`)
             }
 
+            console.log('✅ Post created successfully')
             setContent("")
-            fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/CommunityPost/get")
-                .then((res) => res.json())
-                .then((data) => {
-                    const reversed = data.reverse()
-                    setAllPosts(reversed)
-                    setPosts(reversed)
-                })
+
+            // Reload posts
+            const postsRes = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/CommunityPost/get")
+            if (postsRes.ok) {
+                const data = await postsRes.json()
+                const reversed = Array.isArray(data) ? data.reverse() : []
+                setAllPosts(reversed)
+                setPosts(reversed)
+            }
+        } catch (error) {
+            console.error('❌ Error creating post:', error)
+            alert(`Đăng bài thất bại: ${error.message}`)
+        } finally {
             setLoading(false)
-        } catch {
-            alert("Đăng bài thất bại!")
         }
-        setLoading(false)
     }
 
     const handleCommentInput = (postId, value) => {
@@ -119,7 +169,10 @@ export default function Community() {
 
     const handleCommentSubmit = async (postId) => {
         const commentContent = commentInputs[postId]
-        if (!commentContent || !commentContent.trim()) return
+        if (!commentContent || !commentContent.trim()) {
+            alert("Vui lòng nhập nội dung bình luận!")
+            return
+        }
         if (!token) {
             alert("Bạn cần đăng nhập để bình luận!")
             return
@@ -127,6 +180,7 @@ export default function Community() {
 
         setCommentLoading((prev) => ({ ...prev, [postId]: true }))
         try {
+            console.log(`💬 Creating comment for post ${postId}...`)
             const res = await fetch(
                 `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Comment?postId=${postId}`,
                 {
@@ -137,17 +191,23 @@ export default function Community() {
                         Accept: "*/*",
                     },
                     body: JSON.stringify({
-                        comment: commentContent,
+                        comment: commentContent.trim(),
                     }),
                 },
             )
 
-            if (!res.ok) throw new Error(await res.text())
+            if (!res.ok) {
+                const errorText = await res.text()
+                console.error('❌ Comment creation failed:', errorText)
+                throw new Error(`HTTP ${res.status}: ${errorText}`)
+            }
+
+            console.log('✅ Comment created successfully')
             setCommentInputs((prev) => ({ ...prev, [postId]: "" }))
             await fetchComments(postId)
         } catch (error) {
-            console.error("Error posting comment:", error)
-            alert("Bình luận thất bại!")
+            console.error("❌ Error posting comment:", error)
+            alert(`Bình luận thất bại: ${error.message}`)
         }
         setCommentLoading((prev) => ({ ...prev, [postId]: false }))
     }
@@ -277,7 +337,7 @@ export default function Community() {
                     letter-spacing: 0.05em;
                 }
 
-                .btn-primary:hover {
+                .btn-primary:hover:not(:disabled) {
                     transform: translateY(-1px);
                     box-shadow: 0 4px 12px rgba(72, 166, 167, 0.3);
                 }
@@ -300,8 +360,13 @@ export default function Community() {
                     transition: all 0.2s ease;
                 }
 
-                .btn-secondary:hover {
+                .btn-secondary:hover:not(:disabled) {
                     background: #4b5563;
+                }
+
+                .btn-secondary:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
                 }
 
                 .sidebar-card {
@@ -415,6 +480,7 @@ export default function Community() {
                     font-size: 1rem;
                     line-height: 1.6;
                     color: #374151;
+                    white-space: pre-wrap;
                 }
 
                 .comments-section {
@@ -491,6 +557,7 @@ export default function Community() {
                     font-size: 0.875rem;
                     line-height: 1.5;
                     color: #374151;
+                    white-space: pre-wrap;
                 }
 
                 .comment-form {
@@ -514,6 +581,7 @@ export default function Community() {
                     resize: none;
                     min-height: 40px;
                     max-height: 120px;
+                    font-family: inherit;
                 }
 
                 .comment-input:focus {
@@ -545,6 +613,28 @@ export default function Community() {
                     animation: spin 1s ease-in-out infinite;
                 }
 
+                .user-status {
+                    background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+                    border: 1px solid #27ae60;
+                    border-radius: 8px;
+                    padding: 0.5rem 1rem;
+                    font-size: 0.875rem;
+                    color: #27ae60;
+                    font-weight: 500;
+                    margin-bottom: 0.5rem;
+                }
+
+                .auth-warning {
+                    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+                    border: 1px solid #ffc107;
+                    border-radius: 8px;
+                    padding: 0.5rem 1rem;
+                    font-size: 0.875rem;
+                    color: #856404;
+                    font-weight: 500;
+                    margin-bottom: 0.5rem;
+                }
+
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
@@ -568,6 +658,11 @@ export default function Community() {
                     .stats-grid {
                         grid-template-columns: 1fr;
                     }
+
+                    .comment-input-group {
+                        flex-direction: column;
+                        align-items: stretch;
+                    }
                 }
             `}</style>
 
@@ -577,8 +672,8 @@ export default function Community() {
                     <div className="container-fluid">
                         <div className="row">
                             <div className="col-12">
-                                <h1 className="header-title">Cộng đồng chia sẻ</h1>
-                                <p className="header-subtitle">Nơi kết nối và chia sẻ kinh nghiệm, kiến thức cùng cộng đồng</p>
+                                <h1 className="header-title">🌟 Cộng đồng chia sẻ</h1>
+                                <p className="header-subtitle">Nơi kết nối và chia sẻ kinh nghiệm, kiến thức cùng cộng đồng cai thuốc lá</p>
                             </div>
                         </div>
                     </div>
@@ -591,7 +686,7 @@ export default function Community() {
                         {/* Create Post Card */}
                         <div className="create-post-card">
                             <div className="create-post-header">
-                                <h2 className="create-post-title">Tạo bài viết mới</h2>
+                                <h2 className="create-post-title">📝 Tạo bài viết mới</h2>
                             </div>
                             <div className="create-post-body">
                                 <form onSubmit={handlePost}>
@@ -601,23 +696,32 @@ export default function Community() {
                                             className="form-control form-textarea"
                                             value={content}
                                             onChange={(e) => setContent(e.target.value)}
-                                            placeholder="Chia sẻ cảm nghĩ, kinh nghiệm hoặc đặt câu hỏi của bạn..."
+                                            placeholder="Chia sẻ cảm nghĩ, kinh nghiệm hoặc đặt câu hỏi của bạn về quá trình cai thuốc lá..."
                                             rows={4}
+                                            disabled={!token}
                                         />
                                     </div>
 
                                     <div className="d-flex justify-content-between align-items-center">
-                                        <div className="text-muted small">
-                                            {fullName ? `Đăng bài với tên: ${fullName}` : "Vui lòng đăng nhập để đăng bài"}
+                                        <div>
+                                            {fullName && token ? (
+                                                <div className="user-status">
+                                                    ✅ Đăng bài với tên: <strong>{fullName}</strong>
+                                                </div>
+                                            ) : (
+                                                <div className="auth-warning">
+                                                    ⚠️ Vui lòng đăng nhập để đăng bài
+                                                </div>
+                                            )}
                                         </div>
-                                        <button type="submit" disabled={loading} className="btn-primary">
+                                        <button type="submit" disabled={loading || !token || !content.trim()} className="btn-primary">
                                             {loading ? (
                                                 <>
                                                     <span className="loading-spinner me-2"></span>
                                                     Đang đăng...
                                                 </>
                                             ) : (
-                                                "Đăng bài"
+                                                "📤 Đăng bài"
                                             )}
                                         </button>
                                     </div>
@@ -629,8 +733,8 @@ export default function Community() {
                         <div className="posts-list">
                             {posts.length === 0 ? (
                                 <div className="empty-state">
-                                    <h3>Chưa có bài viết nào</h3>
-                                    <p>Hãy là người đầu tiên chia sẻ cảm nghĩ hoặc kinh nghiệm của bạn!</p>
+                                    <h3>📭 Chưa có bài viết nào</h3>
+                                    <p>Hãy là người đầu tiên chia sẻ cảm nghĩ hoặc kinh nghiệm cai thuốc lá của bạn!</p>
                                 </div>
                             ) : (
                                 posts.map((post, idx) => {
@@ -640,10 +744,12 @@ export default function Community() {
                                             {/* Post Header */}
                                             <div className="post-header">
                                                 <div className="post-author-info">
-                                                    <div className="post-avatar">{(post.fullName || "A").charAt(0).toUpperCase()}</div>
+                                                    <div className="post-avatar">
+                                                        {(post.fullName || "A").charAt(0).toUpperCase()}
+                                                    </div>
                                                     <div className="post-author-details">
                                                         <h4>{post.fullName || "Ẩn danh"}</h4>
-                                                        <p className="post-time">{post.createTime}</p>
+                                                        <p className="post-time">📅 {post.createTime || "Vừa xong"}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -654,7 +760,9 @@ export default function Community() {
                                             {/* Comments Section */}
                                             <div className="comments-section">
                                                 <div className="comments-header">
-                                                    <h5 className="comments-title">Bình luận ({(comments[postId] || []).length})</h5>
+                                                    <h5 className="comments-title">
+                                                        💬 Bình luận ({(comments[postId] || []).length})
+                                                    </h5>
                                                 </div>
 
                                                 {commentLoading[postId] ? (
@@ -667,7 +775,7 @@ export default function Community() {
                                                         <div className="comments-list">
                                                             {(comments[postId] || []).length === 0 ? (
                                                                 <div className="text-muted text-center py-2">
-                                                                    <em>Chưa có bình luận nào. Hãy là người đầu tiên!</em>
+                                                                    <em>💭 Chưa có bình luận nào. Hãy là người đầu tiên!</em>
                                                                 </div>
                                                             ) : (
                                                                 comments[postId].map((cmt, cidx) => (
@@ -677,7 +785,7 @@ export default function Community() {
                                                                                 {(cmt.fullName || "A").charAt(0).toUpperCase()}
                                                                             </div>
                                                                             <span className="comment-author">{cmt.fullName || "Ẩn danh"}</span>
-                                                                            <span className="comment-time">{cmt.createTime}</span>
+                                                                            <span className="comment-time">🕐 {cmt.createTime || "Vừa xong"}</span>
                                                                         </div>
                                                                         <div className="comment-content">{cmt.content}</div>
                                                                     </div>
@@ -692,7 +800,8 @@ export default function Community() {
                                                                     className="comment-input"
                                                                     value={commentInputs[postId] || ""}
                                                                     onChange={(e) => handleCommentInput(postId, e.target.value)}
-                                                                    placeholder="Viết bình luận của bạn..."
+                                                                    placeholder={token ? "Viết bình luận của bạn..." : "Đăng nhập để bình luận..."}
+                                                                    disabled={!token}
                                                                     onKeyDown={(e) => {
                                                                         if (e.key === "Enter" && !e.shiftKey) {
                                                                             e.preventDefault()
@@ -702,7 +811,7 @@ export default function Community() {
                                                                 />
                                                                 <button
                                                                     type="button"
-                                                                    disabled={commentLoading[postId]}
+                                                                    disabled={commentLoading[postId] || !token || !(commentInputs[postId] || "").trim()}
                                                                     onClick={() => handleCommentSubmit(postId)}
                                                                     className="btn-secondary"
                                                                 >
@@ -712,7 +821,7 @@ export default function Community() {
                                                                             Đang gửi...
                                                                         </>
                                                                     ) : (
-                                                                        "Gửi"
+                                                                        "💬 Gửi"
                                                                     )}
                                                                 </button>
                                                             </div>
@@ -732,7 +841,7 @@ export default function Community() {
                         {/* Search Card */}
                         <div className="sidebar-card">
                             <div className="sidebar-card-header">
-                                <h3 className="sidebar-card-title">Tìm kiếm</h3>
+                                <h3 className="sidebar-card-title">🔍 Tìm kiếm</h3>
                             </div>
                             <div className="sidebar-card-body">
                                 <form onSubmit={(e) => e.preventDefault()}>
@@ -744,55 +853,99 @@ export default function Community() {
                                         placeholder="Tìm kiếm bài viết hoặc tác giả..."
                                     />
                                 </form>
+                                {search && (
+                                    <div className="mt-2">
+                                        <small className="text-muted">
+                                            🎯 Tìm thấy <strong>{posts.length}</strong> kết quả cho "<strong>{search}</strong>"
+                                        </small>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Statistics Card */}
                         <div className="sidebar-card">
                             <div className="sidebar-card-header">
-                                <h3 className="sidebar-card-title">Thống kê</h3>
+                                <h3 className="sidebar-card-title">📊 Thống kê</h3>
                             </div>
                             <div className="sidebar-card-body">
                                 <div className="stats-grid">
                                     <div className="stat-item">
                                         <span className="stat-number">{allPosts.length}</span>
-                                        <div className="stat-label">Tổng bài viết</div>
+                                        <div className="stat-label">📝 Tổng bài viết</div>
                                     </div>
                                     <div className="stat-item">
                                         <span className="stat-number">
-                                            {Object.values(comments).reduce((total, postComments) => total + postComments.length, 0)}
+                                            {Object.values(comments).reduce((total, postComments) => total + (postComments?.length || 0), 0)}
                                         </span>
-                                        <div className="stat-label">Tổng bình luận</div>
+                                        <div className="stat-label">💬 Tổng bình luận</div>
                                     </div>
                                     <div className="stat-item">
                                         <span className="stat-number">{posts.length}</span>
-                                        <div className="stat-label">Kết quả hiển thị</div>
+                                        <div className="stat-label">🎯 Kết quả hiển thị</div>
                                     </div>
                                     <div className="stat-item">
-                                        <span className="stat-number">{new Set(allPosts.map((post) => post.fullName)).size}</span>
-                                        <div className="stat-label">Thành viên tham gia</div>
+                                        <span className="stat-number">
+                                            {new Set(allPosts.map((post) => post.fullName).filter(Boolean)).size}
+                                        </span>
+                                        <div className="stat-label">👥 Thành viên tham gia</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* User Info Card */}
-                        {fullName && (
+                        {fullName && token ? (
                             <div className="sidebar-card">
                                 <div className="sidebar-card-header">
-                                    <h3 className="sidebar-card-title">Thông tin người dùng</h3>
+                                    <h3 className="sidebar-card-title">👤 Thông tin người dùng</h3>
                                 </div>
                                 <div className="sidebar-card-body">
                                     <div className="d-flex align-items-center gap-3">
                                         <div className="post-avatar">{fullName.charAt(0).toUpperCase()}</div>
                                         <div>
                                             <h6 className="mb-1">{fullName}</h6>
-                                            <small className="text-muted">Thành viên hoạt động</small>
+                                            <small className="text-muted">🌟 Thành viên hoạt động</small>
+                                            <br />
+                                            <small className="text-muted">🎯 ID: {accountId || "Không xác định"}</small>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        ) : (
+                            <div className="sidebar-card">
+                                <div className="sidebar-card-header">
+                                    <h3 className="sidebar-card-title">🔐 Đăng nhập</h3>
+                                </div>
+                                <div className="sidebar-card-body">
+                                    <div className="text-center">
+                                        <p className="text-muted mb-3">Đăng nhập để tham gia thảo luận!</p>
+                                        <button
+                                            className="btn-primary"
+                                            onClick={() => window.location.href = '/login'}
+                                        >
+                                            🚀 Đăng nhập ngay
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         )}
+
+                        {/* Rules Card */}
+                        <div className="sidebar-card">
+                            <div className="sidebar-card-header">
+                                <h3 className="sidebar-card-title">📋 Quy tắc cộng đồng</h3>
+                            </div>
+                            <div className="sidebar-card-body">
+                                <ul style={{ fontSize: "0.875rem", lineHeight: "1.5", color: "#6b7280", paddingLeft: "1rem" }}>
+                                    <li>🤝 Tôn trọng và hỗ trợ lẫn nhau</li>
+                                    <li>💪 Chia sẻ kinh nghiệm tích cực</li>
+                                    <li>🚫 Không spam hoặc quảng cáo</li>
+                                    <li>🎯 Tập trung vào mục tiêu cai thuốc</li>
+                                    <li>❤️ Động viên những người khó khăn</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -22,19 +22,37 @@ const getUser = (state) => state.account?.user
 function* apiCall(url, options = {}) {
     try {
         console.log('🚀 Making API call to:', url);
+        console.log('📤 Request body:', options.body);
+
         const response = yield call(fetch, url, options)
 
         console.log('📡 API Response status:', response.status);
 
         if (!response.ok) {
-            const errorText = yield call([response, 'text'])
-            console.error('❌ API Error:', errorText);
+            // Lấy thông tin lỗi chi tiết từ server
+            let errorText;
+            try {
+                const errorJson = yield call([response, 'json'])
+                errorText = errorJson.message || errorJson.error || JSON.stringify(errorJson)
+                console.error('❌ API Error JSON:', errorJson);
+            } catch {
+                errorText = yield call([response, 'text'])
+                console.error('❌ API Error Text:', errorText);
+            }
             throw new Error(`HTTP ${response.status}: ${errorText}`)
         }
 
-        const data = yield call([response, 'json'])
-        console.log('✅ API Response data:', data);
-        return data
+        // Xử lý response tùy theo content-type
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = yield call([response, 'json'])
+            console.log('✅ API Response data:', data);
+            return data
+        } else {
+            const text = yield call([response, 'text'])
+            console.log('✅ API Response text:', text);
+            return text
+        }
     } catch (error) {
         console.error('❌ API Call failed:', error);
         throw error
@@ -47,6 +65,9 @@ function* createPaymentSaga(action) {
         const token = yield select(getToken)
         const user = yield select(getUser)
 
+        console.log('🔐 Token:', token ? 'Có token' : 'Không có token')
+        console.log('👤 User:', user)
+
         if (!token) {
             throw new Error('Token không tồn tại. Vui lòng đăng nhập lại.')
         }
@@ -55,19 +76,36 @@ function* createPaymentSaga(action) {
         const getUserId = (user) => {
             if (!user) return null
             return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+                user["http://schemas.microsoft.com/ws/2008/06/identity/claims/nameidentifier"] ||
                 user.userId ||
                 user.id ||
+                user.accountId ||
                 null
         }
 
         const accountId = getUserId(user)
+        console.log('🆔 Account ID:', accountId)
 
+        // Chuẩn hóa dữ liệu payment theo đúng format API mong đợi
         const paymentData = {
-            ...action.payload,
-            accountId
+            packageMembershipId: Number(action.payload.packageMembershipId),
+            timeBuy: action.payload.timeBuy || new Date().toISOString(),
+            totalPrice: Number(action.payload.totalPrice),
+            startDate: action.payload.startDate,
+            endDate: action.payload.endDate,
+            paymentStatus: action.payload.paymentStatus || "Success",
+            transactionCode: action.payload.transactionCode || ""
         }
 
-        console.log('🚀 Creating payment:', paymentData)
+        console.log('💳 Payment data sending to API:', paymentData)
+
+        // Kiểm tra tất cả field bắt buộc
+        const requiredFields = ['packageMembershipId', 'totalPrice', 'startDate', 'endDate'];
+        for (const field of requiredFields) {
+            if (!paymentData[field] && paymentData[field] !== 0) {
+                throw new Error(`Field ${field} là bắt buộc!`);
+            }
+        }
 
         const response = yield call(apiCall, `${API_BASE_URL}/Payment/create`, {
             method: 'POST',
@@ -83,7 +121,7 @@ function* createPaymentSaga(action) {
         yield put(createPaymentSuccess({
             ...paymentData,
             response,
-            accountId
+            accountId // Thêm accountId để tracking
         }))
 
     } catch (error) {

@@ -14,16 +14,13 @@ const initialState = {
     // Current package
     currentPackage: null,
 
-    // Completed payments tracking
+    // Completed payments
     completedPayments: [],
 
-    // Payment history
-    paymentHistory: [],
-
-    // Cigarettes state
-    cigarettesLoading: false,
-    cigarettesSuccess: false,
-    cigarettesError: null,
+    // Today cigarettes
+    todayCigarettesLoading: false,
+    todayCigarettesSuccess: false,
+    todayCigarettesError: null,
 }
 
 const paymentSlice = createSlice({
@@ -31,29 +28,24 @@ const paymentSlice = createSlice({
     initialState,
     reducers: {
         // Payment actions
-        createPaymentRequest: (state, action) => {
-            console.log('🔄 createPaymentRequest triggered');
+        createPaymentRequest: (state) => {
             state.paymentLoading = true
-            state.paymentError = null
             state.paymentSuccess = false
+            state.paymentError = null
         },
         createPaymentSuccess: (state, action) => {
-            console.log('✅ createPaymentSuccess triggered:', action.payload);
             state.paymentLoading = false
             state.paymentSuccess = true
             state.paymentError = null
-
-            // Add to payment history
-            state.paymentHistory.push(action.payload)
-
-            // Add to completed payments tracking
-            const paymentKey = `${action.payload.packageMembershipId}_${action.payload.accountId}`
-            if (!state.completedPayments.includes(paymentKey)) {
-                state.completedPayments.push(paymentKey)
+            // Add to completed payments
+            if (action.payload.packageMembershipId && action.payload.accountId) {
+                const paymentKey = `${action.payload.packageMembershipId}_${action.payload.accountId}`
+                if (!state.completedPayments.includes(paymentKey)) {
+                    state.completedPayments.push(paymentKey)
+                }
             }
         },
         createPaymentFailure: (state, action) => {
-            console.log('❌ createPaymentFailure triggered:', action.payload);
             state.paymentLoading = false
             state.paymentSuccess = false
             state.paymentError = action.payload
@@ -82,59 +74,45 @@ const paymentSlice = createSlice({
             state.currentPackage = null
         },
 
-        // Cigarettes actions
-        updateTodayCigarettesRequest: (state, action) => {
-            state.cigarettesLoading = true
-            state.cigarettesError = null
-            state.cigarettesSuccess = false
-        },
-        updateTodayCigarettesSuccess: (state, action) => {
-            state.cigarettesLoading = false
-            state.cigarettesSuccess = true
-            state.cigarettesError = null
-        },
-        updateTodayCigarettesFailure: (state, action) => {
-            state.cigarettesLoading = false
-            state.cigarettesSuccess = false
-            state.cigarettesError = action.payload
-        },
-
-        // Clear state actions
+        // Clear state
         clearPaymentState: (state) => {
-            console.log('🧹 clearPaymentState triggered');
             state.paymentLoading = false
             state.paymentSuccess = false
             state.paymentError = null
         },
-        clearAllPaymentData: (state) => {
-            return initialState
+
+        // Today cigarettes actions
+        updateTodayCigarettesRequest: (state) => {
+            state.todayCigarettesLoading = true
+            state.todayCigarettesSuccess = false
+            state.todayCigarettesError = null
         },
-    },
+        updateTodayCigarettesSuccess: (state, action) => {
+            state.todayCigarettesLoading = false
+            state.todayCigarettesSuccess = true
+            state.todayCigarettesError = null
+        },
+        updateTodayCigarettesFailure: (state, action) => {
+            state.todayCigarettesLoading = false
+            state.todayCigarettesSuccess = false
+            state.todayCigarettesError = action.payload
+        },
+    }
 })
 
 export const {
-    // Payment actions
     createPaymentRequest,
     createPaymentSuccess,
     createPaymentFailure,
-
-    // Package actions
     fetchPackagesRequest,
     fetchPackagesSuccess,
     fetchPackagesFailure,
-
-    // Current package actions
     setCurrentPackage,
     clearCurrentPackage,
-
-    // Cigarettes actions
+    clearPaymentState,
     updateTodayCigarettesRequest,
     updateTodayCigarettesSuccess,
     updateTodayCigarettesFailure,
-
-    // Clear state actions
-    clearPaymentState,
-    clearAllPaymentData,
 } = paymentSlice.actions
 
 export default paymentSlice.reducer
