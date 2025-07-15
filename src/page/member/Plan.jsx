@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../../AuthContext/AuthContext";
 import Footer from "../../components/Footer";
-import { updateTodayCigarettesRequest } from "../../redux/components/payment/paymentSlice"; // Thêm import action
 
 export default function Plan() {
     const navigate = useNavigate();
@@ -1351,4 +1350,4 @@ export default function Plan() {
         </div>
     );
 
-} // ĐÓNG COMPONENT PLAN
+} 

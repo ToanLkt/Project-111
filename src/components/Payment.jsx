@@ -12,8 +12,7 @@ import {
   setCurrentPackage,
   clearPaymentState,
   fetchPackagesRequest,
-  // THÊM: Action để fetch current package của user
-  fetchCurrentPackageRequest
+  fetchUserTransactionsRequest
 } from "../redux/components/payment/paymentSlice"
 
 // Thông tin ngân hàng
@@ -138,13 +137,13 @@ export default function Payment() {
   const [buyingPkg, setBuyingPkg] = useState(null)
   const [transactionCode, setTransactionCode] = useState("")
 
-  // THÊM: Fetch current package khi user login - but don't block UI
+  // Fetch current package và packages khi user login
   useEffect(() => {
-    if (token && accountId && !currentPackage) {
-      // Only fetch if we haven't tried yet
-      // dispatch(fetchCurrentPackageRequest(accountId))
+    if (token && accountId) {
+      console.log("🚀 Fetching user transactions to get current package...")
+      dispatch(fetchUserTransactionsRequest())
     }
-  }, [token, accountId, currentPackage, dispatch])
+  }, [token, accountId, dispatch])
 
   // Fetch packages khi component mount
   useEffect(() => {
@@ -294,15 +293,41 @@ export default function Payment() {
     }
   }, [showQR, buyingPkg, transactionCode, accountId, dispatch, completedPayments])
 
-  // THÊM: Function để check nếu user đang sử dụng gói này
+  // Function để check nếu user đang sử dụng gói này (dựa vào giao dịch gần nhất)
   const isCurrentPackage = (pkg) => {
     if (!currentPackage || !accountId) return false
 
-    const isSamePackage = currentPackage.package_membership_ID === pkg.package_membership_ID
-    const isSameAccount = currentPackage.accountId === accountId
-    const isNotExpired = currentPackage.endDate ? new Date(currentPackage.endDate) > new Date() : true
+    const isSamePackage = currentPackage.package_membership_ID === pkg.package_membership_ID ||
+      currentPackage.packageMembershipId === pkg.package_membership_ID
 
-    return isSamePackage && isSameAccount && isNotExpired
+    if (isSamePackage) {
+      const now = new Date()
+      const endDate = new Date(currentPackage.endDate)
+      const isNotExpired = endDate > now && currentPackage.paymentStatus === 'Success'
+
+      console.log('🔍 Checking current package in Payment:', {
+        packageId: pkg.package_membership_ID,
+        currentPackageId: currentPackage.package_membership_ID || currentPackage.packageMembershipId,
+        endDate: currentPackage.endDate,
+        isNotExpired,
+        paymentStatus: currentPackage.paymentStatus
+      })
+
+      return isNotExpired
+    }
+
+    return false
+  }
+
+  // Function để check xem có thể mua gói mới không (có gói đang hoạt động)
+  const canPurchaseNewPackage = () => {
+    if (!currentPackage) return true
+
+    const now = new Date()
+    const endDate = new Date(currentPackage.endDate)
+    const hasActivePackage = endDate > now && currentPackage.paymentStatus === 'Success'
+
+    return !hasActivePackage
   }
 
   const getPackageIcon = (category) => {
@@ -874,9 +899,26 @@ export default function Payment() {
                 <p className="payment-subtitle">
                   Chọn gói thành viên phù hợp để bắt đầu hành trình của bạn
                   {currentPackage && (
-                    <><br /><span style={{ color: COLORS.success, fontWeight: 600 }}>
-                      ✅ Bạn đang sử dụng gói {currentPackage.category}
-                    </span></>
+                    <>
+                      <br />
+                      <span style={{ color: COLORS.success, fontWeight: 600 }}>
+                        ✅ Bạn đang sử dụng gói {currentPackage.category || 'N/A'}
+                      </span>
+                      {currentPackage.endDate && (
+                        <span style={{ color: COLORS.textLight, fontSize: '0.9rem' }}>
+                          <br />
+                          (Hết hạn: {new Date(currentPackage.endDate).toLocaleDateString('vi-VN')})
+                        </span>
+                      )}
+                    </>
+                  )}
+                  {!canPurchaseNewPackage() && (
+                    <>
+                      <br />
+                      <span style={{ color: COLORS.warning, fontWeight: 600 }}>
+                        ⚠️ Bạn đang có gói chưa hết hạn. Không thể mua gói mới.
+                      </span>
+                    </>
                   )}
                 </p>
 
@@ -908,10 +950,11 @@ export default function Payment() {
                 ) : packages && packages.length > 0 ? (
                   <div className="packages-grid">
                     {packages.map((pkg, index) => {
-                      // THAY ĐỔI: Sử dụng function isCurrentPackage
+                      // Kiểm tra gói hiện tại và khả năng mua
                       const isCurrent = isCurrentPackage(pkg)
                       const isActive = pkg.status === "Active"
-                      const canBuy = isActive && !isCurrent
+                      const canPurchase = canPurchaseNewPackage()
+                      const canBuy = isActive && !isCurrent && canPurchase
 
                       return (
                         <div
@@ -975,7 +1018,7 @@ export default function Payment() {
                           ) : (
                             <button className="package-button btn-disabled" disabled>
                               <i className="fas fa-lock"></i>
-                              Không khả dụng
+                              {!canPurchase ? 'Bạn đã có gói chưa hết hạn' : 'Không khả dụng'}
                             </button>
                           )}
                         </div>

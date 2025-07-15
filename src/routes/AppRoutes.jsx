@@ -105,28 +105,16 @@ export default function AppRoutes() {
           }
         />
 
+        {/* Public routes - không cần đăng nhập */}
+        <Route path="ranking" element={<Ranking />} />
+        <Route path="feedback" element={<Feedback />} />
+
         {/* Member shared routes - CHỈ cho Member */}
         <Route
           path="community"
           element={
             <ProtectedRoute allowedRoles={["Member"]}>
               <Community />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="ranking"
-          element={
-            <ProtectedRoute allowedRoles={["Member"]}>
-              <Ranking />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="feedback"
-          element={
-            <ProtectedRoute allowedRoles={["Member"]}>
-              <Feedback />
             </ProtectedRoute>
           }
         />

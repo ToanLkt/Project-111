@@ -1,7 +1,8 @@
 import React from "react";
-import { Link, useLocation, Outlet, Navigate } from "react-router-dom"
+import { Link, useLocation, Outlet, Navigate, useNavigate } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
 import { logout as logoutAction } from "../../redux/login/loginSlice"
+import { safeNavigate, clearUserData, handleLogoutError } from '../../utils/navigationUtils'
 import "bootstrap/dist/css/bootstrap.min.css"
 
 const COLORS = {
@@ -24,6 +25,7 @@ const COLORS = {
 export default function AdminNavbar() {
   const location = useLocation()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const { user, token, loading } = useSelector((state) => state.account || {});
 
   // Extract thông tin từ user object
@@ -50,9 +52,27 @@ export default function AdminNavbar() {
   const isAuthenticated = !!(token && user)
 
   // Xử lý đăng xuất
-  const handleLogout = () => {
-    dispatch(logoutAction())
-    window.location.href = "/login"
+  const handleLogout = async () => {
+    try {
+      console.log("🚪 Admin logout process starting...")
+
+      // Clear data first
+      clearUserData()
+
+      // Logout từ Redux
+      dispatch(logoutAction())
+
+      console.log("✅ Admin logout completed, redirecting...")
+
+      // Safe navigation
+      setTimeout(() => {
+        safeNavigate(navigate, "/")
+      }, 100)
+
+    } catch (error) {
+      console.error("❌ Admin logout error:", error)
+      handleLogoutError(error, navigate)
+    }
   }
 
   // Authentication checks

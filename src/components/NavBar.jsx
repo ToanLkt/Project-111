@@ -7,6 +7,7 @@ import { useSelector, useDispatch } from "react-redux"
 import { logout as logoutAction } from "../redux/login/loginSlice"
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { safeNavigate, clearUserData, handleLogoutError } from '../utils/navigationUtils'
 
 const COLORS = {
   background: "#FAFAF9",
@@ -65,43 +66,156 @@ export default function NavBar() {
     return name.charAt(0).toUpperCase()
   }
 
-  // Kiểm tra xem user đã đăng nhập và có role member không
-  const isAuthenticated = !!(token && user && getUserRole() === "Member")
+  // Kiểm tra xem user đã đăng nhập
+  const isAuthenticated = !!(token && user)
   const isMember = getUserRole() === "Member"
+  const isCoach = getUserRole() === "Coach"
+  const isAdmin = getUserRole() === "Admin"
+
+  // Cập nhật: Chỉ có plan, community, coach cần authentication hoàn toàn
+  const protectedRoutes = ["/plan", "/community", "/coach"]
 
   const navItems = [
-    { to: "/", label: "Trang chủ", icon: "🏠" },
-    { to: "/plan", label: "Lộ trình", icon: "🗺️" },
-    { to: "/community", label: "Cộng đồng", icon: "👥" },
-    { to: "/coach", label: "Chuyên gia", icon: "🧠" },
-    { to: "/ranking", label: "Bảng xếp hạng", icon: "🏆" },
-    { to: "/feedback", label: "Phản hồi", icon: "💬" },
+    { to: "/", label: "Trang chủ", icon: "🏠", protected: false },
+    { to: "/plan", label: "Lộ trình", icon: "🗺️", protected: true }, // Cần đăng nhập
+    { to: "/community", label: "Cộng đồng", icon: "👥", protected: true }, // Cần đăng nhập
+    { to: "/coach", label: "Chuyên gia", icon: "🧠", protected: true }, // Cần đăng nhập
+    { to: "/ranking", label: "Bảng xếp hạng", icon: "🏆", protected: false }, // Xem được nhưng có giới hạn chức năng
+    { to: "/feedback", label: "Phản hồi", icon: "💬", protected: false }, // Xem được nhưng có giới hạn chức năng
   ]
 
-  // Xử lý đăng xuất
+  // Xử lý click navigation item
+  const handleNavClick = (e, item) => {
+    // Chỉ chặn navigation cho các route thực sự cần authentication hoàn toàn
+    if (item.protected && !isAuthenticated) {
+      e.preventDefault()
+      alert("Bạn cần đăng nhập để truy cập trang này!")
+      navigate(`/login?returnUrl=${encodeURIComponent(item.to)}`)
+      return
+    }
+    // Đối với ranking và feedback: Cho phép truy cập nhưng sẽ có giới hạn chức năng
+    // Logic giới hạn sẽ được xử lý trong từng component tương ứng
+  }
+
+  // Xử lý click cho mobile menu
+  const handleMobileNavClick = (e, item) => {
+    if (item.protected && !isAuthenticated) {
+      e.preventDefault()
+      // Đóng mobile menu trước
+      const offcanvasElement = document.getElementById('mobileMenu')
+      if (offcanvasElement) {
+        const offcanvas = window.bootstrap?.Offcanvas?.getInstance(offcanvasElement)
+        if (offcanvas) {
+          offcanvas.hide()
+        }
+      }
+
+      // Show alert và redirect
+      setTimeout(() => {
+        alert("Bạn cần đăng nhập để truy cập trang này!")
+        navigate(`/login?returnUrl=${encodeURIComponent(item.to)}`)
+      }, 300) // Delay để offcanvas đóng hoàn toàn
+      return
+    }
+    // Đối với trang không cần authentication hoặc đã đăng nhập: Cho phép truy cập bình thường
+    // Menu sẽ tự động đóng nhờ data-bs-dismiss="offcanvas"
+  }
+
+  // Xử lý click đăng nhập - đảm bảo clear session trước
+  const handleLoginClick = async (e) => {
+    e.preventDefault()
+
+    // Nếu user đã đăng nhập, đăng xuất trước
+    if (isAuthenticated) {
+      console.log("🔄 User already authenticated, logging out first...")
+      await handleLogout()
+      // Delay một chút để đảm bảo logout hoàn tất
+      setTimeout(() => {
+        navigate("/login")
+      }, 200)
+    } else {
+      navigate("/login")
+    }
+  }
+
+  // Xử lý mobile login click
+  const handleMobileLoginClick = async (e) => {
+    e.preventDefault()
+
+    // Đóng mobile menu trước
+    const offcanvasElement = document.getElementById('mobileMenu')
+    if (offcanvasElement) {
+      const offcanvas = window.bootstrap?.Offcanvas?.getInstance(offcanvasElement)
+      if (offcanvas) {
+        offcanvas.hide()
+      }
+    }
+
+    // Delay một chút để menu đóng, rồi xử lý login
+    setTimeout(async () => {
+      if (isAuthenticated) {
+        console.log("🔄 User already authenticated, logging out first...")
+        await handleLogout()
+        setTimeout(() => {
+          navigate("/login")
+        }, 200)
+      } else {
+        navigate("/login")
+      }
+    }, 300)
+  }
   const handleLogout = async () => {
     try {
+      console.log("🚪 Starting logout process...")
+
+      // Clear data first
+      clearUserData()
+
       // Logout từ Redux
       dispatch(logoutAction())
 
       // Logout từ AuthContext nếu có
       if (authLogout) {
-        authLogout()
+        try {
+          await authLogout()
+        } catch (authError) {
+          console.warn("⚠️ AuthContext logout warning:", authError)
+        }
       }
 
-      console.log("Logout successful")
+      console.log("✅ Logout completed, redirecting to home...")
+
+      // Safe navigation với delay nhỏ
+      setTimeout(() => {
+        safeNavigate(navigate, "/")
+      }, 100)
+
     } catch (error) {
-      console.error("Logout error:", error)
+      console.error("❌ Logout error:", error)
+      handleLogoutError(error, navigate)
     }
   }
 
   useEffect(() => {
-    // Auto redirect Admin đến admin panel
-    if (isAuthenticated && getUserRole() === "Admin") {
-      console.log("Admin detected, redirecting to admin panel");
-      navigate("/admin", { replace: true });
+    // Auto redirect theo role - chỉ khi ở trang chủ, không redirect từ login
+    if (isAuthenticated && getUserRole()) {
+      const role = getUserRole()
+      const currentPath = location.pathname
+
+      // Chỉ redirect khi đang ở trang chủ, không redirect từ login để user có thể đăng xuất/đăng nhập lại
+      if (currentPath === "/") {
+        switch (role) {
+          case "Admin":
+            safeNavigate(navigate, "/admin")
+            break
+          case "Coach":
+            safeNavigate(navigate, "/coachpage")
+            break
+          // Member không cần redirect, có thể ở bất kỳ đâu
+        }
+      }
     }
-  }, [isAuthenticated, getUserRole, navigate]);
+  }, [isAuthenticated, getUserRole, navigate, location.pathname])
 
   return (
     <>
@@ -277,16 +391,14 @@ export default function NavBar() {
           background: ${COLORS.white};
           color: ${COLORS.color3};
           border-radius: 50px;
-          padding: 0.8rem 1.5rem;
+          padding: 0.8rem 1.8rem;
           display: flex;
           align-items: center;
-          gap: 0.8rem;
+          gap: 1rem;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
           font-weight: 600;
           backdrop-filter: blur(10px);
-          white-space: nowrap;
-          min-width: fit-content;
         }
 
         .navbar-user-dropdown:hover {
@@ -297,53 +409,33 @@ export default function NavBar() {
         }
 
         .navbar-user-avatar {
-          width: 40px;
-          height: 40px;
+          width: 45px;
+          height: 45px;
           background: ${COLORS.gradient};
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 1.1rem;
+          font-size: 1.2rem;
           font-weight: 700;
           box-shadow: 0 6px 16px rgba(106, 183, 197, 0.25);
           border: 2px solid ${COLORS.white};
-          flex-shrink: 0;
-        }
-
-        .navbar-user-name {
-          flex-shrink: 0;
-          max-width: 120px;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         .navbar-auth-btn {
           border-radius: 50px;
-          padding: 0.9rem 2rem;
+          padding: 1rem 2.5rem;
           font-weight: 700;
-          font-size: 0.95rem;
+          font-size: 1.05rem;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           text-decoration: none;
           display: inline-flex;
           align-items: center;
-          gap: 0.6rem;
+          gap: 0.8rem;
           position: relative;
           overflow: hidden;
           box-shadow: 0 6px 20px rgba(51, 107, 115, 0.08);
-          white-space: nowrap;
-          min-width: fit-content;
-          flex-shrink: 0;
-        }
-
-        .navbar-auth-btn-icon {
-          font-size: 0.9rem;
-          flex-shrink: 0;
-        }
-
-        .navbar-auth-btn-text {
-          flex-shrink: 0;
         }
 
         .navbar-auth-btn::before {
@@ -406,43 +498,27 @@ export default function NavBar() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 0.8rem;
-          flex-wrap: nowrap;
-          width: 100%;
+          gap: 1rem;
         }
 
         .navbar-nav-item {
           position: relative;
-          flex-shrink: 0;
         }
 
         .navbar-nav-link {
-          padding: 1rem 1.8rem;
+          padding: 1.2rem 2.5rem;
           border-radius: 50px;
           font-weight: 700;
-          font-size: 0.95rem;
+          font-size: 1.05rem;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           text-decoration: none;
           position: relative;
           display: flex;
           align-items: center;
-          gap: 0.6rem;
+          gap: 0.8rem;
           border: 2px solid ${COLORS.color1};
           backdrop-filter: blur(10px);
           box-shadow: 0 6px 20px rgba(51, 107, 115, 0.06);
-          white-space: nowrap;
-          min-width: fit-content;
-        }
-
-        .navbar-nav-link-icon {
-          font-size: 1rem;
-          flex-shrink: 0;
-          width: 20px;
-          text-align: center;
-        }
-
-        .navbar-nav-link-text {
-          flex-shrink: 0;
         }
 
         .navbar-nav-link-active {
@@ -587,71 +663,6 @@ export default function NavBar() {
           transform: scale(1.1);
         }
 
-        /* Responsive Media Queries - Cải thiện */
-        @media (max-width: 1400px) {
-          .navbar-nav-link {
-            padding: 0.9rem 1.5rem;
-            font-size: 0.9rem;
-            gap: 0.5rem;
-          }
-          
-          .navbar-nav {
-            gap: 0.6rem;
-          }
-          
-          .navbar-auth-btn {
-            padding: 0.8rem 1.8rem;
-            font-size: 0.9rem;
-          }
-        }
-
-        @media (max-width: 1200px) {
-          .navbar-nav-link {
-            padding: 0.8rem 1.3rem;
-            font-size: 0.85rem;
-          }
-          
-          .navbar-nav {
-            gap: 0.5rem;
-          }
-          
-          .navbar-auth-btn {
-            padding: 0.8rem 1.5rem;
-            font-size: 0.85rem;
-          }
-          
-          .navbar-user-dropdown {
-            padding: 0.7rem 1.3rem;
-          }
-          
-          .navbar-user-avatar {
-            width: 36px;
-            height: 36px;
-            font-size: 1rem;
-          }
-        }
-
-        @media (max-width: 992px) {
-          .navbar-nav-link {
-            padding: 0.7rem 1.2rem;
-            font-size: 0.8rem;
-            gap: 0.4rem;
-          }
-          
-          .navbar-nav-link-icon {
-            font-size: 0.9rem;
-          }
-          
-          .navbar-nav {
-            gap: 0.4rem;
-          }
-          
-          .navbar-auth-btn {
-            padding: 0.7rem 1.3rem;
-            font-size: 0.8rem;
-          }
-        }
-
         @media (max-width: 768px) {
           .navbar-search-input {
             font-size: 1rem;
@@ -677,23 +688,20 @@ export default function NavBar() {
           }
 
           .navbar-nav {
-            display: none !important;
+            flex-wrap: wrap;
+            gap: 0.5rem;
           }
 
-          .navbar-auth-btn {
-            padding: 0.8rem 1.5rem;
-            font-size: 0.9rem;
-          }
-          
-          .navbar-user-dropdown {
-            padding: 0.7rem 1.2rem;
+          .navbar-nav-link {
+            padding: 1rem 1.8rem;
+            font-size: 1rem;
           }
         }
 
         @media (max-width: 576px) {
           .navbar-auth-btn {
-            padding: 0.7rem 1.3rem;
-            font-size: 0.85rem;
+            padding: 0.8rem 1.8rem;
+            font-size: 1rem;
           }
 
           .navbar-brand {
@@ -704,39 +712,35 @@ export default function NavBar() {
             width: 50px;
             height: 50px;
           }
-          
-          .navbar-user-dropdown {
-            padding: 0.6rem 1rem;
-          }
-          
-          .navbar-user-avatar {
-            width: 32px;
-            height: 32px;
-            font-size: 0.9rem;
-          }
         }
 
-        /* Prevent text wrapping và overflow */
-        .container-fluid {
-          padding-left: 1rem;
-          padding-right: 1rem;
+        .navbar-nav-link-protected {
+          position: relative;
         }
-        
-        .navbar-main .container-fluid {
-          padding-left: 0.5rem;
-          padding-right: 0.5rem;
+
+        .navbar-nav-link-protected:not(.navbar-nav-link-active)::after {
+          content: '🔒';
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          font-size: 0.8rem;
+          opacity: 0.7;
         }
-        
-        /* Đảm bảo navbar không bị overflow */
-        .navbar-main {
-          overflow-x: auto;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        
-        .navbar-main::-webkit-scrollbar {
-          display: none;
-        }
+
+        .auth-required-badge {
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          background: #F59E0B;
+          color: white;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          font-weight: bold;
         }
       `}</style>
 
@@ -773,7 +777,7 @@ export default function NavBar() {
               {/* Account Section */}
               <div className="col-lg-3 col-md-4 col-sm-6">
                 <div className="d-flex align-items-center justify-content-end gap-3">
-                  {isAuthenticated && isMember ? (
+                  {isAuthenticated && (isMember || isCoach || isAdmin) ? (
                     <div className="dropdown">
                       <button
                         className="btn navbar-user-dropdown"
@@ -783,10 +787,10 @@ export default function NavBar() {
                         disabled={loading}
                       >
                         <div className="navbar-user-avatar">{getUserInitial()}</div>
-                        <span className="navbar-user-name d-none d-sm-inline text-truncate">
+                        <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
                           {getUserName()}
                         </span>
-                        <i className="fas fa-chevron-down" style={{ fontSize: "0.7rem", flexShrink: 0 }}></i>
+                        <i className="fas fa-chevron-down" style={{ fontSize: "0.8rem" }}></i>
                       </button>
                       <ul className="dropdown-menu dropdown-menu-end navbar-dropdown-menu">
                         <li>
@@ -825,13 +829,13 @@ export default function NavBar() {
                     </div>
                   ) : (
                     <>
-                      <Link to="/login" className="navbar-auth-btn navbar-auth-btn-login d-none d-sm-inline-flex">
-                        <i className="fas fa-sign-in-alt navbar-auth-btn-icon"></i>
-                        <span className="navbar-auth-btn-text">Đăng nhập</span>
-                      </Link>
+                      <button onClick={handleLoginClick} className="navbar-auth-btn navbar-auth-btn-login d-none d-sm-inline-flex">
+                        <i className="fas fa-sign-in-alt"></i>
+                        Đăng nhập
+                      </button>
                       <Link to="/register" className="navbar-auth-btn navbar-auth-btn-register">
-                        <i className="fas fa-user-plus navbar-auth-btn-icon"></i>
-                        <span className="navbar-auth-btn-text">Đăng ký</span>
+                        <i className="fas fa-user-plus"></i>
+                        Đăng ký
                       </Link>
                     </>
                   )}
@@ -866,31 +870,33 @@ export default function NavBar() {
           </div>
         </div>
 
-        {/* Main Navigation - Chỉ hiển thị khi user đã đăng nhập và là Member */}
-        {isAuthenticated && isMember && (
-          <nav className="navbar navbar-expand-lg navbar-main">
-            <div className="container-fluid">
-              <div className="w-100 d-flex justify-content-center">
-                <ul className="navbar-nav d-none d-lg-flex">
-                  {navItems.map((item) => {
-                    const isActive = pathname === item.to
-                    return (
-                      <li className="navbar-nav-item" key={item.to}>
-                        <Link
-                          to={item.to}
-                          className={`navbar-nav-link ${isActive ? "navbar-nav-link-active" : "navbar-nav-link-inactive"}`}
-                        >
-                          <span className="navbar-nav-link-icon">{item.icon}</span>
-                          <span className="navbar-nav-link-text">{item.label}</span>
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            </div>
-          </nav>
-        )}
+        {/* Main Navigation - Luôn hiển thị */}
+        <nav className="navbar navbar-expand-lg navbar-main">
+          <div className="container-fluid">
+            <ul className="navbar-nav mx-auto d-none d-lg-flex">
+              {navItems.map((item) => {
+                const isActive = pathname === item.to
+                return (
+                  <li className="navbar-nav-item" key={item.to}>
+                    <Link
+                      to={item.to}
+                      className={`navbar-nav-link ${isActive ? "navbar-nav-link-active" : "navbar-nav-link-inactive"} ${item.protected && !isAuthenticated ? "navbar-nav-link-protected" : ""}`}
+                      onClick={(e) => handleNavClick(e, item)}
+                    >
+                      <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
+                      {item.label}
+                      {item.protected && !isAuthenticated && (
+                        <div className="auth-required-badge">
+                          <i className="fas fa-lock" style={{ fontSize: "0.6rem" }}></i>
+                        </div>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </nav>
 
         {/* Mobile Offcanvas Menu */}
         <div
@@ -914,8 +920,8 @@ export default function NavBar() {
           </div>
 
           <div className="offcanvas-body offcanvas-body-custom">
-            {/* User Info trong Mobile Menu */}
-            {isAuthenticated && isMember && (
+            {/* User Info trong Mobile Menu - Hiển thị khi đã đăng nhập */}
+            {isAuthenticated && (isMember || isCoach || isAdmin) && (
               <div className="mb-4 pb-3" style={{ borderBottom: `1px solid ${COLORS.color1}` }}>
                 <div className="d-flex align-items-center gap-3">
                   <div className="navbar-user-avatar" style={{ width: "50px", height: "50px" }}>
@@ -931,59 +937,61 @@ export default function NavBar() {
               </div>
             )}
 
-            {/* Navigation Items - Chỉ hiển thị cho Member */}
-            {isAuthenticated && isMember && (
-              <>
-                {navItems.map((item) => {
-                  const isActive = pathname === item.to
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className={`offcanvas-nav-link ${isActive ? "offcanvas-nav-link-active" : "offcanvas-nav-link-inactive"}`}
-                      data-bs-dismiss="offcanvas"
-                    >
-                      <span style={{ fontSize: "1.2rem" }}>{item.icon}</span>
-                      {item.label}
-                    </Link>
-                  )
-                })}
+            {/* Navigation Items - Luôn hiển thị */}
+            {navItems.map((item) => {
+              const isActive = pathname === item.to
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`offcanvas-nav-link ${isActive ? "offcanvas-nav-link-active" : "offcanvas-nav-link-inactive"} position-relative`}
+                  onClick={(e) => handleMobileNavClick(e, item)}
+                  data-bs-dismiss={!item.protected || isAuthenticated ? "offcanvas" : ""}
+                >
+                  <span style={{ fontSize: "1.2rem" }}>{item.icon}</span>
+                  {item.label}
+                  {item.protected && !isAuthenticated && (
+                    <i className="fas fa-lock ms-auto" style={{ fontSize: "0.8rem", opacity: 0.7 }}></i>
+                  )}
+                </Link>
+              )
+            })}
 
-                {/* Mobile User Menu khi đã đăng nhập */}
-                <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${COLORS.color1}` }}>
-                  <Link
-                    to="/member/profile"
-                    className="offcanvas-nav-link offcanvas-nav-link-inactive mb-2"
-                    data-bs-dismiss="offcanvas"
-                  >
-                    <i className="fas fa-user"></i>
-                    Thông tin cá nhân
-                  </Link>
+            {/* Mobile User Menu khi đã đăng nhập */}
+            {isAuthenticated && (isMember || isCoach || isAdmin) && (
+              <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${COLORS.color1}` }}>
+                <Link
+                  to="/member/profile"
+                  className="offcanvas-nav-link offcanvas-nav-link-inactive mb-2"
+                  data-bs-dismiss="offcanvas"
+                >
+                  <i className="fas fa-user"></i>
+                  Thông tin cá nhân
+                </Link>
 
-                  <button
-                    onClick={handleLogout}
-                    className="offcanvas-nav-link offcanvas-nav-link-inactive w-100 border-0"
-                    style={{ background: "none", color: "#EF4444" }}
-                    data-bs-dismiss="offcanvas"
-                  >
-                    <i className="fas fa-sign-out-alt"></i>
-                    Đăng xuất
-                  </button>
-                </div>
-              </>
+                <button
+                  onClick={handleLogout}
+                  className="offcanvas-nav-link offcanvas-nav-link-inactive w-100 border-0"
+                  style={{ background: "none", color: "#EF4444" }}
+                  data-bs-dismiss="offcanvas"
+                >
+                  <i className="fas fa-sign-out-alt"></i>
+                  Đăng xuất
+                </button>
+              </div>
             )}
 
             {/* Mobile Auth Buttons khi chưa đăng nhập */}
             {!isAuthenticated && (
               <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${COLORS.color1}` }}>
-                <Link
-                  to="/login"
-                  className="offcanvas-nav-link offcanvas-nav-link-inactive mb-2"
-                  data-bs-dismiss="offcanvas"
+                <button
+                  onClick={handleMobileLoginClick}
+                  className="offcanvas-nav-link offcanvas-nav-link-inactive mb-2 w-100 border-0"
+                  style={{ background: "none", textAlign: "left" }}
                 >
                   <i className="fas fa-sign-in-alt"></i>
                   Đăng nhập
-                </Link>
+                </button>
                 <Link
                   to="/register"
                   className="offcanvas-nav-link offcanvas-nav-link-active"
@@ -995,23 +1003,7 @@ export default function NavBar() {
               </div>
             )}
 
-            {/* Message khi không phải Member */}
-            {isAuthenticated && !isMember && (
-              <div className="text-center p-4">
-                <div className="alert alert-warning">
-                  <i className="fas fa-exclamation-triangle"></i>
-                  <br />
-                  Bạn cần có quyền Member để truy cập các chức năng này.
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="btn btn-outline-danger"
-                >
-                  <i className="fas fa-sign-out-alt"></i>
-                  Đăng xuất
-                </button>
-              </div>
-            )}
+
           </div>
         </div>
       </div>

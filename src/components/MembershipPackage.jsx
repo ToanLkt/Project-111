@@ -6,7 +6,7 @@ import { useSelector, useDispatch } from "react-redux" // Thêm useDispatch
 import "bootstrap/dist/css/bootstrap.min.css"
 
 // Import Redux actions
-import { fetchPackagesRequest, restorePackageSession } from "../redux/components/payment/paymentSlice"
+import { fetchPackagesRequest, fetchUserTransactionsRequest } from "../redux/components/payment/paymentSlice"
 
 const COLORS = {
   background: "#FAFAF9",
@@ -84,14 +84,17 @@ export default function MembershipPackage() {
   const userId = getUserId()
   const userRole = getUserRole()
 
-  // Fetch packages từ Redux khi component mount
+  // Fetch packages và current package từ Redux khi component mount
   useEffect(() => {
     console.log("🚀 Dispatching fetchPackagesRequest from MembershipPackage...")
     dispatch(fetchPackagesRequest())
 
-    // Khôi phục package session
-    dispatch(restorePackageSession())
-  }, [dispatch])
+    // Nếu user đã login, fetch transactions để lấy gói đang dùng
+    if (token && userId) {
+      console.log("🚀 Dispatching fetchUserTransactionsRequest to get current package...")
+      dispatch(fetchUserTransactionsRequest())
+    }
+  }, [dispatch, token, userId])
 
   // Debug Redux state changes
   useEffect(() => {
@@ -125,13 +128,14 @@ export default function MembershipPackage() {
     }
 
     // Kiểm tra gói hiện tại từ Redux
-    if (isCurrentPackage(pkg)) {
+    if (currentPackage && currentPackage.package_membership_ID === pkg.package_membership_ID) {
       showToast("Bạn đã đang sử dụng gói này!")
       return
     }
 
-    // Kiểm tra đã mua gói này chưa
-    if (hasPurchasedPackage(pkg)) {
+    // Kiểm tra completedPayments
+    const paymentKey = `${pkg.package_membership_ID}_${userId}`
+    if (completedPayments.includes(paymentKey)) {
       showToast("Bạn đã mua gói này rồi!")
       return
     }
@@ -166,21 +170,27 @@ export default function MembershipPackage() {
     }).format(price)
   }
 
-  // Kiểm tra gói hiện tại - CHỈ hiển thị "Đang sử dụng" khi có currentPackage từ API
+  // Kiểm tra gói hiện tại dựa vào giao dịch gần nhất từ API
   const isCurrentPackage = (pkg) => {
     if (!userId || !currentPackage) return false
 
-    // Chỉ kiểm tra từ currentPackage (gói đang sử dụng từ API)
-    if (currentPackage.package_membership_ID === pkg.package_membership_ID) {
-      const isNotExpired = currentPackage.endDate ? new Date(currentPackage.endDate) > new Date() : true
+    // Kiểm tra gói từ currentPackage (giao dịch gần nhất từ API)
+    const isMatchingPackage = currentPackage.package_membership_ID === pkg.package_membership_ID ||
+      currentPackage.packageMembershipId === pkg.package_membership_ID
+
+    if (isMatchingPackage) {
+      const now = new Date()
+      const endDate = new Date(currentPackage.endDate)
+      const isNotExpired = endDate > now && currentPackage.paymentStatus === 'Success'
 
       console.log('🔍 Checking current package from API:', {
         packageId: pkg.package_membership_ID,
-        currentPackageId: currentPackage.package_membership_ID,
+        currentPackageId: currentPackage.package_membership_ID || currentPackage.packageMembershipId,
         endDate: currentPackage.endDate,
+        endDateObj: endDate,
+        now: now,
         isNotExpired,
-        accountId: currentPackage.accountId,
-        userId
+        paymentStatus: currentPackage.paymentStatus
       })
 
       return isNotExpired
@@ -189,14 +199,7 @@ export default function MembershipPackage() {
     return false
   }
 
-  // Kiểm tra đã mua gói này chưa (từ completedPayments)
-  const hasPurchasedPackage = (pkg) => {
-    if (!userId) return false
-    const paymentKey = `${pkg.package_membership_ID}_${userId}`
-    return completedPayments.includes(paymentKey)
-  }
-
-  // THÊM HÀM KIỂM TRA CÓ THỂ ĐĂNG KÝ
+  // Kiểm tra có thể đăng ký gói không
   const canRegisterPackage = (pkg) => {
     // Không thể đăng ký nếu chưa đăng nhập
     if (!token) return false
@@ -207,11 +210,21 @@ export default function MembershipPackage() {
     // Không thể đăng ký nếu gói không active
     if (pkg.status !== "Active") return false
 
-    // Không thể đăng ký nếu đang sử dụng gói này
-    if (isCurrentPackage(pkg)) return false
+    // Không thể đăng ký nếu có gói đang hoạt động (dựa vào giao dịch gần nhất)
+    if (currentPackage) {
+      const now = new Date()
+      const endDate = new Date(currentPackage.endDate)
+      const hasActivePackage = endDate > now && currentPackage.paymentStatus === 'Success'
 
-    // Không thể đăng ký nếu đã thanh toán gói này (nhưng chưa kích hoạt)
-    if (hasPurchasedPackage(pkg)) return false
+      if (hasActivePackage) {
+        console.log('🚫 Cannot register - user has active package:', {
+          currentPackageId: currentPackage.package_membership_ID || currentPackage.packageMembershipId,
+          endDate: currentPackage.endDate,
+          paymentStatus: currentPackage.paymentStatus
+        })
+        return false
+      }
+    }
 
     return true
   }
@@ -630,7 +643,6 @@ export default function MembershipPackage() {
                       const isCurrent = isCurrentPackage(pkg)
                       const isActive = pkg.status === "Active"
                       const canRegister = canRegisterPackage(pkg)
-                      const hasPurchased = hasPurchasedPackage(pkg)
 
                       // Debug log cho mỗi package
                       console.log(`📦 Package ${pkg.category}:`, {
@@ -638,10 +650,10 @@ export default function MembershipPackage() {
                         isCurrent,
                         isActive,
                         canRegister,
-                        hasPurchased,
                         hasCurrentPackage: !!currentPackage,
                         currentPackageId: currentPackage?.package_membership_ID,
-                        paymentKey: `${pkg.package_membership_ID}_${userId}`
+                        paymentKey: `${pkg.package_membership_ID}_${userId}`,
+                        hasPayment: completedPayments.includes(`${pkg.package_membership_ID}_${userId}`)
                       })
 
                       return (
@@ -693,9 +705,8 @@ export default function MembershipPackage() {
                               <i className="fas fa-lock"></i>
                               {!token ? "Cần đăng nhập" :
                                 userRole !== "Member" ? "Chỉ dành cho Member" :
-                                  hasPurchasedPackage(pkg) ? "Đã mua" :
-                                    pkg.status !== "Active" ? "Không khả dụng" :
-                                      "Không khả dụng"}
+                                  completedPayments.includes(`${pkg.package_membership_ID}_${userId}`) ? "Đã mua" :
+                                    "Không khả dụng"}
                             </button>
                           )}
                         </div>
@@ -708,7 +719,7 @@ export default function MembershipPackage() {
           </div>
         </div>
 
-        {/* Debug Panel - Development Only */}
+        {/* Debug Panel - Development Only
         {process.env.NODE_ENV === 'development' && (
           <div className="debug-panel">
             <div><strong>🔍 Membership Debug:</strong></div>
@@ -723,23 +734,21 @@ export default function MembershipPackage() {
             <div>Completed Payments: {completedPayments?.length || 0}</div>
             {currentPackage && (
               <>
-                <div>📍 CURRENT PACKAGE:</div>
                 <div>Current Pkg ID: {currentPackage.package_membership_ID}</div>
                 <div>End Date: {currentPackage.endDate ? new Date(currentPackage.endDate).toLocaleDateString() : "N/A"}</div>
                 <div>Account ID: {currentPackage.accountId}</div>
-                <div>Is Expired: {currentPackage.endDate ? (new Date(currentPackage.endDate) <= new Date() ? "❌" : "✅") : "N/A"}</div>
               </>
             )}
             {completedPayments.length > 0 && (
               <div>
-                <div>📋 Payment Keys:</div>
+                <div>Payment Keys:</div>
                 {completedPayments.map((key, i) => (
                   <div key={i} style={{ fontSize: "10px" }}>• {key}</div>
                 ))}
               </div>
             )}
           </div>
-        )}
+        )} */}
       </section>
     </>
   )
