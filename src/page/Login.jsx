@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchLogin } from "../redux/login/loginSlice";
 
@@ -59,70 +59,112 @@ export default function Login() {
         });
 
         if (user && token && !loading && !error) {
-            // Lấy role từ user object (sử dụng cả JWT claims và fallback)
-            const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
-                user.role ||
-                null;
+            try {
+                // Lấy role từ user object (sử dụng cả JWT claims và fallback)
+                const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+                    user.role ||
+                    null;
 
-            console.log("✅ Login success - User:", user);
-            console.log("✅ Login success - Role:", userRole, "- Redirecting...");
+                console.log("✅ Login success - User:", user);
+                console.log("✅ Login success - Role:", userRole, "- Redirecting...");
+                console.log("✅ User Current Package:", user.currentPackage);
+                console.log("✅ Package Status:", user.packageStatus);
 
-            setSuccess("Đăng nhập thành công!");
-            setShowToast(true);
-            setErrorMessage(""); // Clear any previous errors
+                // Hiển thị thông tin gói chi tiết nếu có
+                if (user.currentPackage) {
+                    const pkg = user.currentPackage;
+                    console.log(`📦 Gói hiện tại: ${pkg.name}`);
+                    console.log(`💰 Giá: ${pkg.price} VND`);
+                    console.log(`📅 Ngày bắt đầu: ${new Date(pkg.startDate).toLocaleDateString('vi-VN')}`);
+                    console.log(`📅 Ngày hết hạn: ${new Date(pkg.endDate).toLocaleDateString('vi-VN')}`);
+                    console.log(`⏰ Trạng thái: ${pkg.isActive ? 'Đang hoạt động' : 'Không hoạt động'}`);
 
-            // Redirect sau delay
-            setTimeout(() => {
-                setShowToast(false);
+                    if (pkg.isExpired) {
+                        console.log(`⚠️ Gói đã hết hạn`);
+                    } else if (pkg.isActive) {
+                        console.log(`✅ Gói còn lại: ${pkg.daysLeft} ngày`);
+                    }
 
-                switch (userRole?.toString().trim()) {
-                    case "Admin":
-                        console.log("🚀 Navigating to /admin");
-                        navigate("/admin", { replace: true });
-                        break;
-                    case "Coach":
-                        console.log("🚀 Navigating to /coachpage");
-                        navigate("/coachpage", { replace: true });
-                        break;
-                    case "Member":
-                        console.log("🚀 Navigating to /");
-                        navigate("/", { replace: true });
-                        break;
-                    default:
-                        console.log("🚀 Unknown role, navigating to /");
-                        navigate("/", { replace: true });
+                    console.log(`🔄 Mã giao dịch: ${pkg.transactionCode}`);
+                } else {
+                    console.log("📦 Chưa có gói nào được kích hoạt");
                 }
-            }, 1200);
+
+                setSuccess("Đăng nhập thành công!");
+                setShowToast(true);
+                setErrorMessage(""); // Clear any previous errors
+
+                // Redirect sau delay
+                setTimeout(() => {
+                    setShowToast(false);
+
+                    switch (userRole?.toString().trim()) {
+                        case "Admin":
+                            console.log("🚀 Navigating to /admin");
+                            navigate("/admin", { replace: true });
+                            break;
+                        case "Coach":
+                            console.log("🚀 Navigating to /coachpage");
+                            navigate("/coachpage", { replace: true });
+                            break;
+                        case "Member":
+                            console.log("🚀 Navigating to /");
+                            navigate("/", { replace: true });
+                            break;
+                        default:
+                            console.log("🚀 Unknown role, navigating to /");
+                            navigate("/", { replace: true });
+                    }
+                }, 1200);
+            } catch (err) {
+                console.error("Error during login redirect:", err);
+                setErrorMessage("Có lỗi xảy ra khi đăng nhập");
+                setShowToast(true);
+            }
         }
     }, [user, token, loading, error, navigate]);
 
     // Check if already logged in on mount
     useEffect(() => {
-        if (user && token && !loading) {
-            const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
-                user.role ||
-                null;
+        try {
+            if (user && token && !loading) {
+                const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+                    user.role ||
+                    null;
 
-            console.log("🔍 User already logged in on mount, redirecting...", { userRole, user });
+                console.log("🔍 User already logged in on mount, redirecting...", { userRole, user });
 
-            switch (userRole?.toString().trim()) {
-                case "Admin":
-                    navigate("/admin", { replace: true });
-                    break;
-                case "Coach":
-                    navigate("/coachpage", { replace: true });
-                    break;
-                case "Member":
-                    navigate("/", { replace: true });
-                    break;
-                default:
-                    navigate("/", { replace: true });
+                switch (userRole?.toString().trim()) {
+                    case "Admin":
+                        navigate("/admin", { replace: true });
+                        break;
+                    case "Coach":
+                        navigate("/coachpage", { replace: true });
+                        break;
+                    case "Member":
+                        navigate("/", { replace: true });
+                        break;
+                    default:
+                        navigate("/", { replace: true });
+                }
             }
+        } catch (err) {
+            console.error("Error checking login status:", err);
         }
     }, []); // Run only on mount
 
     const handleFacebookLogin = () => {
         alert("Chức năng đăng nhập Facebook chưa được hỗ trợ.");
+    };
+
+    const handleForgotPassword = (e) => {
+        e.preventDefault();
+        navigate("/forgot-password");
+    };
+
+    const handleRegister = (e) => {
+        e.preventDefault();
+        navigate("/register");
     };
 
     return (
@@ -313,8 +355,8 @@ export default function Login() {
                         fontSize: 14,
                     }}
                 >
-                    <a
-                        href="/forgot-password"
+                    <Link
+                        to="/forgot-password"
                         style={{
                             color: "#48A6A7",
                             textDecoration: "none",
@@ -325,7 +367,7 @@ export default function Login() {
                         onMouseOut={(e) => (e.currentTarget.style.color = "#48A6A7")}
                     >
                         Quên mật khẩu?
-                    </a>
+                    </Link>
                 </div>
 
                 <button
@@ -360,8 +402,8 @@ export default function Login() {
                     }}
                 >
                     Chưa có tài khoản?{" "}
-                    <a
-                        href="/register"
+                    <Link
+                        to="/register"
                         style={{
                             color: "#48A6A7",
                             fontWeight: "600",
@@ -372,11 +414,9 @@ export default function Login() {
                         onMouseOut={(e) => (e.currentTarget.style.color = "#48A6A7")}
                     >
                         Đăng ký
-                    </a>
+                    </Link>
                 </div>
             </form>
-
-
         </div>
     );
 }

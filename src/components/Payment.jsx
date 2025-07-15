@@ -39,7 +39,7 @@ const COLORS = {
 const TRANSACTION_API =
   "https://docs.google.com/spreadsheets/d/1Er2mUA9EE7PdsIc9YPzOFlxo_ErhmjRPGaYNYBXS00A/gviz/tq?tqx=out:json"
 
-function showToast(message) {
+function showToast(message, type = "success") {
   const old = document.getElementById("toast-paid")
   if (old) {
     old.remove()
@@ -51,14 +51,14 @@ function showToast(message) {
   toast.style.position = "fixed"
   toast.style.top = "32px"
   toast.style.right = "32px"
-  toast.style.background = COLORS.success
+  toast.style.background = type === "warning" ? COLORS.warning : COLORS.success
   toast.style.color = COLORS.white
   toast.style.padding = "16px 32px"
   toast.style.borderRadius = "12px"
   toast.style.fontWeight = "600"
   toast.style.fontSize = "16px"
   toast.style.zIndex = "9999"
-  toast.style.boxShadow = "0 8px 32px rgba(16, 185, 129, 0.3)"
+  toast.style.boxShadow = `0 8px 32px ${type === "warning" ? "rgba(245, 158, 11, 0.3)" : "rgba(16, 185, 129, 0.3)"}`
   toast.style.transition = "all 0.3s ease"
 
   document.body.appendChild(toast)
@@ -99,6 +99,10 @@ export default function Payment() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
+  // Lấy selected package từ navigation state
+  const selectedPackageFromNav = location.state?.selectedPackage || null
+  const fromMembership = location.state?.fromMembership || false
+
   // Redux state
   const { user, token } = useSelector((state) => state.account || {})
   const {
@@ -122,6 +126,9 @@ export default function Payment() {
     return state.payment || {}
   })
 
+  // Lấy current package từ user object (từ login saga) - giống MembershipPackage
+  const currentPackageFromUser = user?.currentPackage || null
+
   // Extract user info từ Redux user object
   const getUserId = () => {
     if (!user) return null
@@ -131,11 +138,66 @@ export default function Payment() {
       null
   }
 
+  const getUserRole = () => {
+    if (!user) return null
+    const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+      user.role ||
+      null
+    return role ? role.toString().trim() : null
+  }
+
   const accountId = getUserId()
+  const userRole = getUserRole()
 
   const [showQR, setShowQR] = useState(false)
   const [buyingPkg, setBuyingPkg] = useState(null)
   const [transactionCode, setTransactionCode] = useState("")
+  const [selectedPackageId, setSelectedPackageId] = useState(null)
+
+  // Scroll to top khi component mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  // Set selected package và scroll to package khi có selectedPackageFromNav
+  useEffect(() => {
+    if (selectedPackageFromNav && fromMembership && packages.length > 0) {
+      console.log("🎯 Payment received selected package from MembershipPackage:", selectedPackageFromNav)
+      setSelectedPackageId(selectedPackageFromNav.package_membership_ID)
+
+      // Delay để đảm bảo DOM đã render xong
+      const scrollTimer = setTimeout(() => {
+        const selectedElement = document.getElementById(`package-${selectedPackageFromNav.package_membership_ID}`)
+        if (selectedElement) {
+          // Scroll to element với offset để không bị che bởi header
+          const elementPosition = selectedElement.offsetTop
+          const offsetPosition = elementPosition - 100 // Offset 100px từ top
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          })
+
+          // Add highlight effect
+          selectedElement.classList.add('package-highlighted')
+          setTimeout(() => {
+            selectedElement.classList.remove('package-highlighted')
+          }, 3000)
+        } else {
+          // Nếu không tìm thấy element, scroll to payment container
+          const paymentContainer = document.querySelector('.payment-container')
+          if (paymentContainer) {
+            paymentContainer.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            })
+          }
+        }
+      }, 300) // Delay 300ms để đảm bảo packages đã render
+
+      return () => clearTimeout(scrollTimer)
+    }
+  }, [selectedPackageFromNav, fromMembership, packages])
 
   // Fetch current package và packages khi user login
   useEffect(() => {
@@ -158,35 +220,27 @@ export default function Payment() {
     }
   }, [showQR, buyingPkg])
 
-  // THAY ĐỔI: Handle payment success - lưu vào account và update Redux
+  // Handle payment success
   useEffect(() => {
     if (paymentSuccess) {
-      // Hiển thị thông báo thành công
-      showToast("✅ Thanh toán thành công! Gói đã được kích hoạt.")
+      showToast("✅ Thanh toán thành công! Gói đã được kích hoạt.", "success")
 
-      // THÊM: Thêm payment key vào completedPayments để track
       if (buyingPkg && accountId) {
         const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
-
-        // Dispatch action để add completed payment (cần implement trong paymentSlice)
-        // dispatch(addCompletedPayment(paymentKey))
+        // Dispatch action để add completed payment nếu cần
       }
 
-      // THÊM: Fetch lại current package để đảm bảo sync
       if (accountId) {
-        // dispatch(fetchCurrentPackageRequest(accountId))
+        // Fetch lại current package để đảm bảo sync
       }
 
-      // Đóng QR popup ngay lập tức
       setShowQR(false)
       setBuyingPkg(null)
 
-      // Chuyển về trang Home sau 2 giây
       setTimeout(() => {
         navigate("/")
       }, 2000)
 
-      // Clear payment state sau khi đã xử lý xong
       setTimeout(() => {
         dispatch(clearPaymentState())
       }, 3000)
@@ -196,17 +250,12 @@ export default function Payment() {
   // Handle payment error
   useEffect(() => {
     if (paymentError) {
-      showToast(`❌ Thanh toán thất bại: ${paymentError}`)
+      showToast(`❌ Thanh toán thất bại: ${paymentError}`, "warning")
       dispatch(clearPaymentState())
     }
   }, [paymentError, dispatch])
 
-  // Debug Redux state changes
-  useEffect(() => {
-    // Track Redux state for debugging purposes
-  }, [paymentLoading, paymentSuccess, paymentError, packagesLoading, packagesError, packages, currentPackage, currentPackageLoading, completedPayments, accountId])
-
-  // THAY ĐỔI: Check giao dịch khi mở popup QR - with enhanced logic
+  // Check giao dịch khi mở popup QR
   useEffect(() => {
     if (!showQR || !buyingPkg || !transactionCode || !accountId) return
 
@@ -240,7 +289,6 @@ export default function Payment() {
           )
 
         if (lastPaid) {
-          // THAY ĐỔI: Kiểm tra xem đã thanh toán gói này chưa với accountId
           const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
           const isAlreadyPaid = completedPayments?.includes(paymentKey)
 
@@ -249,9 +297,8 @@ export default function Payment() {
             const startDate = new Date(new Date(nowVN).setHours(0, 0, 0, 0)).toISOString()
             const endDate = new Date(new Date(nowVN).getTime() + (buyingPkg.duration || 30) * 24 * 60 * 60 * 1000).toISOString()
 
-            // THAY ĐỔI: Dispatch payment creation với accountId
             dispatch(createPaymentRequest({
-              accountId, // THÊM accountId vào payload
+              accountId,
               packageMembershipId: buyingPkg.package_membership_ID,
               totalPrice: buyingPkg.price,
               paymentStatus: "Success",
@@ -262,7 +309,6 @@ export default function Payment() {
               endDate
             }))
 
-            // THAY ĐỔI: Set current package với accountId trong Redux
             dispatch(setCurrentPackage({
               package_membership_ID: buyingPkg.package_membership_ID,
               category: buyingPkg.category,
@@ -277,7 +323,6 @@ export default function Payment() {
             }))
           }
 
-          // Dừng việc check payment
           stop = true
           clearTimeout(timeoutId)
         }
@@ -293,41 +338,202 @@ export default function Payment() {
     }
   }, [showQR, buyingPkg, transactionCode, accountId, dispatch, completedPayments])
 
-  // Function để check nếu user đang sử dụng gói này (dựa vào giao dịch gần nhất)
+  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Kiểm tra gói hiện tại
   const isCurrentPackage = (pkg) => {
-    if (!currentPackage || !accountId) return false
+    if (!currentPackageFromUser) return false
 
-    const isSamePackage = currentPackage.package_membership_ID === pkg.package_membership_ID ||
-      currentPackage.packageMembershipId === pkg.package_membership_ID
+    // So sánh theo category (tên gói)
+    const isMatchingCategory = currentPackageFromUser.name?.toLowerCase() === pkg.category?.toLowerCase()
 
-    if (isSamePackage) {
-      const now = new Date()
-      const endDate = new Date(currentPackage.endDate)
-      const isNotExpired = endDate > now && currentPackage.paymentStatus === 'Success'
+    // Kiểm tra gói có đang hoạt động không
+    const isActivePackage = currentPackageFromUser.isActive && !currentPackageFromUser.isExpired
 
-      console.log('🔍 Checking current package in Payment:', {
-        packageId: pkg.package_membership_ID,
-        currentPackageId: currentPackage.package_membership_ID || currentPackage.packageMembershipId,
-        endDate: currentPackage.endDate,
-        isNotExpired,
-        paymentStatus: currentPackage.paymentStatus
-      })
+    console.log('🔍 Checking if current package in Payment:', {
+      packageCategory: pkg.category,
+      currentPackageName: currentPackageFromUser.name,
+      isMatchingCategory,
+      isActivePackage,
+      packageMembershipId: pkg.package_membership_ID
+    })
 
-      return isNotExpired
-    }
-
-    return false
+    return isMatchingCategory && isActivePackage
   }
 
-  // Function để check xem có thể mua gói mới không (có gói đang hoạt động)
-  const canPurchaseNewPackage = () => {
-    if (!currentPackage) return true
+  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Kiểm tra có thể đăng ký gói không
+  const canRegisterPackage = (pkg) => {
+    // Không thể đăng ký nếu chưa đăng nhập
+    if (!token) return false
 
-    const now = new Date()
-    const endDate = new Date(currentPackage.endDate)
-    const hasActivePackage = endDate > now && currentPackage.paymentStatus === 'Success'
+    // Không thể đăng ký nếu không phải Member
+    if (userRole !== "Member") return false
 
-    return !hasActivePackage
+    // Không thể đăng ký nếu gói không active
+    if (pkg.status !== "Active") return false
+
+    // Nếu đang sử dụng gói này
+    if (isCurrentPackage(pkg)) return false
+
+    // Kiểm tra gói hiện tại
+    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
+      // Tìm package hiện tại từ danh sách để lấy package_membership_ID
+      const currentPackageInfo = packages.find(p =>
+        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
+      )
+
+      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+
+      console.log('🔍 Payment canRegisterPackage check:', {
+        currentPackageName: currentPackageFromUser.name,
+        currentPackageMembershipId,
+        targetPackageId: pkg.package_membership_ID,
+        canUpgrade: currentPackageMembershipId === 1
+      })
+
+      // Nếu gói hiện tại không phải ID = 1, không cho phép mua gói khác
+      if (currentPackageMembershipId !== 1) {
+        console.log('🚫 Cannot register - user has premium package (not ID=1)')
+        return false
+      }
+
+      // Nếu gói hiện tại là ID = 1 (Free), có thể mua gói khác nhưng không mua lại Free
+      if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
+        console.log('🚫 Cannot register - already has free package')
+        return false
+      }
+    }
+
+    return true
+  }
+
+  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Hàm lấy nhãn button phù hợp
+  const getButtonLabel = (pkg) => {
+    if (!token) return "Cần đăng nhập"
+    if (userRole !== "Member") return "Chỉ dành cho Member"
+    if (pkg.status !== "Active") return "Không khả dụng"
+
+    if (isCurrentPackage(pkg)) {
+      return `Đang sử dụng (${formatTimeLeft(currentPackageFromUser.daysLeft)})`
+    }
+
+    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
+      const currentPackageInfo = packages.find(p =>
+        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
+      )
+      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+
+      if (currentPackageMembershipId !== 1) {
+        return `Đã có gói ${currentPackageFromUser.name}`
+      }
+
+      if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
+        return `Đã có gói ${currentPackageFromUser.name}`
+      }
+
+      if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
+        return "Nâng cấp ngay"
+      }
+    }
+
+    return "Mua gói ngay"
+  }
+
+  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Hàm lấy icon button phù hợp
+  const getButtonIcon = (pkg) => {
+    if (isCurrentPackage(pkg)) return "fas fa-check-circle"
+    if (!canRegisterPackage(pkg)) return "fas fa-lock"
+
+    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
+      const currentPackageInfo = packages.find(p =>
+        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
+      )
+      if (currentPackageInfo?.package_membership_ID === 1 && pkg.package_membership_ID !== 1) {
+        return "fas fa-arrow-up"
+      }
+    }
+
+    return "fas fa-shopping-cart"
+  }
+
+  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Format thời gian còn lại
+  const formatTimeLeft = (daysLeft) => {
+    if (daysLeft <= 0) return "Đã hết hạn"
+    if (daysLeft === 1) return "Còn 1 ngày"
+    return `Còn ${daysLeft} ngày`
+  }
+
+  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Hàm kiểm tra có phải gói upgrade không
+  const isUpgradePackage = (pkg) => {
+    if (!currentPackageFromUser || !currentPackageFromUser.isActive || currentPackageFromUser.isExpired) {
+      return false
+    }
+
+    const currentPackageInfo = packages.find(p =>
+      p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
+    )
+
+    return currentPackageInfo?.package_membership_ID === 1 && pkg.package_membership_ID !== 1
+  }
+
+  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Handle register với validation
+  const handleRegister = (pkg) => {
+    console.log("🎯 Payment register attempt:", {
+      hasToken: !!token,
+      userRole,
+      packageId: pkg.package_membership_ID,
+      currentPackage: currentPackageFromUser
+    })
+
+    if (!token) {
+      showToast("Vui lòng đăng nhập để mua gói", "warning")
+      navigate("/login")
+      return
+    }
+
+    if (userRole !== "Member") {
+      showToast("Chỉ tài khoản thành viên mới được mua gói!", "warning")
+      return
+    }
+
+    // Kiểm tra gói hiện tại từ user object
+    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
+      // Tìm package hiện tại từ danh sách packages để lấy package_membership_ID
+      const currentPackageInfo = packages.find(p =>
+        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
+      )
+
+      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+
+      console.log("🔍 Payment current package check:", {
+        currentPackageMembershipId,
+        currentPackageName: currentPackageFromUser.name,
+        targetPackageId: pkg.package_membership_ID,
+        canUpgrade: currentPackageMembershipId === 1
+      })
+
+      // Nếu gói hiện tại không phải ID = 1, không cho phép mua gói khác
+      if (currentPackageMembershipId !== 1) {
+        const daysLeft = currentPackageFromUser.daysLeft || 0
+        showToast(`Bạn đang có gói ${currentPackageFromUser.name} còn ${daysLeft} ngày! Chỉ gói Free mới có thể nâng cấp.`, "warning")
+        return
+      }
+
+      // Nếu là gói Free (ID = 1), kiểm tra không được mua lại chính gói Free
+      if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
+        const daysLeft = currentPackageFromUser.daysLeft || 0
+        showToast(`Bạn đã có gói ${currentPackageFromUser.name} còn ${daysLeft} ngày!`, "warning")
+        return
+      }
+
+      // Gói Free có thể upgrade lên gói khác
+      if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
+        console.log("✅ Upgrading from Free package to:", pkg.category)
+        showToast(`Nâng cấp từ gói ${currentPackageFromUser.name} lên ${pkg.category}`, "success")
+      }
+    }
+
+    console.log("✅ Opening QR for package:", pkg)
+    setBuyingPkg(pkg)
+    setShowQR(true)
   }
 
   const getPackageIcon = (category) => {
@@ -339,6 +545,8 @@ export default function Payment() {
       pro: "🚀",
       starter: "🎯",
       advanced: "🔥",
+      free: "🆓",
+      plus: "💎"
     }
     return icons[category?.toLowerCase()] || "📋"
   }
@@ -348,7 +556,15 @@ export default function Payment() {
     return colors[index % colors.length]
   }
 
-  // THÊM: Authentication check
+  const formatPrice = (price) => {
+    if (price === 0) return "Miễn phí"
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price)
+  }
+
+  // Authentication check
   if (!token || !user) {
     return (
       <>
@@ -431,13 +647,12 @@ export default function Payment() {
     <>
       <style jsx>{`
         /* ...existing styles... */
+
         .payment-section {
           min-height: 80vh;
           background: ${COLORS.background};
-          display: flex;
-          align-items: center;
-          justify-content: center;
           padding: 3rem 0;
+          position: relative;
         }
 
         .payment-container {
@@ -452,6 +667,7 @@ export default function Payment() {
           width: 100%;
           position: relative;
           overflow: hidden;
+          margin: 0 auto;
         }
 
         .payment-container::before {
@@ -463,6 +679,28 @@ export default function Payment() {
           height: 4px;
           background: ${COLORS.gradient};
           z-index: 1;
+        }
+
+        .current-package-info {
+          background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+          border: 2px solid ${COLORS.success};
+          border-radius: 16px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          text-align: center;
+        }
+
+        .current-package-title {
+          color: ${COLORS.success};
+          font-weight: 700;
+          font-size: 1.1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .current-package-details {
+          color: #166534;
+          font-size: 0.9rem;
+          line-height: 1.5;
         }
 
         .payment-title {
@@ -520,6 +758,16 @@ export default function Payment() {
           transform: scale(1.02);
         }
 
+        .package-card.upgrade-available {
+          border-color: #F59E0B;
+          background: linear-gradient(135deg, ${COLORS.white} 0%, #FEF3C7 100%);
+        }
+
+        .package-card.upgrade-available::before {
+          background: linear-gradient(90deg, #F59E0B, #FBBF24);
+          height: 4px;
+        }
+
         .package-card:hover:not(.inactive):not(.current) {
           transform: translateY(-4px);
           box-shadow: 0 16px 40px rgba(51, 107, 115, 0.12);
@@ -562,6 +810,8 @@ export default function Payment() {
           border-radius: 20px;
           font-size: 0.8rem;
           font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .status-active {
@@ -635,17 +885,64 @@ export default function Payment() {
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .btn-buy {
           background: ${COLORS.gradient};
           color: ${COLORS.white};
           box-shadow: 0 4px 16px rgba(106, 183, 197, 0.3);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .btn-buy::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.6s;
+        }
+
+        .btn-buy:hover:not(:disabled)::before {
+          left: 100%;
         }
 
         .btn-buy:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 24px rgba(106, 183, 197, 0.4);
+        }
+
+        .btn-upgrade {
+          background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+          color: ${COLORS.white};
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .btn-upgrade::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.6s;
+        }
+
+        .btn-upgrade:hover::before {
+          left: 100%;
+        }
+
+        .btn-upgrade:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
         }
 
         .btn-current {
@@ -824,19 +1121,28 @@ export default function Payment() {
           margin: 2rem 0;
         }
 
-        /* Debug panel */
-        .debug-panel {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 15px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-family: monospace;
-          z-index: 9998;
-          max-width: 300px;
+        .empty-state {
+          text-align: center;
+          padding: 4rem 2rem;
+          color: ${COLORS.textLight};
+        }
+
+        .empty-state-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+          animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-10px); }
+          60% { transform: translateY(-5px); }
+        }
+
+        .empty-state-text {
+          font-size: 1.2rem;
+          font-weight: 500;
         }
 
         @media (max-width: 768px) {
@@ -868,10 +1174,6 @@ export default function Payment() {
             width: 200px;
             height: 200px;
           }
-
-          .debug-panel {
-            display: none;
-          }
         }
 
         @media (max-width: 576px) {
@@ -888,6 +1190,65 @@ export default function Payment() {
             padding: 1.5rem;
           }
         }
+
+        .package-highlighted {
+          animation: highlightPulse 3s ease-in-out;
+          box-shadow: 0 0 0 4px rgba(106, 183, 197, 0.3) !important;
+          position: relative;
+          z-index: 10;
+        }
+
+        @keyframes highlightPulse {
+          0%, 100% { 
+            box-shadow: 0 0 0 4px rgba(106, 183, 197, 0.3);
+            transform: scale(1);
+          }
+          25% { 
+            box-shadow: 0 0 0 8px rgba(106, 183, 197, 0.4);
+            transform: scale(1.02);
+          }
+          50% { 
+            box-shadow: 0 0 0 4px rgba(106, 183, 197, 0.3);
+            transform: scale(1);
+          }
+          75% { 
+            box-shadow: 0 0 0 8px rgba(106, 183, 197, 0.4);
+            transform: scale(1.02);
+          }
+        }
+
+        .package-card.selected-from-membership {
+          border-color: ${COLORS.color2} !important;
+          background: linear-gradient(135deg, ${COLORS.white} 0%, ${COLORS.color1} 10%, ${COLORS.white} 100%) !important;
+          position: relative;
+        }
+
+        .package-card.selected-from-membership::before {
+          background: ${COLORS.gradient} !important;
+          height: 5px !important;
+        }
+
+        .package-card.selected-from-membership::after {
+          content: '⭐ Đã chọn';
+          position: absolute;
+          top: -10px;
+          right: -10px;
+          background: ${COLORS.color2};
+          color: ${COLORS.white};
+          padding: 0.3rem 0.8rem;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          z-index: 5;
+          box-shadow: 0 4px 12px rgba(106, 183, 197, 0.3);
+        }
+
+        /* Smooth scroll cho toàn bộ trang */
+        html {
+          scroll-behavior: smooth;
+        }
+
+        /* ...existing media queries... */
       `}</style>
 
       <section className="payment-section">
@@ -897,30 +1258,36 @@ export default function Payment() {
               <div className="payment-container">
                 <h2 className="payment-title">💳 Thanh toán & Đăng ký</h2>
                 <p className="payment-subtitle">
-                  Chọn gói thành viên phù hợp để bắt đầu hành trình của bạn
-                  {currentPackage && (
+                  {selectedPackageFromNav && fromMembership ? (
                     <>
-                      <br />
-                      <span style={{ color: COLORS.success, fontWeight: 600 }}>
-                        ✅ Bạn đang sử dụng gói {currentPackage.category || 'N/A'}
-                      </span>
-                      {currentPackage.endDate && (
-                        <span style={{ color: COLORS.textLight, fontSize: '0.9rem' }}>
-                          <br />
-                          (Hết hạn: {new Date(currentPackage.endDate).toLocaleDateString('vi-VN')})
-                        </span>
-                      )}
+                      Bạn đã chọn gói <strong style={{ color: COLORS.color2 }}>{selectedPackageFromNav.category}</strong> -
+                      Hoàn tất thanh toán để kích hoạt gói
                     </>
-                  )}
-                  {!canPurchaseNewPackage() && (
-                    <>
-                      <br />
-                      <span style={{ color: COLORS.warning, fontWeight: 600 }}>
-                        ⚠️ Bạn đang có gói chưa hết hạn. Không thể mua gói mới.
-                      </span>
-                    </>
+                  ) : (
+                    "Chọn gói thành viên phù hợp để bắt đầu hành trình của bạn"
                   )}
                 </p>
+
+                {/* Hiển thị thông tin gói hiện tại - giống MembershipPackage */}
+                {currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired && (
+                  <div className="current-package-info">
+                    <div className="current-package-title">
+                      🎉 Bạn đang sử dụng gói {currentPackageFromUser.name}
+                    </div>
+                    <div className="current-package-details">
+                      {formatTimeLeft(currentPackageFromUser.daysLeft)} •
+                      Hết hạn: {new Date(currentPackageFromUser.endDate).toLocaleDateString('vi-VN')}
+                      {packages.find(p => p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase())?.package_membership_ID === 1 && (
+                        <>
+                          <br />
+                          <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>
+                            ⬆️ Có thể nâng cấp lên gói cao hơn
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Show loading skeleton while fetching packages */}
                 {packagesLoading ? (
@@ -950,58 +1317,68 @@ export default function Payment() {
                 ) : packages && packages.length > 0 ? (
                   <div className="packages-grid">
                     {packages.map((pkg, index) => {
-                      // Kiểm tra gói hiện tại và khả năng mua
+                      // Logic giống MembershipPackage
                       const isCurrent = isCurrentPackage(pkg)
                       const isActive = pkg.status === "Active"
-                      const canPurchase = canPurchaseNewPackage()
-                      const canBuy = isActive && !isCurrent && canPurchase
+                      const canRegister = canRegisterPackage(pkg)
+                      const isUpgrade = isUpgradePackage(pkg)
+                      const isSelectedFromMembership = selectedPackageId === pkg.package_membership_ID
 
                       return (
                         <div
                           key={pkg.package_membership_ID}
-                          className={`package-card ${isCurrent ? "current" : isActive ? "active" : "inactive"}`}
+                          id={`package-${pkg.package_membership_ID}`}
+                          className={`package-card ${isCurrent ? "current" :
+                            isUpgrade ? "upgrade-available" :
+                              isSelectedFromMembership ? "selected-from-membership" :
+                                isActive ? "active" :
+                                  "inactive"
+                            }`}
                         >
                           <div className="package-header">
                             <div className="package-icon-badge" style={{ background: getPackageColor(index) }}>
                               {getPackageIcon(pkg.category)}
                             </div>
                             <div
-                              className={`package-status ${isCurrent ? "status-current" : isActive ? "status-active" : "status-inactive"}`}
+                              className={`package-status ${isCurrent ? "status-current" :
+                                isSelectedFromMembership ? "status-active" :
+                                  isActive ? "status-active" :
+                                    "status-inactive"
+                                }`}
                             >
-                              {isCurrent ? "Đang dùng" : isActive ? "Đang mở" : "Đóng"}
+                              {isCurrent ? "Đang dùng" :
+                                isSelectedFromMembership ? "Đã chọn" :
+                                  isUpgrade ? "Có thể nâng cấp" :
+                                    isActive ? "Đang mở" : "Đóng"}
                             </div>
                           </div>
 
-                          <h3 className="package-category">{pkg.category}</h3>
+                          <h3 className="package-category">
+                            {pkg.category}
+                          </h3>
                           <p className="package-description">{pkg.description}</p>
 
                           <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
-                            {pkg.price === 0 ? "Miễn phí" : pkg.price.toLocaleString("vi-VN") + "đ"}
+                            {formatPrice(pkg.price)}
                           </div>
 
                           <div className="package-duration">
                             <i className="fas fa-clock"></i>
                             Thời hạn: {pkg.duration} ngày
-                            {isCurrent && currentPackage?.endDate && (
-                              <span style={{ color: COLORS.success, fontSize: "0.8rem", marginLeft: "0.5rem" }}>
-                                (Đến {new Date(currentPackage.endDate).toLocaleDateString('vi-VN')})
-                              </span>
-                            )}
                           </div>
 
                           {isCurrent ? (
                             <button className="package-button btn-current">
-                              <i className="fas fa-check-circle"></i>
-                              Bạn đang sử dụng gói này
+                              <i className={getButtonIcon(pkg)}></i>
+                              {getButtonLabel(pkg)}
                             </button>
-                          ) : canBuy ? (
+                          ) : canRegister ? (
                             <button
-                              className="package-button btn-buy"
+                              className={`package-button ${isSelectedFromMembership ? 'btn-upgrade' :
+                                isUpgrade ? 'btn-upgrade' : 'btn-buy'
+                                }`}
                               disabled={paymentLoading}
-                              onClick={() => {
-                                setBuyingPkg(pkg)
-                                setShowQR(true)
-                              }}
+                              onClick={() => handleRegister(pkg)}
                             >
                               {paymentLoading ? (
                                 <>
@@ -1010,15 +1387,15 @@ export default function Payment() {
                                 </>
                               ) : (
                                 <>
-                                  <i className="fas fa-shopping-cart"></i>
-                                  Mua gói ngay
+                                  <i className={getButtonIcon(pkg)}></i>
+                                  {isSelectedFromMembership ? "Mua gói này" : getButtonLabel(pkg)}
                                 </>
                               )}
                             </button>
                           ) : (
                             <button className="package-button btn-disabled" disabled>
-                              <i className="fas fa-lock"></i>
-                              {!canPurchase ? 'Bạn đã có gói chưa hết hạn' : 'Không khả dụng'}
+                              <i className={getButtonIcon(pkg)}></i>
+                              {getButtonLabel(pkg)}
                             </button>
                           )}
                         </div>
@@ -1026,9 +1403,12 @@ export default function Payment() {
                     })}
                   </div>
                 ) : (
-                  <div className="error-message">
-                    <h4>📦 Không có gói thành viên nào</h4>
-                    <p>Hiện tại chưa có gói thành viên nào được cung cấp.</p>
+                  <div className="empty-state">
+                    <div className="empty-state-icon">📦</div>
+                    <div className="empty-state-text">Chưa có gói thành viên nào</div>
+                    <p style={{ color: COLORS.textLight, marginTop: "0.5rem" }}>
+                      Các gói thành viên sẽ sớm được cập nhật
+                    </p>
                   </div>
                 )}
 
@@ -1068,7 +1448,7 @@ export default function Payment() {
             <div className="qr-info">
               <div className="qr-info-item">
                 <span className="qr-info-label">Số tiền:</span>
-                <span className="qr-info-value">{buyingPkg.price.toLocaleString("vi-VN")}đ</span>
+                <span className="qr-info-value">{formatPrice(buyingPkg.price)}</span>
               </div>
               <div className="qr-info-item">
                 <span className="qr-info-label">Người thụ hưởng:</span>
@@ -1099,32 +1479,6 @@ export default function Payment() {
       )}
 
       <Footer />
-
-      {/* Debug Panel - Development Only */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="debug-panel">
-          <div><strong>🔍 Payment Debug:</strong></div>
-          <div>Token: {token ? "✅" : "❌"}</div>
-          <div>User: {user ? "✅" : "❌"}</div>
-          <div>AccountId: {accountId || "null"}</div>
-          <div>Packages: {packages?.length || 0}</div>
-          <div>Packages Loading: {packagesLoading ? "⏳" : "✅"}</div>
-          <div>Packages Error: {packagesError ? "❌" : "✅"}</div>
-          <div>Current Package: {currentPackage ? "✅" : "❌"}</div>
-          <div>Current Package Loading: {currentPackageLoading ? "⏳" : "✅"}</div>
-          <div>Payment Loading: {paymentLoading ? "⏳" : "✅"}</div>
-          <div>Payment Success: {paymentSuccess ? "✅" : "❌"}</div>
-          <div>Payment Error: {paymentError ? "❌" : "✅"}</div>
-          <div>Completed Payments: {completedPayments?.length || 0}</div>
-          {currentPackage && (
-            <>
-              <div>Current: {currentPackage.category}</div>
-              <div>End: {currentPackage.endDate ? new Date(currentPackage.endDate).toLocaleDateString() : "N/A"}</div>
-              <div>Account: {currentPackage.accountId}</div>
-            </>
-          )}
-        </div>
-      )}
     </>
   )
 }
