@@ -21,23 +21,23 @@ const getUser = (state) => state.account?.user
 // API call functions
 function* apiCall(url, options = {}) {
     try {
-        console.log('🚀 Making API call to:', url);
-        console.log('📤 Request body:', options.body);
-
         const response = yield call(fetch, url, options)
-
-        console.log('📡 API Response status:', response.status);
 
         if (!response.ok) {
             // Lấy thông tin lỗi chi tiết từ server
             let errorText;
             try {
-                const errorJson = yield call([response, 'json'])
+                // Clone response để tránh lỗi body stream already read
+                const responseClone = response.clone();
+                const errorJson = yield call([responseClone, 'json'])
                 errorText = errorJson.message || errorJson.error || JSON.stringify(errorJson)
-                console.error('❌ API Error JSON:', errorJson);
             } catch {
-                errorText = yield call([response, 'text'])
-                console.error('❌ API Error Text:', errorText);
+                try {
+                    const errorText2 = yield call([response, 'text'])
+                    errorText = errorText2;
+                } catch (textError) {
+                    errorText = `HTTP ${response.status} - Cannot read response body`;
+                }
             }
             throw new Error(`HTTP ${response.status}: ${errorText}`)
         }
@@ -46,15 +46,12 @@ function* apiCall(url, options = {}) {
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             const data = yield call([response, 'json'])
-            console.log('✅ API Response data:', data);
             return data
         } else {
             const text = yield call([response, 'text'])
-            console.log('✅ API Response text:', text);
             return text
         }
     } catch (error) {
-        console.error('❌ API Call failed:', error);
         throw error
     }
 }
@@ -64,9 +61,6 @@ function* createPaymentSaga(action) {
     try {
         const token = yield select(getToken)
         const user = yield select(getUser)
-
-        console.log('🔐 Token:', token ? 'Có token' : 'Không có token')
-        console.log('👤 User:', user)
 
         if (!token) {
             throw new Error('Token không tồn tại. Vui lòng đăng nhập lại.')
@@ -84,7 +78,6 @@ function* createPaymentSaga(action) {
         }
 
         const accountId = getUserId(user)
-        console.log('🆔 Account ID:', accountId)
 
         // Chuẩn hóa dữ liệu payment theo đúng format API mong đợi
         const paymentData = {
@@ -96,8 +89,6 @@ function* createPaymentSaga(action) {
             paymentStatus: action.payload.paymentStatus || "Success",
             transactionCode: action.payload.transactionCode || ""
         }
-
-        console.log('💳 Payment data sending to API:', paymentData)
 
         // Kiểm tra tất cả field bắt buộc
         const requiredFields = ['packageMembershipId', 'totalPrice', 'startDate', 'endDate'];
@@ -116,8 +107,6 @@ function* createPaymentSaga(action) {
             body: JSON.stringify(paymentData),
         })
 
-        console.log('✅ Payment created successfully:', response)
-
         yield put(createPaymentSuccess({
             ...paymentData,
             response,
@@ -125,7 +114,6 @@ function* createPaymentSaga(action) {
         }))
 
     } catch (error) {
-        console.error('❌ Payment creation failed:', error)
         yield put(createPaymentFailure(error.message))
     }
 }
@@ -133,16 +121,11 @@ function* createPaymentSaga(action) {
 // Fetch packages saga
 function* fetchPackagesSaga() {
     try {
-        console.log('🚀 Fetching packages...')
-
         const packages = yield call(apiCall, `${API_BASE_URL}/PackageMembership`)
-
-        console.log('✅ Packages fetched successfully:', packages)
 
         yield put(fetchPackagesSuccess(Array.isArray(packages) ? packages : []))
 
     } catch (error) {
-        console.error('❌ Fetch packages failed:', error)
         yield put(fetchPackagesFailure(error.message))
     }
 }
@@ -156,8 +139,6 @@ function* updateTodayCigarettesSaga(action) {
             throw new Error('Token không tồn tại. Vui lòng đăng nhập lại.')
         }
 
-        console.log('🚀 Updating today cigarettes:', action.payload)
-
         const response = yield call(apiCall, `${API_BASE_URL}/Member/today-cigarettes`, {
             method: 'POST',
             headers: {
@@ -169,12 +150,9 @@ function* updateTodayCigarettesSaga(action) {
             }),
         })
 
-        console.log('✅ Today cigarettes updated successfully:', response)
-
         yield put(updateTodayCigarettesSuccess(response))
 
     } catch (error) {
-        console.error('❌ Update today cigarettes failed:', error)
         yield put(updateTodayCigarettesFailure(error.message))
     }
 }

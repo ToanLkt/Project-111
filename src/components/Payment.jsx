@@ -12,10 +12,8 @@ import {
   setCurrentPackage,
   clearPaymentState,
   fetchPackagesRequest,
-  fetchCurrentPackageRequest,
-  fetchCurrentPackageSuccess,
-  addCompletedPayment,
-  restorePackageSession
+  // THÊM: Action để fetch current package của user
+  fetchCurrentPackageRequest
 } from "../redux/components/payment/paymentSlice"
 
 // Thông tin ngân hàng
@@ -43,11 +41,8 @@ const TRANSACTION_API =
   "https://docs.google.com/spreadsheets/d/1Er2mUA9EE7PdsIc9YPzOFlxo_ErhmjRPGaYNYBXS00A/gviz/tq?tqx=out:json"
 
 function showToast(message) {
-  console.log('📢 Showing toast:', message)
-
   const old = document.getElementById("toast-paid")
   if (old) {
-    console.log('🗑️ Removing old toast')
     old.remove()
   }
 
@@ -68,12 +63,10 @@ function showToast(message) {
   toast.style.transition = "all 0.3s ease"
 
   document.body.appendChild(toast)
-  console.log('✅ Toast added to DOM')
 
   setTimeout(() => {
     if (toast && toast.parentNode) {
       toast.remove()
-      console.log('🗑️ Toast auto-removed after 5s')
     }
   }, 5000)
 }
@@ -127,7 +120,6 @@ export default function Payment() {
     // Completed payments
     completedPayments
   } = useSelector((state) => {
-    console.log('🔍 Current Redux payment state:', state.payment)
     return state.payment || {}
   })
 
@@ -146,53 +138,18 @@ export default function Payment() {
   const [buyingPkg, setBuyingPkg] = useState(null)
   const [transactionCode, setTransactionCode] = useState("")
 
+  // THÊM: Fetch current package khi user login - but don't block UI
+  useEffect(() => {
+    if (token && accountId && !currentPackage) {
+      // Only fetch if we haven't tried yet
+      // dispatch(fetchCurrentPackageRequest(accountId))
+    }
+  }, [token, accountId, currentPackage, dispatch])
+
   // Fetch packages khi component mount
   useEffect(() => {
-    console.log("🚀 Dispatching fetchPackagesRequest...")
     dispatch(fetchPackagesRequest())
-
-    // Khôi phục package session nếu cần
-    dispatch(restorePackageSession())
   }, [dispatch])
-
-  // Kiểm tra và fetch current package nếu có user nhưng chưa có currentPackage
-  useEffect(() => {
-    if (token && accountId && !currentPackage && !currentPackageLoading) {
-      console.log("� No current package found, checking if user has active package...")
-
-      // Kiểm tra completedPayments để xem user đã mua gói nào
-      const userPayments = completedPayments.filter(key => key.endsWith(`_${accountId}`))
-
-      if (userPayments.length > 0) {
-        // Lấy payment gần nhất
-        const latestPaymentKey = userPayments[userPayments.length - 1]
-        const packageId = latestPaymentKey.split('_')[0]
-
-        // Tìm package trong danh sách packages
-        const foundPackage = packages.find(pkg => pkg.package_membership_ID == packageId)
-
-        if (foundPackage) {
-          console.log("🔄 Restoring current package from completed payments:", foundPackage)
-
-          // Tạo currentPackage object với thông tin cần thiết
-          const currentPackageData = {
-            package_membership_ID: foundPackage.package_membership_ID,
-            category: foundPackage.category,
-            description: foundPackage.description,
-            price: foundPackage.price,
-            duration: foundPackage.duration,
-            accountId: accountId,
-            paymentStatus: "Success",
-            // Set endDate từ localStorage hoặc tính toán mới
-            endDate: new Date(Date.now() + foundPackage.duration * 24 * 60 * 60 * 1000).toISOString(),
-            startDate: new Date().toISOString()
-          }
-
-          dispatch(setCurrentPackage(currentPackageData))
-        }
-      }
-    }
-  }, [token, accountId, currentPackage, currentPackageLoading, completedPayments, packages, dispatch])
 
   // Sinh mã giao dịch mới mỗi lần mở QR
   useEffect(() => {
@@ -202,65 +159,44 @@ export default function Payment() {
     }
   }, [showQR, buyingPkg])
 
-  // THAY ĐỔI: Handle payment success - cải thiện logic
+  // THAY ĐỔI: Handle payment success - lưu vào account và update Redux
   useEffect(() => {
-    console.log('🔍 Payment success useEffect triggered, paymentSuccess:', paymentSuccess)
-
-    if (paymentSuccess && buyingPkg && accountId) {
-      console.log('✅ Payment successful! Starting success flow...')
-
-      // Tạo payment key
-      const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
-
-      // Thêm vào completed payments
-      dispatch(addCompletedPayment({ paymentKey }))
-
-      // Tạo currentPackage data với thông tin đầy đủ
-      const currentPackageData = {
-        package_membership_ID: buyingPkg.package_membership_ID,
-        category: buyingPkg.category,
-        description: buyingPkg.description,
-        price: buyingPkg.price,
-        duration: buyingPkg.duration,
-        accountId: accountId,
-        paymentStatus: "Success",
-        transactionCode: transactionCode,
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + (buyingPkg.duration || 30) * 24 * 60 * 60 * 1000).toISOString()
-      }
-
-      // Set làm current package
-      dispatch(setCurrentPackage(currentPackageData))
-
+    if (paymentSuccess) {
       // Hiển thị thông báo thành công
       showToast("✅ Thanh toán thành công! Gói đã được kích hoạt.")
-      console.log('📢 Success toast displayed')
+
+      // THÊM: Thêm payment key vào completedPayments để track
+      if (buyingPkg && accountId) {
+        const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
+
+        // Dispatch action để add completed payment (cần implement trong paymentSlice)
+        // dispatch(addCompletedPayment(paymentKey))
+      }
+
+      // THÊM: Fetch lại current package để đảm bảo sync
+      if (accountId) {
+        // dispatch(fetchCurrentPackageRequest(accountId))
+      }
 
       // Đóng QR popup ngay lập tức
       setShowQR(false)
       setBuyingPkg(null)
-      console.log('❌ QR modal closed')
 
       // Chuyển về trang Home sau 2 giây
       setTimeout(() => {
-        console.log('🏠 Navigating to home page...')
         navigate("/")
       }, 2000)
 
       // Clear payment state sau khi đã xử lý xong
       setTimeout(() => {
-        console.log('🧹 Clearing payment state...')
         dispatch(clearPaymentState())
       }, 3000)
     }
-  }, [paymentSuccess, buyingPkg, accountId, transactionCode, navigate, dispatch])
+  }, [paymentSuccess, navigate, dispatch, buyingPkg, accountId])
 
   // Handle payment error
   useEffect(() => {
-    console.log('🔍 Payment error state changed:', paymentError)
-
     if (paymentError) {
-      console.log('❌ Triggering error flow:', paymentError)
       showToast(`❌ Thanh toán thất bại: ${paymentError}`)
       dispatch(clearPaymentState())
     }
@@ -268,18 +204,7 @@ export default function Payment() {
 
   // Debug Redux state changes
   useEffect(() => {
-    console.log('🔍 Redux payment state updated:', {
-      paymentLoading,
-      paymentSuccess,
-      paymentError,
-      packagesLoading,
-      packagesError,
-      packagesCount: packages?.length || 0,
-      currentPackage: !!currentPackage,
-      currentPackageLoading,
-      completedPayments: completedPayments?.length || 0,
-      accountId
-    })
+    // Track Redux state for debugging purposes
   }, [paymentLoading, paymentSuccess, paymentError, packagesLoading, packagesError, packages, currentPackage, currentPackageLoading, completedPayments, accountId])
 
   // THAY ĐỔI: Check giao dịch khi mở popup QR - with enhanced logic
@@ -306,8 +231,6 @@ export default function Payment() {
 
         if (rows.length === 0) return
 
-        console.log("🔍 Checking payment with content:", content)
-
         const lastPaid = rows
           .slice()
           .reverse()
@@ -317,22 +240,17 @@ export default function Payment() {
               (row["Mô tả"] || "").toUpperCase().includes(content.toUpperCase()),
           )
 
-        console.log("💳 Payment found:", !!lastPaid)
-
         if (lastPaid) {
           // THAY ĐỔI: Kiểm tra xem đã thanh toán gói này chưa với accountId
           const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
           const isAlreadyPaid = completedPayments?.includes(paymentKey)
 
           if (!isAlreadyPaid) {
-            console.log('💳 New payment detected, creating payment record for account:', accountId)
-
             const nowVN = getVietnamNowISO()
             const startDate = new Date(new Date(nowVN).setHours(0, 0, 0, 0)).toISOString()
             const endDate = new Date(new Date(nowVN).getTime() + (buyingPkg.duration || 30) * 24 * 60 * 60 * 1000).toISOString()
 
             // THAY ĐỔI: Dispatch payment creation với accountId
-            console.log('📤 Dispatching createPaymentRequest for account:', accountId)
             dispatch(createPaymentRequest({
               accountId, // THÊM accountId vào payload
               packageMembershipId: buyingPkg.package_membership_ID,
@@ -345,12 +263,24 @@ export default function Payment() {
               endDate
             }))
 
-            // Dừng việc check payment
-            stop = true
-            clearTimeout(timeoutId)
-          } else {
-            console.log('⚠️ Payment already processed for this package and account')
+            // THAY ĐỔI: Set current package với accountId trong Redux
+            dispatch(setCurrentPackage({
+              package_membership_ID: buyingPkg.package_membership_ID,
+              category: buyingPkg.category,
+              description: buyingPkg.description,
+              price: buyingPkg.price,
+              duration: buyingPkg.duration,
+              endDate: endDate,
+              startDate: startDate,
+              accountId: accountId,
+              paymentStatus: "Success",
+              transactionCode
+            }))
           }
+
+          // Dừng việc check payment
+          stop = true
+          clearTimeout(timeoutId)
         }
       } catch (e) {
         console.error("❌ Check payment error:", e)
@@ -371,18 +301,6 @@ export default function Payment() {
     const isSamePackage = currentPackage.package_membership_ID === pkg.package_membership_ID
     const isSameAccount = currentPackage.accountId === accountId
     const isNotExpired = currentPackage.endDate ? new Date(currentPackage.endDate) > new Date() : true
-
-    console.log('🔍 Checking if current package:', {
-      packageId: pkg.package_membership_ID,
-      currentPackageId: currentPackage.package_membership_ID,
-      accountId,
-      currentAccountId: currentPackage.accountId,
-      endDate: currentPackage.endDate,
-      isSamePackage,
-      isSameAccount,
-      isNotExpired,
-      result: isSamePackage && isSameAccount && isNotExpired
-    })
 
     return isSamePackage && isSameAccount && isNotExpired
   }
@@ -963,7 +881,7 @@ export default function Payment() {
                 </p>
 
                 {/* Show loading skeleton while fetching packages */}
-                {packagesLoading || currentPackageLoading ? (
+                {packagesLoading ? (
                   <div className="packages-grid">
                     {[...Array(3)].map((_, index) => (
                       <div key={index} className="package-card">
