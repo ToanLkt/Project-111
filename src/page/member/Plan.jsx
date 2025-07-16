@@ -341,15 +341,12 @@ export default function Plan() {
 
     // Component nhập điếu thuốc riêng
     function CigaretteInputSection() {
-        const {
-            todayCigarettesLoading,
-            todayCigarettesSuccess,
-            todayCigarettesError
-        } = useSelector((state) => state.payment || {});
-
         const [cigarettesToday, setCigarettesToday] = useState("");
+        const [isLoading, setIsLoading] = useState(false);
+        const [success, setSuccess] = useState(false);
+        const [error, setError] = useState(null);
 
-        const handleSaveCigarettes = () => {
+        const handleSaveCigarettes = async () => {
             if (!cigarettesToday.trim()) {
                 alert("Vui lòng nhập số điếu thuốc!");
                 return;
@@ -361,8 +358,87 @@ export default function Plan() {
                 return;
             }
 
-            console.log("Saving cigarettes count:", count);
-            setCigarettesToday("");
+            if (!token || !accountId) {
+                alert("Vui lòng đăng nhập để lưu dữ liệu!");
+                return;
+            }
+
+            try {
+                setIsLoading(true);
+                setError(null);
+                setSuccess(false);
+
+                console.log("🚬 Saving cigarettes count:", count);
+
+                const response = await fetch(
+                    "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/today-cigarettes",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            todayCigarettes: count
+                        })
+                    }
+                );
+
+                console.log("📡 API Response status:", response.status);
+                console.log("📡 API Response headers:", response.headers);
+
+                if (response.ok) {
+                    // Kiểm tra content-type trước khi parse JSON
+                    const contentType = response.headers.get("content-type");
+                    console.log("📡 Content-Type:", contentType);
+
+                    let result;
+                    if (contentType && contentType.includes("application/json")) {
+                        try {
+                            result = await response.json();
+                            console.log("✅ Cigarettes saved successfully (JSON):", result);
+                        } catch (jsonError) {
+                            console.log("⚠️ JSON parse error, getting text instead:", jsonError);
+                            const textResult = await response.text();
+                            console.log("✅ Cigarettes saved successfully (Text):", textResult);
+                            result = { message: textResult };
+                        }
+                    } else {
+                        const textResult = await response.text();
+                        console.log("✅ Cigarettes saved successfully (Text):", textResult);
+                        result = { message: textResult };
+                    }
+
+                    setSuccess(true);
+                    setCigarettesToday("");
+
+                    // Auto clear success message after 3 seconds
+                    setTimeout(() => {
+                        setSuccess(false);
+                    }, 3000);
+                } else {
+                    let errorText;
+                    try {
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.includes("application/json")) {
+                            const errorJson = await response.json();
+                            errorText = errorJson.message || errorJson.error || JSON.stringify(errorJson);
+                        } else {
+                            errorText = await response.text();
+                        }
+                    } catch (parseError) {
+                        errorText = `Parse error: ${parseError.message}`;
+                    }
+
+                    console.error("❌ Failed to save cigarettes:", response.status, errorText);
+                    setError(`Lỗi ${response.status}: ${errorText || "Không thể lưu dữ liệu"}`);
+                }
+            } catch (error) {
+                console.error("❌ Error saving cigarettes:", error);
+                setError("Lỗi kết nối: " + error.message);
+            } finally {
+                setIsLoading(false);
+            }
         };
 
         return (
@@ -380,6 +456,23 @@ export default function Plan() {
                     📊 Giới hạn cho phép: {planData?.maxCigarettes || 0} điếu/ngày<br />
                     Vượt quá giới hạn này sẽ được tính là thất bại
                 </p>
+
+                {/* Warning nếu vượt quá giới hạn */}
+                {cigarettesToday && parseInt(cigarettesToday) > (planData?.maxCigarettes || 0) && (
+                    <div style={{
+                        background: "#FEF3C7",
+                        border: "1px solid #F59E0B",
+                        borderRadius: 8,
+                        padding: "1rem",
+                        marginBottom: "1rem",
+                        color: "#92400E"
+                    }}>
+                        ⚠️ Cảnh báo: Bạn đã nhập {cigarettesToday} điếu, vượt quá giới hạn {planData?.maxCigarettes || 0} điếu/ngày!<br />
+                        <span style={{ fontSize: "0.9rem", fontStyle: "italic" }}>
+                            Điều này sẽ được tính là ngày thất bại trong kế hoạch cai thuốc.
+                        </span>
+                    </div>
+                )}
                 <div style={{ display: "flex", justifyContent: "center", gap: "1rem", alignItems: "center" }}>
                     <input
                         type="number"
@@ -398,30 +491,59 @@ export default function Plan() {
                     />
                     <button
                         onClick={handleSaveCigarettes}
-                        disabled={todayCigarettesLoading}
+                        disabled={isLoading}
                         style={{
-                            background: "#48A6A7",
+                            background: isLoading ? "#9CA3AF" : "#48A6A7",
                             color: "white",
                             padding: "0.8rem 1.5rem",
                             borderRadius: 8,
                             border: "none",
-                            cursor: "pointer",
+                            cursor: isLoading ? "not-allowed" : "pointer",
                             fontSize: "1rem",
-                            fontWeight: 600
+                            fontWeight: 600,
+                            transition: "all 0.3s ease"
                         }}
                     >
-                        {todayCigarettesLoading ? "Đang lưu..." : "💾 Lưu"}
+                        {isLoading ? (
+                            <>
+                                <span style={{ marginRight: "0.5rem" }}>⏳</span>
+                                Đang lưu...
+                            </>
+                        ) : (
+                            <>
+                                <span style={{ marginRight: "0.5rem" }}>💾</span>
+                                Lưu
+                            </>
+                        )}
                     </button>
                 </div>
-                {todayCigarettesError && (
-                    <p style={{ color: "#EF4444", marginTop: "1rem" }}>
-                        ❌ {todayCigarettesError}
-                    </p>
+
+                {/* Success Message */}
+                {success && (
+                    <div style={{
+                        color: "#10B981",
+                        marginTop: "1rem",
+                        padding: "0.8rem",
+                        background: "#D1FAE5",
+                        borderRadius: 8,
+                        border: "1px solid #10B981"
+                    }}>
+                        ✅ Đã lưu thành công {cigarettesToday || "số điếu"} hôm nay!
+                    </div>
                 )}
-                {todayCigarettesSuccess && (
-                    <p style={{ color: "#10B981", marginTop: "1rem" }}>
-                        ✅ Đã lưu thành công!
-                    </p>
+
+                {/* Error Message */}
+                {error && (
+                    <div style={{
+                        color: "#EF4444",
+                        marginTop: "1rem",
+                        padding: "0.8rem",
+                        background: "#FEE2E2",
+                        borderRadius: 8,
+                        border: "1px solid #EF4444"
+                    }}>
+                        ❌ {error}
+                    </div>
                 )}
             </section>
         );
@@ -437,12 +559,42 @@ export default function Plan() {
             );
         }
 
+        // Debug log dữ liệu từ API
+        console.log("📊 ProgressPhasesSection data:", {
+            planData: planData ? {
+                phaseNumber: planData.phaseNumber,
+                numberOfDays: planData.numberOfDays,
+                totalSaveMoney: planData.totalSaveMoney,
+                maxCigarettes: planData.maxCigarettes
+            } : null,
+            phaseData: phaseData ? phaseData.map(phase => ({
+                phaseNumber: phase.phaseNumber,
+                totalDays: phase.totalDays,
+                failedDays: phase.failedDays
+            })) : null
+        });
+
         // Tính tổng ngày và tổng ngày fail từ Phase API
         const calculateTotals = () => {
-            if (!phaseData || !Array.isArray(phaseData)) return { totalDays: 0, totalFailedDays: 0 };
+            if (!phaseData || !Array.isArray(phaseData)) {
+                console.log("⚠️ No phase data available for calculations");
+                return { totalDays: 0, totalFailedDays: 0 };
+            }
+
+            console.log("📊 Calculating totals from phase data:", phaseData);
 
             const totalDays = phaseData.reduce((sum, phase) => sum + (phase.totalDays || 0), 0);
             const totalFailedDays = phaseData.reduce((sum, phase) => sum + (phase.failedDays || 0), 0);
+
+            console.log("📊 Calculated totals:", {
+                totalDays,
+                totalFailedDays,
+                phaseBreakdown: phaseData.map(phase => ({
+                    phaseNumber: phase.phaseNumber,
+                    totalDays: phase.totalDays,
+                    failedDays: phase.failedDays
+                }))
+            });
 
             return { totalDays, totalFailedDays };
         };
@@ -516,7 +668,11 @@ export default function Plan() {
                         </div>
                         <div>
                             <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#059669" }}>
-                                {planData?.totalSaveMoney?.toLocaleString() || 0}₫
+                                {(() => {
+                                    const money = planData?.totalSaveMoney || 0;
+                                    if (money === 0) return "0₫";
+                                    return money.toLocaleString('vi-VN') + "₫";
+                                })()}
                             </div>
                             <div style={{ fontSize: "0.9rem", color: "#059669" }}>Tiền đã tiết kiệm</div>
                         </div>

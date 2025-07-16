@@ -1,36 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { logout as reduxLogout } from "../redux/login/loginSlice";
-import { clearAllPaymentData } from "../redux/components/payment/paymentSlice";
+import React, { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-    // Lấy thông tin từ Redux store
-    const { user: reduxUser, token: reduxToken } = useSelector((state) => state.account || {});
-    const dispatch = useDispatch();
-
     const [user, setUser] = useState(() => {
-        // Ưu tiên Redux state, fallback về localStorage
-        if (reduxUser && reduxToken) {
-            return reduxUser;
-        }
-
         const stored = localStorage.getItem("user");
         return stored ? JSON.parse(stored) : null;
     });
-
-    // Đồng bộ user state với Redux store
-    useEffect(() => {
-        if (reduxUser && reduxToken) {
-            setUser(reduxUser);
-            // Đảm bảo localStorage cũng được cập nhật
-            localStorage.setItem("user", JSON.stringify(reduxUser));
-            localStorage.setItem("token", reduxToken);
-        } else if (!reduxUser && !reduxToken) {
-            setUser(null);
-        }
-    }, [reduxUser, reduxToken]);
 
     const login = async (email, password) => {
         const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Auth/login", {
@@ -84,25 +60,16 @@ export function AuthProvider({ children }) {
     const logout = () => {
         setUser(null);
         localStorage.removeItem("user");
-        localStorage.removeItem("token");
-
-        // Dispatch logout action để cập nhật Redux store
-        dispatch(reduxLogout());
-
-        // Clear toàn bộ payment data
-        dispatch(clearAllPaymentData());
-
-        console.log("🚪 User logged out and all data cleared");
     };
 
     return (
         <AuthContext.Provider value={{
-            role: (reduxUser || user)?.role || null,
-            email: (reduxUser || user)?.email || null,
-            token: reduxToken || (user?.token) || null,
-            accountId: (reduxUser || user)?.accountId || null,
-            fullName: (reduxUser || user)?.fullName || "",
-            login, // Giữ nguyên login function (vẫn cần cho một số trường hợp)
+            role: user?.role || null,
+            email: user?.email || null,
+            token: user?.token || null,
+            accountId: user?.accountId || null,
+            fullName: user?.fullName || "",
+            login,
             logout
         }}>
             {children}

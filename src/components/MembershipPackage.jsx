@@ -62,7 +62,11 @@ export default function MembershipPackage() {
     return state.payment || {}
   })
 
-  // Lấy current package từ user object (từ login saga)
+  // State for current package from my-transactions API
+  const [currentPackageFromAPI, setCurrentPackageFromAPI] = useState(null)
+  const [apiPackageLoading, setApiPackageLoading] = useState(false)
+
+  // Lấy current package từ user object (từ login saga) - DEPRECATED sẽ thay bằng API
   const currentPackageFromUser = user?.currentPackage || null
 
   // Extract user info từ Redux user object
@@ -85,6 +89,151 @@ export default function MembershipPackage() {
   const userId = getUserId()
   const userRole = getUserRole()
 
+  // Fetch current package from my-transactions API
+  useEffect(() => {
+    const fetchCurrentPackageFromAPI = async () => {
+      if (!token || !userId) {
+        console.log("⏸️ Skipping API package fetch - missing token or userId");
+        return;
+      }
+
+      try {
+        setApiPackageLoading(true);
+        console.log("🔍 Fetching current package from my-transactions API for userId:", userId);
+
+        const response = await fetch(
+          `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/my-transactions?accountId=${userId}`,
+          {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          }
+        );
+
+        if (response.ok) {
+          const transactions = await response.json();
+          console.log("✅ My-transactions API data:", transactions);
+
+          // Tìm giao dịch thành công có timeBuy gần nhất với hiện tại
+          if (transactions && Array.isArray(transactions) && transactions.length > 0) {
+            console.log("📊 Processing transactions data:", transactions.map(t => ({
+              purchaseID: t.purchaseID,
+              packageCategory: t.packageCategory,
+              packageMembershipId: t.packageMembershipId || t.package_membership_ID,
+              timeBuy: t.timeBuy,
+              paymentStatus: t.paymentStatus,
+              endDate: t.endDate,
+              startDate: t.startDate
+            })));
+
+            // Lọc giao dịch thành công trước
+            const successfulTransactions = transactions.filter(t =>
+              t.paymentStatus === "Successful" || t.status === "Successful" || t.paymentStatus === "Success"
+            );
+
+            console.log("✅ Successful transactions:", successfulTransactions.length);
+
+            if (successfulTransactions.length > 0) {
+              // Sắp xếp theo timeBuy gần nhất (mới nhất)
+              const sortedByTimeBuy = successfulTransactions.sort((a, b) => {
+                const timeA = new Date(a.timeBuy || a.transactionDate || a.paymentDate || a.createdDate);
+                const timeB = new Date(b.timeBuy || b.transactionDate || b.paymentDate || b.createdDate);
+                return timeB - timeA; // Mới nhất trước
+              });
+
+              const latestTransaction = sortedByTimeBuy[0];
+              console.log("🎯 Latest transaction by timeBuy:", {
+                purchaseID: latestTransaction.purchaseID,
+                packageCategory: latestTransaction.packageCategory,
+                packageMembershipId: latestTransaction.packageMembershipId,
+                timeBuy: latestTransaction.timeBuy,
+                endDate: latestTransaction.endDate,
+                paymentStatus: latestTransaction.paymentStatus
+              });
+
+              console.log("🎯 Latest transaction by timeBuy:", {
+                purchaseID: latestTransaction.purchaseID,
+                packageCategory: latestTransaction.packageCategory,
+                packageMembershipId: latestTransaction.packageMembershipId,
+                timeBuy: latestTransaction.timeBuy,
+                endDate: latestTransaction.endDate,
+                paymentStatus: latestTransaction.paymentStatus
+              });
+
+              // Kiểm tra còn hạn sử dụng không
+              const endDate = latestTransaction.endDate || latestTransaction.expiryDate || latestTransaction.packageEndDate;
+
+              if (endDate) {
+                const now = new Date();
+                const expiry = new Date(endDate);
+                const isValid = expiry > now;
+                const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+
+                console.log("📅 Package validity check:", {
+                  endDate: endDate,
+                  now: now.toISOString(),
+                  expiry: expiry.toISOString(),
+                  isValid: isValid,
+                  daysLeft: daysLeft
+                });
+
+                if (isValid && daysLeft > 0) {
+                  // Tìm package info từ packageMembershipId
+                  const packageMembershipId = latestTransaction.packageMembershipId || latestTransaction.package_membership_ID;
+                  const packageInfo = packages.find(p => p.package_membership_ID === packageMembershipId);
+
+                  const currentPackageData = {
+                    packageMembershipId: packageMembershipId,
+                    category: latestTransaction.packageCategory || packageInfo?.category || 'Unknown',
+                    name: latestTransaction.packageCategory || packageInfo?.category || 'Unknown',
+                    endDate: endDate,
+                    startDate: latestTransaction.startDate,
+                    timeBuy: latestTransaction.timeBuy,
+                    daysLeft: daysLeft,
+                    isActive: true,
+                    isExpired: false,
+                    transaction: latestTransaction
+                  };
+
+                  setCurrentPackageFromAPI(currentPackageData);
+
+                  console.log("✅ Current package set from API:", currentPackageData);
+                } else {
+                  console.log("❌ Latest transaction package has expired or invalid");
+                  setCurrentPackageFromAPI(null);
+                }
+              } else {
+                console.log("❌ No end date found in latest transaction");
+                setCurrentPackageFromAPI(null);
+              }
+            } else {
+              console.log("❌ No successful transactions found");
+              setCurrentPackageFromAPI(null);
+            }
+          } else {
+            console.log("❌ No transactions found");
+            setCurrentPackageFromAPI(null);
+          }
+        } else {
+          console.error("❌ Failed to fetch my-transactions:", response.status);
+          setCurrentPackageFromAPI(null);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching current package from API:", error);
+        setCurrentPackageFromAPI(null);
+      } finally {
+        setApiPackageLoading(false);
+      }
+    };
+
+    // Chỉ fetch sau khi có packages data để có thể map packageMembershipId -> category
+    if (packages.length > 0) {
+      fetchCurrentPackageFromAPI();
+    }
+  }, [token, userId, packages])
+
   // Fetch packages khi component mount - KHÔNG CẦN TOKEN
   useEffect(() => {
     console.log("🚀 Dispatching fetchPackagesRequest from MembershipPackage...")
@@ -97,20 +246,41 @@ export default function MembershipPackage() {
       packagesLoading,
       packagesError,
       packagesCount: packages?.length || 0,
-      currentPackageFromUser: !!currentPackageFromUser,
-      currentPackageInfo: currentPackageFromUser,
+      currentPackageFromUser: currentPackageFromUser ? {
+        name: currentPackageFromUser.name,
+        isActive: currentPackageFromUser.isActive,
+        isExpired: currentPackageFromUser.isExpired,
+        daysLeft: currentPackageFromUser.daysLeft,
+        endDate: currentPackageFromUser.endDate
+      } : null,
+      currentPackageFromAPI: currentPackageFromAPI ? {
+        packageMembershipId: currentPackageFromAPI.packageMembershipId,
+        name: currentPackageFromAPI.name,
+        isActive: currentPackageFromAPI.isActive,
+        isExpired: currentPackageFromAPI.isExpired,
+        daysLeft: currentPackageFromAPI.daysLeft,
+        endDate: currentPackageFromAPI.endDate,
+        timeBuy: currentPackageFromAPI.timeBuy
+      } : null,
+      priorityPackage: currentPackageFromAPI || currentPackageFromUser,
+      apiPackageLoading,
       userId,
       userRole,
       hasToken: !!token
     })
-  }, [packagesLoading, packagesError, packages, currentPackageFromUser, userId, userRole, token])
+  }, [packagesLoading, packagesError, packages, currentPackageFromUser, currentPackageFromAPI, apiPackageLoading, userId, userRole, token])
 
   const handleRegister = (pkg) => {
+    // Ưu tiên sử dụng currentPackageFromAPI, fallback về currentPackageFromUser
+    const currentPackage = currentPackageFromAPI || currentPackageFromUser
+
     console.log("🎯 Register attempt:", {
       hasToken: !!token,
       userRole,
       packageId: pkg.package_membership_ID,
-      currentPackage: currentPackageFromUser
+      currentPackageFromAPI: !!currentPackageFromAPI,
+      currentPackageFromUser: !!currentPackageFromUser,
+      currentPackage: currentPackage
     })
 
     if (!token) {
@@ -124,40 +294,47 @@ export default function MembershipPackage() {
       return
     }
 
-    // Kiểm tra gói hiện tại từ user object
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      // Tìm package hiện tại từ danh sách packages để lấy package_membership_ID
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
+    // Kiểm tra gói hiện tại từ API hoặc user object
+    if (currentPackage && currentPackage.isActive && !currentPackage.isExpired) {
+      let currentPackageMembershipId;
 
-      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+      // Nếu từ API, đã có packageMembershipId
+      if (currentPackageFromAPI) {
+        currentPackageMembershipId = currentPackageFromAPI.packageMembershipId;
+      } else {
+        // Nếu từ user object, tìm package từ danh sách
+        const currentPackageInfo = packages.find(p =>
+          p.category?.toLowerCase() === currentPackage.name?.toLowerCase()
+        )
+        currentPackageMembershipId = currentPackageInfo?.package_membership_ID;
+      }
 
       console.log("🔍 Current package check:", {
         currentPackageMembershipId,
-        currentPackageName: currentPackageFromUser.name,
+        currentPackageName: currentPackage.name,
         targetPackageId: pkg.package_membership_ID,
-        canUpgrade: currentPackageMembershipId === 1
+        canUpgrade: currentPackageMembershipId === 1,
+        sourceAPI: !!currentPackageFromAPI
       })
 
       // Nếu gói hiện tại không phải ID = 1, không cho phép mua gói khác
       if (currentPackageMembershipId !== 1) {
-        const daysLeft = currentPackageFromUser.daysLeft || 0
-        showToast(`Bạn đang có gói ${currentPackageFromUser.name} còn ${daysLeft} ngày! Chỉ gói Free mới có thể nâng cấp.`)
+        const daysLeft = currentPackage.daysLeft || 0
+        showToast(`Bạn đang có gói ${currentPackage.name} còn ${daysLeft} ngày! Chỉ gói Free mới có thể nâng cấp.`)
         return
       }
 
       // Nếu là gói Free (ID = 1), kiểm tra không được mua lại chính gói Free
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
-        const daysLeft = currentPackageFromUser.daysLeft || 0
-        showToast(`Bạn đã có gói ${currentPackageFromUser.name} còn ${daysLeft} ngày!`)
+        const daysLeft = currentPackage.daysLeft || 0
+        showToast(`Bạn đã có gói ${currentPackage.name} còn ${daysLeft} ngày!`)
         return
       }
 
       // Gói Free có thể upgrade lên gói khác
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
         console.log("✅ Upgrading from Free package to:", pkg.category)
-        showToast(`Nâng cấp từ gói ${currentPackageFromUser.name} lên ${pkg.category}`, "success")
+        showToast(`Nâng cấp từ gói ${currentPackage.name} lên ${pkg.category}`, "success")
       }
     }
 
@@ -199,27 +376,44 @@ export default function MembershipPackage() {
     }).format(price)
   }
 
-  // Kiểm tra gói hiện tại dựa vào thông tin từ login
+  // Kiểm tra gói hiện tại dựa vào thông tin từ API hoặc login
   const isCurrentPackage = (pkg) => {
-    if (!currentPackageFromUser) return false
+    // Ưu tiên sử dụng currentPackageFromAPI
+    const currentPackage = currentPackageFromAPI || currentPackageFromUser
 
-    // So sánh theo category (tên gói)
-    const isMatchingCategory = currentPackageFromUser.name?.toLowerCase() === pkg.category?.toLowerCase()
+    if (!currentPackage) return false
+
+    let isMatchingCategory = false;
+    let currentPackageMembershipId = null;
+
+    // Nếu từ API
+    if (currentPackageFromAPI) {
+      isMatchingCategory = currentPackageFromAPI.packageMembershipId === pkg.package_membership_ID;
+      currentPackageMembershipId = currentPackageFromAPI.packageMembershipId;
+    } else {
+      // Nếu từ user object, so sánh theo category
+      isMatchingCategory = currentPackage.name?.toLowerCase() === pkg.category?.toLowerCase();
+      // Tìm packageMembershipId từ danh sách packages
+      const packageInfo = packages.find(p => p.category?.toLowerCase() === currentPackage.name?.toLowerCase());
+      currentPackageMembershipId = packageInfo?.package_membership_ID;
+    }
 
     // Kiểm tra gói có đang hoạt động không
-    const isActivePackage = currentPackageFromUser.isActive && !currentPackageFromUser.isExpired
+    const isActivePackage = currentPackage.isActive && !currentPackage.isExpired
 
     console.log('🔍 Checking if current package:', {
       packageCategory: pkg.category,
-      currentPackageName: currentPackageFromUser.name,
+      packageMembershipId: pkg.package_membership_ID,
+      currentPackageName: currentPackage.name || currentPackage.category,
+      currentPackageMembershipId,
       isMatchingCategory,
       isActivePackage,
-      packageMembershipId: pkg.package_membership_ID,
+      sourceAPI: !!currentPackageFromAPI,
       currentPackageDetails: {
-        isActive: currentPackageFromUser.isActive,
-        isExpired: currentPackageFromUser.isExpired,
-        daysLeft: currentPackageFromUser.daysLeft,
-        endDate: currentPackageFromUser.endDate
+        isActive: currentPackage.isActive,
+        isExpired: currentPackage.isExpired,
+        daysLeft: currentPackage.daysLeft,
+        endDate: currentPackage.endDate
       }
     })
 
@@ -240,22 +434,32 @@ export default function MembershipPackage() {
     // Nếu đang sử dụng gói này
     if (isCurrentPackage(pkg)) return false
 
-    // Kiểm tra gói hiện tại
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      // Tìm package hiện tại từ danh sách để lấy package_membership_ID
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
+    // Ưu tiên sử dụng currentPackageFromAPI
+    const currentPackage = currentPackageFromAPI || currentPackageFromUser
 
-      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+    // Kiểm tra gói hiện tại
+    if (currentPackage && currentPackage.isActive && !currentPackage.isExpired) {
+      let currentPackageMembershipId;
+
+      // Nếu từ API
+      if (currentPackageFromAPI) {
+        currentPackageMembershipId = currentPackageFromAPI.packageMembershipId;
+      } else {
+        // Nếu từ user object, tìm package từ danh sách
+        const currentPackageInfo = packages.find(p =>
+          p.category?.toLowerCase() === currentPackage.name?.toLowerCase()
+        )
+        currentPackageMembershipId = currentPackageInfo?.package_membership_ID;
+      }
 
       // Nếu gói hiện tại không phải ID = 1, không cho phép mua gói khác
       if (currentPackageMembershipId !== 1) {
         console.log('🚫 Cannot register - user has premium package (not ID=1):', {
-          currentPackageName: currentPackageFromUser.name,
+          currentPackageName: currentPackage.name || currentPackage.category,
           currentPackageMembershipId,
-          endDate: currentPackageFromUser.endDate,
-          daysLeft: currentPackageFromUser.daysLeft
+          endDate: currentPackage.endDate,
+          daysLeft: currentPackage.daysLeft,
+          sourceAPI: !!currentPackageFromAPI
         })
         return false
       }
@@ -277,21 +481,34 @@ export default function MembershipPackage() {
     if (pkg.status !== "Active") return "Không khả dụng"
 
     if (isCurrentPackage(pkg)) {
-      return `Đang sử dụng (${formatTimeLeft(currentPackageFromUser.daysLeft)})`
+      // Ưu tiên sử dụng currentPackageFromAPI
+      const currentPackage = currentPackageFromAPI || currentPackageFromUser
+      return `Đang sử dụng (${formatTimeLeft(currentPackage?.daysLeft)})`
     }
 
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
-      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+    // Ưu tiên sử dụng currentPackageFromAPI
+    const currentPackage = currentPackageFromAPI || currentPackageFromUser
+
+    if (currentPackage && currentPackage.isActive && !currentPackage.isExpired) {
+      let currentPackageMembershipId;
+
+      // Nếu từ API
+      if (currentPackageFromAPI) {
+        currentPackageMembershipId = currentPackageFromAPI.packageMembershipId;
+      } else {
+        // Nếu từ user object, tìm package từ danh sách
+        const currentPackageInfo = packages.find(p =>
+          p.category?.toLowerCase() === currentPackage.name?.toLowerCase()
+        )
+        currentPackageMembershipId = currentPackageInfo?.package_membership_ID;
+      }
 
       if (currentPackageMembershipId !== 1) {
-        return `Đã có gói ${currentPackageFromUser.name}`
+        return `Đã có gói ${currentPackage.name || currentPackage.category}`
       }
 
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
-        return `Đã có gói ${currentPackageFromUser.name}`
+        return `Đã có gói ${currentPackage.name || currentPackage.category}`
       }
 
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
@@ -308,11 +525,24 @@ export default function MembershipPackage() {
     if (isCurrentPackage(pkg)) return "fas fa-check-circle"
     if (!canRegisterPackage(pkg)) return "fas fa-lock"
 
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
-      if (currentPackageInfo?.package_membership_ID === 1 && pkg.package_membership_ID !== 1) {
+    // Ưu tiên sử dụng currentPackageFromAPI
+    const currentPackage = currentPackageFromAPI || currentPackageFromUser
+
+    if (currentPackage && currentPackage.isActive && !currentPackage.isExpired) {
+      let currentPackageMembershipId;
+
+      // Nếu từ API
+      if (currentPackageFromAPI) {
+        currentPackageMembershipId = currentPackageFromAPI.packageMembershipId;
+      } else {
+        // Nếu từ user object, tìm package từ danh sách
+        const currentPackageInfo = packages.find(p =>
+          p.category?.toLowerCase() === currentPackage.name?.toLowerCase()
+        )
+        currentPackageMembershipId = currentPackageInfo?.package_membership_ID;
+      }
+
+      if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
         return "fas fa-arrow-up"
       }
     }
@@ -329,15 +559,27 @@ export default function MembershipPackage() {
 
   // Hàm kiểm tra có phải gói upgrade không
   const isUpgradePackage = (pkg) => {
-    if (!currentPackageFromUser || !currentPackageFromUser.isActive || currentPackageFromUser.isExpired) {
+    // Ưu tiên sử dụng currentPackageFromAPI
+    const currentPackage = currentPackageFromAPI || currentPackageFromUser
+
+    if (!currentPackage || !currentPackage.isActive || currentPackage.isExpired) {
       return false
     }
 
-    const currentPackageInfo = packages.find(p =>
-      p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-    )
+    let currentPackageMembershipId;
 
-    return currentPackageInfo?.package_membership_ID === 1 && pkg.package_membership_ID !== 1
+    // Nếu từ API
+    if (currentPackageFromAPI) {
+      currentPackageMembershipId = currentPackageFromAPI.packageMembershipId;
+    } else {
+      // Nếu từ user object, tìm package từ danh sách
+      const currentPackageInfo = packages.find(p =>
+        p.category?.toLowerCase() === currentPackage.name?.toLowerCase()
+      )
+      currentPackageMembershipId = currentPackageInfo?.package_membership_ID;
+    }
+
+    return currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1
   }
 
   return (
@@ -755,26 +997,67 @@ export default function MembershipPackage() {
                   Chọn gói phù hợp để bắt đầu hành trình cai thuốc lá của bạn
                 </p>
 
-                {/* Hiển thị thông tin gói hiện tại */}
-                {currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired && (
-                  <div className="current-package-info">
-                    <div className="current-package-title">
-                      🎉 Bạn đang sử dụng gói {currentPackageFromUser.name}
-                    </div>
-                    <div className="current-package-details">
-                      {formatTimeLeft(currentPackageFromUser.daysLeft)} •
-                      Hết hạn: {new Date(currentPackageFromUser.endDate).toLocaleDateString('vi-VN')}
-                      {packages.find(p => p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase())?.package_membership_ID === 1 && (
-                        <>
-                          <br />
-                          <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>
-                            ⬆️ Có thể nâng cấp lên gói cao hơn
+                {/* Hiển thị thông tin gói hiện tại - ưu tiên từ API */}
+                {(() => {
+                  // Ưu tiên sử dụng currentPackageFromAPI
+                  const currentPackage = currentPackageFromAPI || currentPackageFromUser
+
+                  if (!currentPackage || !currentPackage.isActive || currentPackage.isExpired) {
+                    return null
+                  }
+
+                  return (
+                    <div className="current-package-info">
+                      <div className="current-package-title">
+                        🎉 Bạn đang sử dụng gói {currentPackage.name || currentPackage.category}
+                        {currentPackageFromAPI && (
+                          <span style={{
+                            marginLeft: '0.5rem',
+                            fontSize: '0.8rem',
+                            color: '#10B981',
+                            fontWeight: 'normal'
+                          }}>
+                            📡 API
                           </span>
-                        </>
-                      )}
+                        )}
+                      </div>
+                      <div className="current-package-details">
+                        {formatTimeLeft(currentPackage.daysLeft)} •
+                        Hết hạn: {new Date(currentPackage.endDate).toLocaleDateString('vi-VN')}
+                        {currentPackageFromAPI && currentPackage.timeBuy && (
+                          <>
+                            <br />
+                            <span style={{ color: '#6B7280', fontSize: '0.85rem' }}>
+                              📅 Mua ngày: {new Date(currentPackage.timeBuy).toLocaleDateString('vi-VN')}
+                            </span>
+                          </>
+                        )}
+                        {(() => {
+                          // Kiểm tra có thể nâng cấp không
+                          let currentPackageMembershipId;
+                          if (currentPackageFromAPI) {
+                            currentPackageMembershipId = currentPackageFromAPI.packageMembershipId;
+                          } else {
+                            const packageInfo = packages.find(p => p.category?.toLowerCase() === currentPackage.name?.toLowerCase());
+                            currentPackageMembershipId = packageInfo?.package_membership_ID;
+                          }
+
+                          if (currentPackageMembershipId === 1) {
+                            return (
+                              <>
+                                <br />
+                                <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>
+                                  ⬆️ Có thể nâng cấp lên gói cao hơn
+                                </span>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {packagesLoading ? (
                   <div className="packages-grid">
@@ -881,8 +1164,8 @@ export default function MembershipPackage() {
                               {getButtonLabel(pkg)}
                             </button>
                           ) : (
-                            <button 
-                              className="package-button btn-disabled" 
+                            <button
+                              className="package-button btn-disabled"
                               onClick={!token ? () => navigate("/login") : undefined}
                               style={!token ? { cursor: "pointer" } : {}}
                             >

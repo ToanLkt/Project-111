@@ -19,6 +19,7 @@ import {
   updateCurrentPackage,
   setLastSuccessfulPayment,
   clearCurrentPackage,
+  createPaymentSuccess,
 } from "../redux/components/payment/paymentSlice"
 
 // Thông tin ngân hàng
@@ -45,7 +46,7 @@ const COLORS = {
 const TRANSACTION_API =
   "https://docs.google.com/spreadsheets/d/1Er2mUA9EE7PdsIc9YPzOFlxo_ErhmjRPGaYNYBXS00A/gviz/tq?tqx=out:json"
 
-function showToast(message, type = "success") {
+function showToast(message, type = "Success") {
   const old = document.getElementById("toast-paid")
   if (old) {
     old.remove()
@@ -246,8 +247,13 @@ export default function Payment() {
   // Sinh mã giao dịch mới mỗi lần mở QR
   useEffect(() => {
     if (showQR && buyingPkg) {
+      // Luôn tạo mã mới khi mở QR, bất kể đã có mã hay chưa
       const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+      console.log("🔑 Generated new transaction code:", code)
       setTransactionCode(code)
+    } else if (!showQR) {
+      // Clear mã khi đóng QR
+      setTransactionCode("")
     }
   }, [showQR, buyingPkg])
 
@@ -322,12 +328,24 @@ export default function Payment() {
       const latestTransaction = verifiedTransactions[verifiedTransactions.length - 1]
       console.log("🎯 Verified transaction detected:", latestTransaction)
 
+      // Lưu giao dịch vào database
+      if (buyingPkg && transactionCode) {
+        console.log("💾 Saving transaction to database...")
+        savePaymentTransaction(buyingPkg, { transactionCode })
+      }
+
       // Đóng QR modal và hiển thị thông báo
       setShowQR(false)
       setBuyingPkg(null)
       showToast("✅ Giao dịch đã được xác thực! Đang lưu vào hệ thống...", "success")
+
+      // Navigate về home sau 3 giây
+      setTimeout(() => {
+        console.log("🏠 Navigating to home...")
+        navigate("/")
+      }, 3000)
     }
-  }, [verifiedTransactions])
+  }, [verifiedTransactions, buyingPkg, transactionCode, navigate])
 
   // Handle transaction check error
   useEffect(() => {
@@ -337,63 +355,53 @@ export default function Payment() {
     }
   }, [transactionCheckError])
 
-  // Check giao dịch khi mở popup QR - Sử dụng saga mới
+  // Handle payment error - cho phép thử lại khi thanh toán thất bại
   useEffect(() => {
-    if (!showQR || !buyingPkg || !transactionCode || !accountId) return
+    if (paymentError) {
+      console.log("❌ Payment error detected:", paymentError)
 
-    const price = buyingPkg.price
-    const content = `THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID}${transactionCode}`
+      // Hiển thị thông báo lỗi cho user
+      showToast(`❌ Thanh toán thất bại: ${paymentError}. Vui lòng thử lại.`, "error")
 
-    console.log("🔍 Starting payment check with saga:", {
-      price,
-      content,
-      transactionCode,
-      category: buyingPkg.category,
-      packageId: buyingPkg.package_membership_ID
-    })
+      // Reset trạng thái thanh toán để cho phép thử lại
+      setShowQR(false)
+      setBuyingPkg(null)
+      setTransactionCode("")
 
-    let intervalId
+      // Dừng việc check transaction
+      dispatch(stopTransactionCheck())
 
-    // Hàm check giao dịch sử dụng saga
-    const checkTransactionWithSaga = () => {
-      if (paymentSuccess) {
-        console.log("✅ Payment already successful, stopping check")
-        return
+      // Clear payment error sau 3 giây để user có thể thử lại
+      setTimeout(() => {
+        dispatch(clearPaymentState())
+      }, 3000)
+    }
+  }, [paymentError, dispatch])
+
+  // Thêm useEffect xử lý timeout thanh toán
+  useEffect(() => {
+    if (showQR && buyingPkg && transactionCode) {
+      // Timeout sau 15 phút thay vì 10 phút để user có nhiều thời gian hơn
+      const paymentTimeoutId = setTimeout(() => {
+        console.log("⏰ Payment timeout - allowing retry")
+
+        // Hiển thị thông báo timeout
+        showToast("⏰ Hết thời gian thanh toán. Bạn có thể thử lại.", "warning")
+
+        // Reset trạng thái để cho phép thử lại
+        setShowQR(false)
+        setBuyingPkg(null)
+        setTransactionCode("")
+
+        // Dừng check transaction
+        dispatch(stopTransactionCheck())
+      }, 15 * 60 * 1000) // 15 phút
+
+      return () => {
+        clearTimeout(paymentTimeoutId)
       }
-
-      console.log("📡 Dispatching checkTransactionRequest with:", {
-        expectedPrice: price,
-        expectedContent: content,
-        transactionCode,
-        packageData: buyingPkg
-      })
-
-      dispatch(checkTransactionRequest({
-        expectedPrice: price,
-        expectedContent: content,
-        transactionCode,
-        packageData: buyingPkg
-      }))
     }
-
-    // Bắt đầu check ngay và lặp lại mỗi 3 giây (giảm xuống để test nhanh hơn)
-    checkTransactionWithSaga()
-    intervalId = setInterval(checkTransactionWithSaga, 3000)
-
-    // Timeout sau 10 phút
-    const timeoutId = setTimeout(() => {
-      console.log("⏰ Payment check timeout after 10 minutes")
-      dispatch(stopTransactionCheck())
-      showToast("⏰ Hết thời gian kiểm tra giao dịch. Vui lòng thử lại.", "warning")
-    }, 10 * 60 * 1000)
-
-    return () => {
-      console.log("🧹 Cleaning up payment check")
-      if (intervalId) clearInterval(intervalId)
-      if (timeoutId) clearTimeout(timeoutId)
-      dispatch(stopTransactionCheck())
-    }
-  }, [showQR, buyingPkg, transactionCode, accountId, dispatch, paymentSuccess])
+  }, [showQR, buyingPkg, transactionCode, dispatch])
 
   // Cập nhật logic lấy current package - ưu tiên từ Redux state
   const getCurrentPackage = () => {
@@ -629,6 +637,53 @@ export default function Payment() {
     return false
   }
 
+  // Hàm lưu giao dịch thành công vào database
+  const savePaymentTransaction = async (packageData, transactionData) => {
+    try {
+      console.log("💾 Saving successful payment transaction to database...");
+
+      const paymentPayload = {
+        packageMembershipId: packageData.package_membership_ID,
+        timeBuy: new Date().toISOString(),
+        totalPrice: packageData.price,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + (packageData.duration * 24 * 60 * 60 * 1000)).toISOString(),
+        paymentStatus: "Success",
+        transactionCode: transactionData.transactionCode || Math.random().toString(36).substring(2, 8).toUpperCase()
+      };
+
+      console.log("📤 Payment payload:", paymentPayload);
+
+      const response = await fetch(
+        "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Payment/create",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(paymentPayload)
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("✅ Payment transaction saved successfully:", result);
+        showToast("💾 Giao dịch đã được lưu vào hệ thống!", "success");
+        return result;
+      } else {
+        const errorText = await response.text();
+        console.error("❌ Failed to save payment transaction:", response.status, errorText);
+        showToast("⚠️ Lưu giao dịch thất bại, nhưng thanh toán đã thành công!", "warning");
+        return null;
+      }
+    } catch (error) {
+      console.error("❌ Error saving payment transaction:", error);
+      showToast("⚠️ Lỗi lưu giao dịch, nhưng thanh toán đã thành công!", "warning");
+      return null;
+    }
+  };
+
   // LOGIC GIỐNG MEMBERSHIPPACKAGE: Handle register với validation
   const handleRegister = async (pkg) => {
     console.log("🎯 Payment register attempt:", {
@@ -687,30 +742,97 @@ export default function Payment() {
     }
 
     try {
-      // Tạo payment record trước khi hiển thị QR
-      const paymentData = {
-        packageMembershipId: pkg.package_membership_ID,
-        amount: pkg.price,
-        transactionCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        paymentMethod: 'Bank Transfer',
-        description: `Payment for ${pkg.category} package`
-      };
-
-      console.log("📝 Creating payment record:", paymentData);
-
-      // Gọi API tạo payment
-      await handleCreatePayment(paymentData);
-
-      // Nếu thành công, hiển thị QR
       console.log("✅ Opening QR for package:", pkg);
+
+      // Clear any previous payment errors before starting new payment
+      if (paymentError) {
+        console.log("🧹 Clearing previous payment error before new attempt")
+        dispatch(clearPaymentState())
+      }
+
+      // Hiển thị QR - transactionCode sẽ được tạo trong useEffect
       setBuyingPkg(pkg);
-      setTransactionCode(paymentData.transactionCode);
       setShowQR(true);
 
     } catch (error) {
       console.error("❌ Failed to create payment:", error);
       showToast("❌ Không thể tạo thanh toán. Vui lòng thử lại.", "warning");
     }
+  }
+
+  // Hàm xử lý xác nhận thanh toán thủ công
+  const handleManualConfirmation = async () => {
+    if (!buyingPkg || !transactionCode) {
+      showToast("❌ Thông tin giao dịch không hợp lệ!", "error")
+      return
+    }
+
+    try {
+      console.log("🔧 Manual payment confirmation:", {
+        package: buyingPkg.category,
+        transactionCode,
+        price: buyingPkg.price
+      })
+
+      // Lưu giao dịch vào database
+      const result = await savePaymentTransaction(buyingPkg, { transactionCode })
+
+      if (result) {
+        // Cập nhật current package
+        const now = new Date()
+        const endDate = new Date(now.getTime() + (buyingPkg.duration * 24 * 60 * 60 * 1000))
+
+        const newCurrentPackage = {
+          name: buyingPkg.category,
+          category: buyingPkg.category,
+          package_membership_ID: buyingPkg.package_membership_ID,
+          duration: buyingPkg.duration,
+          price: buyingPkg.price,
+          startDate: now.toISOString(),
+          endDate: endDate.toISOString(),
+          daysLeft: buyingPkg.duration,
+          isActive: true,
+          isExpired: false,
+          paymentDate: now.toISOString(),
+          transactionCode: transactionCode
+        }
+
+        dispatch(updateCurrentPackage(newCurrentPackage))
+        dispatch(createPaymentSuccess(result))
+
+        showToast("✅ Xác nhận thanh toán thành công!", "success")
+
+        // Đóng QR modal
+        setShowQR(false)
+        setBuyingPkg(null)
+
+        // Navigate về home sau 2 giây
+        setTimeout(() => {
+          navigate("/")
+        }, 2000)
+      }
+    } catch (error) {
+      console.error("❌ Manual confirmation failed:", error)
+      showToast("❌ Xác nhận thanh toán thất bại. Vui lòng thử lại.", "error")
+    }
+  }
+
+  // Hàm xử lý hủy thanh toán
+  const handleCancelPayment = () => {
+    console.log("❌ Payment cancelled by user")
+
+    // Dừng check transaction
+    dispatch(stopTransactionCheck())
+
+    // Clear payment state để reset error nếu có
+    dispatch(clearPaymentState())
+
+    // Đóng QR modal
+    setShowQR(false)
+    setBuyingPkg(null)
+    setTransactionCode("")
+
+    showToast("❌ Đã hủy thanh toán", "info")
   }
 
   const getPackageIcon = (category) => {
@@ -1126,6 +1248,30 @@ export default function Payment() {
           background: ${COLORS.success};
           color: ${COLORS.white};
           cursor: default;
+        }
+
+        .btn-retry {
+          background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+          color: ${COLORS.white};
+          border: 2px solid #EF4444;
+          animation: pulseRetry 2s infinite;
+        }
+
+        .btn-retry:hover {
+          background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);
+        }
+
+        @keyframes pulseRetry {
+          0%, 100% { 
+            border-color: #EF4444;
+            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.3);
+          }
+          50% { 
+            border-color: #DC2626;
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+          }
         }
 
         .btn-disabled {
@@ -1573,7 +1719,7 @@ export default function Payment() {
                             <button
                               className={`package-button ${isSelectedFromMembership ? 'btn-upgrade' :
                                 isUpgrade ? 'btn-upgrade' : 'btn-buy'
-                                }`}
+                                } ${paymentError ? 'btn-retry' : ''}`}
                               disabled={paymentLoading}
                               onClick={() => handleRegister(pkg)}
                             >
@@ -1581,6 +1727,11 @@ export default function Payment() {
                                 <>
                                   <div className="loading-spinner"></div>
                                   Đang xử lý...
+                                </>
+                              ) : paymentError ? (
+                                <>
+                                  <i className="fas fa-redo"></i>
+                                  Thử lại thanh toán
                                 </>
                               ) : (
                                 <>
@@ -1622,7 +1773,7 @@ export default function Payment() {
       </section>
 
       {/* QR Modal */}
-      {showQR && buyingPkg && (
+      {showQR && buyingPkg && transactionCode && (
         <div className="qr-overlay">
           <div className="qr-modal">
             <button className="qr-close" onClick={() => setShowQR(false)}>
@@ -1666,35 +1817,54 @@ export default function Payment() {
             </div>
 
             <div className="qr-status">
-              <div className="loading-spinner"></div>
-              <span>
-                {paymentLoading
-                  ? "Đang xử lý thanh toán..."
-                  : transactionCheckLoading
-                    ? "Đang kiểm tra giao dịch..."
-                    : isCheckingTransaction
-                      ? "Đang chờ thanh toán..."
-                      : "Quét mã QR để thanh toán..."
-                }
-              </span>
+              {paymentError ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  color: '#DC2626',
+                  fontWeight: '600'
+                }}>
+                  <i className="fas fa-exclamation-triangle"></i>
+                  <span>Thanh toán thất bại: {paymentError}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="loading-spinner"></div>
+                  <span>
+                    {paymentLoading
+                      ? "Đang xử lý thanh toán..."
+                      : transactionCheckLoading
+                        ? "Đang kiểm tra giao dịch..."
+                        : isCheckingTransaction
+                          ? "Đang chờ thanh toán..."
+                          : "Quét mã QR để thanh toán..."
+                    }
+                  </span>
+                </>
+              )}
             </div>
 
             {/* THÊM NÚT MANUAL CONFIRMATION */}
             <div style={{
               marginTop: '1.5rem',
               padding: '1rem',
-              background: '#FEF3C7',
+              background: paymentError ? '#FEE2E2' : '#FEF3C7',
               borderRadius: '12px',
-              border: '1px solid #F59E0B'
+              border: `1px solid ${paymentError ? '#DC2626' : '#F59E0B'}`
             }}>
               <p style={{
                 margin: '0 0 1rem 0',
                 fontSize: '0.9rem',
-                color: '#92400E',
+                color: paymentError ? '#7F1D1D' : '#92400E',
                 textAlign: 'center'
               }}>
-                <i className="fas fa-info-circle"></i>
-                {' '}Đã thanh toán nhưng chưa được xác nhận?
+                <i className={`fas ${paymentError ? 'fa-exclamation-triangle' : 'fa-info-circle'}`}></i>
+                {' '}{paymentError
+                  ? 'Thanh toán gặp vấn đề? Bạn có thể thử lại hoặc xác nhận thủ công.'
+                  : 'Đã thanh toán nhưng chưa được xác nhận?'
+                }
               </p>
               <button
                 onClick={handleManualConfirmation}
@@ -1707,7 +1877,8 @@ export default function Payment() {
                   borderRadius: '8px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  marginBottom: '0.8rem'
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.background = '#D97706';
@@ -1718,6 +1889,30 @@ export default function Payment() {
               >
                 <i className="fas fa-check-circle me-2"></i>
                 Xác nhận đã thanh toán
+              </button>
+
+              <button
+                onClick={handleCancelPayment}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  background: '#DC2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#B91C1C';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#DC2626';
+                }}
+              >
+                <i className="fas fa-times me-2"></i>
+                Thoát thanh toán
               </button>
             </div>
           </div>
