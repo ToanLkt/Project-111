@@ -30,6 +30,11 @@ export default function MemberProfile() {
   const [formData, setFormData] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  // THÊM STATE CHO MEMBER FORM
+  const [memberForm, setMemberForm] = useState(null)
+  const [formLoading, setFormLoading] = useState(false)
+  const [formError, setFormError] = useState(null)
+
   // Debug logs
   console.log("MemberProfile Debug:", {
     reduxUser,
@@ -97,6 +102,64 @@ export default function MemberProfile() {
     }
   }, [token, authLoading])
 
+  // THÊM USEEFFECT ĐỂ FETCH MEMBER FORM
+  useEffect(() => {
+    async function fetchMemberForm() {
+      if (!token) return
+
+      try {
+        setFormLoading(true)
+        setFormError(null)
+
+        console.log("Fetching member form...")
+
+        const response = await fetch(
+          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/myForm",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        )
+
+        console.log("Member form API response status:", response.status)
+
+        if (response.ok) {
+          const formData = await response.json()
+          console.log("Member form data received:", formData)
+          setMemberForm(formData)
+        } else if (response.status === 404) {
+          console.log("Member form not found (404)")
+          setMemberForm(null)
+          setFormError("Bạn chưa điền form đăng ký")
+        } else {
+          const errorText = await response.text()
+          console.error("Member form API error:", errorText)
+          setFormError("Không thể tải thông tin form")
+        }
+      } catch (error) {
+        console.error("Error fetching member form:", error)
+        setFormError("Lỗi kết nối khi tải form")
+      } finally {
+        setFormLoading(false)
+      }
+    }
+
+    if (token && !authLoading) {
+      fetchMemberForm()
+    }
+  }, [token, authLoading])
+
+  // Helper function để format tiền
+  const formatMoney = (amount) => {
+    if (!amount) return "0 ₫"
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount)
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -145,6 +208,323 @@ export default function MemberProfile() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // COMPONENT HIỂN THỊ MEMBER FORM
+  const MemberFormSection = () => {
+    if (formLoading) {
+      return (
+        <div className="profile-card" style={{ marginTop: '2rem' }}>
+          <div className="profile-header">
+            <div className="profile-icon">📋</div>
+            <h3 className="profile-title" style={{ fontSize: '1.8rem' }}>
+              Form đăng ký cai nghiện
+            </h3>
+            <p className="profile-subtitle">Thông tin form bạn đã đăng ký</p>
+          </div>
+          <div style={{ textAlign: 'center', padding: '2rem', color: COLORS.textLight }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }}></div>
+            <p>Đang tải thông tin form...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (formError) {
+      return (
+        <div className="profile-card" style={{ marginTop: '2rem' }}>
+          <div className="profile-header">
+            <div className="profile-icon">📋</div>
+            <h3 className="profile-title" style={{ fontSize: '1.8rem' }}>
+              Form đăng ký cai nghiện
+            </h3>
+            <p className="profile-subtitle">Thông tin form bạn đã đăng ký</p>
+          </div>
+          <div style={{
+            textAlign: 'center',
+            padding: '2rem',
+            background: '#FEF2F2',
+            borderRadius: '12px',
+            border: '1px solid #FECACA'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>❌</div>
+            <h4 style={{ color: COLORS.danger, marginBottom: '0.5rem' }}>
+              {formError}
+            </h4>
+            <p style={{ color: COLORS.textLight, margin: 0 }}>
+              Vui lòng liên hệ bộ phận hỗ trợ nếu bạn đã điền form
+            </p>
+          </div>
+        </div>
+      )
+    }
+
+    if (!memberForm) {
+      return (
+        <div className="profile-card" style={{ marginTop: '2rem' }}>
+          <div className="profile-header">
+            <div className="profile-icon">📋</div>
+            <h3 className="profile-title" style={{ fontSize: '1.8rem' }}>
+              Form đăng ký cai nghiện
+            </h3>
+            <p className="profile-subtitle">Thông tin form bạn đã đăng ký</p>
+          </div>
+          <div style={{
+            textAlign: 'center',
+            padding: '2rem',
+            background: '#FFFBEB',
+            borderRadius: '12px',
+            border: '1px solid #FDE68A'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+            <h4 style={{ color: COLORS.warning, marginBottom: '0.5rem' }}>
+              Chưa có form đăng ký
+            </h4>
+            <p style={{ color: COLORS.textLight, margin: 0 }}>
+              Bạn chưa điền form đăng ký cai nghiện
+            </p>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="profile-card" style={{ marginTop: '2rem' }}>
+        <div className="profile-header">
+          <div className="profile-icon">📋</div>
+          <h3 className="profile-title" style={{ fontSize: '1.8rem' }}>
+            Form đăng ký cai nghiện
+          </h3>
+          <p className="profile-subtitle">Thông tin form bạn đã đăng ký</p>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          {/* Statistics Cards */}
+          <div style={{
+            background: 'linear-gradient(135deg, #FEF3E2 0%, #FDE68A 100%)',
+            padding: '1.5rem',
+            borderRadius: '16px',
+            textAlign: 'center',
+            border: '1px solid #F59E0B'
+          }}>
+            <div style={{
+              fontSize: '2rem',
+              fontWeight: '800',
+              color: '#D97706',
+              marginBottom: '0.5rem'
+            }}>
+              {memberForm.cigarettesPerDay || 0}
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: '#92400E',
+              fontWeight: '600'
+            }}>
+              Điếu thuốc/ngày
+            </div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+            padding: '1.5rem',
+            borderRadius: '16px',
+            textAlign: 'center',
+            border: '1px solid #10B981'
+          }}>
+            <div style={{
+              fontSize: '2rem',
+              fontWeight: '800',
+              color: '#059669',
+              marginBottom: '0.5rem'
+            }}>
+              {memberForm.goalTime || 0}
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: '#047857',
+              fontWeight: '600'
+            }}>
+              Ngày mục tiêu
+            </div>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 100%)',
+            padding: '1.5rem',
+            borderRadius: '16px',
+            textAlign: 'center',
+            border: '1px solid #3B82F6'
+          }}>
+            <div style={{
+              fontSize: '1.2rem',
+              fontWeight: '800',
+              color: '#1D4ED8',
+              marginBottom: '0.5rem'
+            }}>
+              {formatMoney(memberForm.costPerCigarette)}
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              color: '#1E40AF',
+              fontWeight: '600'
+            }}>
+              Giá/điếu thuốc
+            </div>
+          </div>
+        </div>
+
+        {/* Form Details */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '180px 1fr',
+          gap: '1rem',
+          fontSize: '0.95rem'
+        }}>
+          {memberForm.smokingTime && (
+            <>
+              <div style={{ fontWeight: '600', color: COLORS.color3 }}>
+                <i className="fas fa-clock me-2"></i>
+                Thời gian hút thuốc:
+              </div>
+              <div style={{ color: COLORS.text }}>
+                {memberForm.smokingTime}
+              </div>
+            </>
+          )}
+
+          {memberForm.reason && (
+            <>
+              <div style={{ fontWeight: '600', color: COLORS.color3 }}>
+                <i className="fas fa-heart me-2"></i>
+                Lý do cai thuốc:
+              </div>
+              <div style={{
+                color: COLORS.text,
+                fontStyle: 'italic',
+                background: '#FFF9E6',
+                padding: '0.8rem',
+                borderRadius: '8px',
+                border: '1px solid #FFE082'
+              }}>
+                "{memberForm.reason}"
+              </div>
+            </>
+          )}
+
+          {memberForm.medicalHistory && (
+            <>
+              <div style={{ fontWeight: '600', color: COLORS.color3 }}>
+                <i className="fas fa-stethoscope me-2"></i>
+                Tiền sử bệnh:
+              </div>
+              <div style={{
+                color: COLORS.danger,
+                fontWeight: '600',
+                background: '#FFEBEE',
+                padding: '0.8rem',
+                borderRadius: '8px',
+                border: '1px solid #FFCDD2'
+              }}>
+                <i className="fas fa-exclamation-triangle me-2"></i>
+                {memberForm.medicalHistory}
+              </div>
+            </>
+          )}
+
+          {memberForm.mostSmokingTime && (
+            <>
+              <div style={{ fontWeight: '600', color: COLORS.color3 }}>
+                <i className="fas fa-clock me-2"></i>
+                Thời gian hút nhiều:
+              </div>
+              <div style={{ color: COLORS.text }}>
+                {memberForm.mostSmokingTime}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Summary Info */}
+        <div style={{
+          marginTop: '2rem',
+          padding: '1.5rem',
+          background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)',
+          borderRadius: '12px',
+          border: '1px solid #CBD5E1'
+        }}>
+          <h5 style={{
+            color: COLORS.color3,
+            marginBottom: '1rem',
+            fontSize: '1.1rem',
+            fontWeight: '700'
+          }}>
+            <i className="fas fa-chart-line me-2"></i>
+            Tóm tắt thông tin
+          </h5>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: '800',
+                color: COLORS.warning
+              }}>
+                {memberForm.cigarettesPerDay * 30 || 0}
+              </div>
+              <div style={{
+                fontSize: '0.85rem',
+                color: COLORS.textLight,
+                fontWeight: '600'
+              }}>
+                Điếu/tháng hiện tại
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: '800',
+                color: COLORS.success
+              }}>
+                {formatMoney((memberForm.costPerCigarette || 0) * (memberForm.cigarettesPerDay || 0) * 30)}
+              </div>
+              <div style={{
+                fontSize: '0.85rem',
+                color: COLORS.textLight,
+                fontWeight: '600'
+              }}>
+                Chi phí/tháng hiện tại
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                fontSize: '1.5rem',
+                fontWeight: '800',
+                color: COLORS.color2
+              }}>
+                {formatMoney((memberForm.costPerCigarette || 0) * (memberForm.cigarettesPerDay || 0) * (memberForm.goalTime || 0))}
+              </div>
+              <div style={{
+                fontSize: '0.85rem',
+                color: COLORS.textLight,
+                fontWeight: '600'
+              }}>
+                Tiết kiệm sau {memberForm.goalTime} ngày
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Hiển thị loading khi đang auth loading hoặc profile loading
@@ -472,6 +852,15 @@ export default function MemberProfile() {
           animation: spin 1s linear infinite;
         }
 
+        .loading-spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid ${COLORS.color1};
+          border-radius: 50%;
+          border-top-color: ${COLORS.color2};
+          animation: spin 1s linear infinite;
+        }
+
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
@@ -484,6 +873,8 @@ export default function MemberProfile() {
           .profile-card {
             padding: 2rem;
             border-radius: 20px;
+            max-width: none;
+            margin: 0 auto 2rem auto;
           }
 
           .profile-title {
@@ -524,6 +915,7 @@ export default function MemberProfile() {
         <div className="container">
           <div className="row justify-content-center">
             <div className="col-12">
+              {/* PROFILE CARD - EXISTING */}
               <div className="profile-card">
                 <div className="profile-header">
                   <div className="profile-icon">👤</div>
@@ -662,6 +1054,9 @@ export default function MemberProfile() {
                   )}
                 </div>
               </div>
+
+              {/* MEMBER FORM SECTION - NEW */}
+              <MemberFormSection />
             </div>
           </div>
         </div>

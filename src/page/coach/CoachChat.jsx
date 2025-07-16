@@ -113,7 +113,7 @@ export default function CoachChat() {
       }, 3000);
     } else {
       refreshIntervalRef.current = setInterval(() => {
-        fetchMembers(true); // silent refresh
+        fetchMembersWithPackage3(true); // silent refresh
       }, 5000);
     }
 
@@ -127,9 +127,9 @@ export default function CoachChat() {
     };
   }, [selectedMember, accountId]);
 
-  // Fetch members
+  // Fetch members with package 3
   useEffect(() => {
-    fetchMembers()
+    fetchMembersWithPackage3()
   }, [])
 
   // Fetch conversation khi chọn member
@@ -175,8 +175,8 @@ export default function CoachChat() {
     });
   };
 
-  // Lấy danh sách members (với silent option cho auto-refresh)
-  const fetchMembers = async (silent = false) => {
+  // **SỬA LẠI: Fetch members with package 3 từ API**
+  const fetchMembersWithPackage3 = async (silent = false) => {
     if (!token || !accountId) {
       if (!silent) setLoadingMembers(false)
       return
@@ -185,66 +185,95 @@ export default function CoachChat() {
     try {
       if (!silent) setLoadingMembers(true)
 
-      const receiverUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${accountId}`
+      console.log("🚀 Fetching members with package 3...")
 
-      const receiverResponse = await fetch(receiverUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      // Fetch members using package 3 from API
+      const response = await fetch(
+        'https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/members-with-package3',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      })
+      )
 
-      let allConversations = []
-
-      if (receiverResponse.ok) {
-        const receiverData = await receiverResponse.json()
-        if (Array.isArray(receiverData)) {
-          allConversations = [...allConversations, ...receiverData]
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      // Test member IDs
-      const testMemberIds = [2, 3, 4, 5, 10, 11, 12, 15, 20, 21]
+      const membersData = await response.json()
+      console.log("✅ Members with package 3 fetched:", membersData)
 
-      for (const memberId of testMemberIds) {
-        if (memberId === accountId) continue
+      if (Array.isArray(membersData) && membersData.length > 0) {
+        // Format members data for display
+        const formattedMembers = await Promise.all(
+          membersData.map(async (member) => {
+            // Fetch latest conversation với member này để lấy last message
+            let lastMessage = "Bắt đầu cuộc trò chuyện";
+            let lastMessageTime = new Date().toISOString();
 
-        try {
-          const memberUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${memberId}`
+            try {
+              const conversationResponse = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${member.accountId}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              )
 
-          const memberResponse = await fetch(memberUrl, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
+              if (conversationResponse.ok) {
+                const conversationData = await conversationResponse.json()
+                if (Array.isArray(conversationData) && conversationData.length > 0) {
+                  // Lấy tin nhắn cuối cùng
+                  const latestMessage = conversationData
+                    .sort((a, b) => new Date(b.sentTime || b.createdAt) - new Date(a.sentTime || a.createdAt))[0]
+
+                  if (latestMessage) {
+                    lastMessage = latestMessage.message || "Tin nhắn"
+                    lastMessageTime = latestMessage.sentTime || latestMessage.createdAt || new Date().toISOString()
+                  }
+                }
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch conversation for member ${member.accountId}:`, error)
+            }
+
+            return {
+              accountId: member.accountId,
+              name: member.fullName || member.name || `Member ${member.accountId}`,
+              email: member.email,
+              packageInfo: {
+                packageName: member.packageName || "Package 3",
+                startDate: member.startDate,
+                endDate: member.endDate,
+                daysLeft: member.daysLeft || 0
+              },
+              lastMessage: lastMessage,
+              timestamp: lastMessageTime,
+              isOnline: Math.random() > 0.4, // Random online status, có thể cải thiện bằng realtime status
+              hasActivePackage: true,
+              packageStatus: member.daysLeft > 0 ? "Đang hoạt động" : "Hết hạn"
             }
           })
+        )
 
-          if (memberResponse.ok) {
-            const memberData = await memberResponse.json()
+        // Sắp xếp theo thời gian tin nhắn gần nhất
+        formattedMembers.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
-            if (Array.isArray(memberData) && memberData.length > 0) {
-              const coachConversations = memberData.filter(conv =>
-                conv.senderId === accountId || conv.receiverId === accountId
-              )
-              if (coachConversations.length > 0) {
-                allConversations = [...allConversations, ...coachConversations]
-              }
-            }
-          }
-        } catch (error) {
-          // Ignore errors for individual member fetches
-        }
-      }
-
-      if (allConversations.length > 0) {
-        const uniqueMembers = extractMembersFromConversations(allConversations, accountId)
-        setMembers(uniqueMembers)
+        setMembers(formattedMembers)
+        console.log("📋 Formatted members:", formattedMembers.length)
       } else {
         setMembers([])
+        console.log("📭 No members with package 3 found")
       }
 
       setLastActivity(new Date())
+
     } catch (error) {
+      console.error("❌ Error fetching members with package 3:", error)
       setMembers([])
     } finally {
       if (!silent) setLoadingMembers(false)
@@ -361,59 +390,6 @@ export default function CoachChat() {
     }
   }
 
-  // Extract members from conversations
-  const extractMembersFromConversations = (conversations, coachId) => {
-    const memberMap = new Map()
-
-    conversations.forEach((conv) => {
-      let memberAccountId, memberName, lastMessage, timestamp
-
-      if (conv.senderId === coachId) {
-        memberAccountId = conv.receiverId
-        memberName = conv.receiverName || `Member ${conv.receiverId}`
-        lastMessage = conv.message || conv.content || "Tin nhắn"
-        timestamp = conv.sentTime || conv.createdAt || new Date().toISOString()
-      } else if (conv.receiverId === coachId) {
-        memberAccountId = conv.senderId
-        memberName = conv.senderName || `Member ${conv.senderId}`
-        lastMessage = conv.message || conv.content || "Tin nhắn"
-        timestamp = conv.sentTime || conv.createdAt || new Date().toISOString()
-      } else {
-        return
-      }
-
-      if (memberAccountId && memberAccountId !== coachId) {
-        if (memberMap.has(memberAccountId)) {
-          const existingMember = memberMap.get(memberAccountId)
-          const existingTime = new Date(existingMember.timestamp || 0)
-          const currentTime = new Date(timestamp || 0)
-
-          if (currentTime > existingTime) {
-            memberMap.set(memberAccountId, {
-              accountId: memberAccountId,
-              name: memberName,
-              lastMessage: lastMessage,
-              timestamp: timestamp,
-              isOnline: Math.random() > 0.3 // Higher chance of being online
-            })
-          }
-        } else {
-          memberMap.set(memberAccountId, {
-            accountId: memberAccountId,
-            name: memberName,
-            lastMessage: lastMessage,
-            timestamp: timestamp,
-            isOnline: Math.random() > 0.3
-          })
-        }
-      }
-    })
-
-    const membersArray = Array.from(memberMap.values())
-    membersArray.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-    return membersArray
-  }
-
   return (
     <>
       <style>
@@ -498,6 +474,20 @@ export default function CoachChat() {
           border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
+        .package-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          background: rgba(59, 130, 246, 0.1);
+          color: ${COLORS.accent};
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          border: 1px solid rgba(59, 130, 246, 0.2);
+          margin-top: 0.5rem;
+        }
+
         .status-dot {
           width: 6px;
           height: 6px;
@@ -522,6 +512,7 @@ export default function CoachChat() {
           transition: all 0.2s ease;
           margin-bottom: 0.5rem;
           border: 1px solid transparent;
+          position: relative;
         }
 
         .member-item:hover {
@@ -547,6 +538,22 @@ export default function CoachChat() {
           font-weight: 600;
           font-size: 0.875rem;
           flex-shrink: 0;
+          position: relative;
+        }
+
+        .premium-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          width: 16px;
+          height: 16px;
+          background: ${COLORS.warning};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.6rem;
+          border: 2px solid ${COLORS.cardBg};
         }
 
         .member-info {
@@ -1021,7 +1028,7 @@ export default function CoachChat() {
         {/* Realtime Indicator */}
         <div className="realtime-indicator">
           <div className="status-dot"></div>
-          Realtime • Cập nhật {formatTimeRealtime(lastActivity.toISOString())}
+          Package 3 Members • Cập nhật {formatTimeRealtime(lastActivity.toISOString())}
         </div>
 
         <div className="chat-layout">
@@ -1029,12 +1036,15 @@ export default function CoachChat() {
           <div className="members-panel">
             <div className="panel-header">
               <h2>
-                💬 Tin nhắn
+                👑 Package 3 Members
               </h2>
-              <p>Quản lý cuộc trò chuyện với members</p>
+              <p>Quản lý cuộc trò chuyện với members gói VIP</p>
               <div className="status-badge">
                 <div className="status-dot"></div>
-                Đang online • Sẵn sàng hỗ trợ
+                Coach Support • Package 3 Only
+              </div>
+              <div className="package-badge">
+                💎 {members.length} members với Package 3
               </div>
             </div>
 
@@ -1042,12 +1052,12 @@ export default function CoachChat() {
               {loadingMembers ? (
                 <div className="loading-state">
                   <div className="spinner"></div>
-                  <span>Đang tải danh sách...</span>
+                  <span>Đang tải members với Package 3...</span>
                 </div>
               ) : members.length === 0 ? (
                 <div className="empty-state">
-                  <h3>📭 Chưa có tin nhắn</h3>
-                  <p>Members sẽ xuất hiện ở đây khi họ gửi tin nhắn cho bạn</p>
+                  <h3>👑 Chưa có Package 3 Members</h3>
+                  <p>Các members sử dụng Package 3 sẽ xuất hiện ở đây để bạn có thể hỗ trợ</p>
                 </div>
               ) : (
                 members.map((member) => (
@@ -1058,6 +1068,7 @@ export default function CoachChat() {
                   >
                     <div className="member-avatar">
                       {member.name.charAt(0).toUpperCase()}
+                      <div className="premium-badge">👑</div>
                     </div>
                     <div className="member-info">
                       <h3 className="member-name">{member.name}</h3>
@@ -1070,6 +1081,13 @@ export default function CoachChat() {
                       <div className={`member-status ${member.isOnline ? '' : 'offline'}`}>
                         <div className="status-dot"></div>
                         {member.isOnline ? 'Online' : 'Offline'}
+                      </div>
+                      <div style={{
+                        fontSize: '0.6rem',
+                        color: member.packageInfo.daysLeft > 0 ? COLORS.success : COLORS.danger,
+                        fontWeight: '600'
+                      }}>
+                        {member.packageInfo.daysLeft > 0 ? `${member.packageInfo.daysLeft} ngày` : 'Hết hạn'}
                       </div>
                     </div>
                   </div>
@@ -1087,11 +1105,16 @@ export default function CoachChat() {
                     ←
                   </button>
                   <div className="chat-member-info">
-                    <h3 className="chat-member-name">{selectedMember.name}</h3>
+                    <h3 className="chat-member-name">
+                      👑 {selectedMember.name}
+                    </h3>
                     <p className="chat-member-status">
                       <div className={`status-dot ${selectedMember.isOnline ? '' : 'offline'}`}></div>
                       {selectedMember.isOnline ? 'Đang online' : 'Offline'} •
-                      Hoạt động {formatTimeRealtime(selectedMember.timestamp)}
+                      Package 3 • {selectedMember.packageInfo.daysLeft > 0 ?
+                        `${selectedMember.packageInfo.daysLeft} ngày còn lại` :
+                        'Hết hạn'
+                      }
                     </p>
                   </div>
                   <div className="chat-actions">
@@ -1113,8 +1136,8 @@ export default function CoachChat() {
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="welcome-chat">
-                      <h3>👋 Bắt đầu cuộc trò chuyện</h3>
-                      <p>Gửi tin nhắn đầu tiên cho {selectedMember.name}</p>
+                      <h3>👑 VIP Support Chat</h3>
+                      <p>Bắt đầu cuộc trò chuyện với {selectedMember.name} - Package 3 Member</p>
                     </div>
                   ) : (
                     <>
@@ -1154,7 +1177,7 @@ export default function CoachChat() {
                       <textarea
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Nhập tin nhắn của bạn..."
+                        placeholder="Nhập tin nhắn hỗ trợ VIP..."
                         className="chat-input"
                         disabled={loading}
                         rows={1}
@@ -1178,8 +1201,8 @@ export default function CoachChat() {
               </>
             ) : (
               <div className="welcome-chat">
-                <h3>💬 Chọn cuộc trò chuyện</h3>
-                <p>Chọn một member từ danh sách để bắt đầu chat</p>
+                <h3>👑 Package 3 VIP Support</h3>
+                <p>Chọn một VIP member từ danh sách để bắt đầu chat hỗ trợ</p>
               </div>
             )}
           </div>

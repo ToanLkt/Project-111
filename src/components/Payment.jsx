@@ -349,8 +349,7 @@ export default function Payment() {
       content,
       transactionCode,
       category: buyingPkg.category,
-      packageId: buyingPkg.package_membership_ID,
-      isCheckingTransaction
+      packageId: buyingPkg.package_membership_ID
     })
 
     let intervalId
@@ -400,10 +399,12 @@ export default function Payment() {
   const getCurrentPackage = () => {
     // Ưu tiên current package từ payment state (vừa mua)
     if (currentPackage) {
+      console.log('🔍 getCurrentPackage from Redux payment state:', currentPackage)
       return currentPackage
     }
 
     // Fallback về current package từ user object
+    console.log('🔍 getCurrentPackage from user object:', currentPackageFromUser)
     return currentPackageFromUser
   }
 
@@ -461,26 +462,52 @@ export default function Payment() {
 
     if (activePackage && activePackage.isActive && !activePackage.isExpired) {
       const currentPackageMembershipId = activePackage.package_membership_ID
+      const targetPackageId = pkg.package_membership_ID
 
-      console.log('🔍 Payment canRegisterPackage check with updated package:', {
+      console.log('🔍 Payment upgrade logic check:', {
         currentPackageName: activePackage.name,
         currentPackageMembershipId,
-        targetPackageId: pkg.package_membership_ID,
-        canUpgrade: currentPackageMembershipId === 1
+        targetPackageId,
+        upgradeRules: 'ID1->ID2,3 | ID2->ID3 | ID3->none'
       })
 
-      // Logic tương tự như trước
-      if (currentPackageMembershipId !== 1) {
-        console.log('🚫 Cannot register - user has premium package (not ID=1)')
+      // ✅ QUYỀN NÂNG CẤP THEO YÊU CẦU:
+      // Gói 1 (FREE): Có thể mua gói 2 và 3
+      if (currentPackageMembershipId === 1) {
+        if (targetPackageId === 1) {
+          console.log('🚫 Cannot register same free package')
+          return false
+        }
+        if (targetPackageId === 2 || targetPackageId === 3) {
+          console.log('✅ Can upgrade from FREE to BASIC/PLUS')
+          return true
+        }
+      }
+
+      // Gói 2 (BASIC): Chỉ có thể mua gói 3
+      if (currentPackageMembershipId === 2) {
+        if (targetPackageId === 1 || targetPackageId === 2) {
+          console.log('🚫 Cannot downgrade from BASIC or buy same package')
+          return false
+        }
+        if (targetPackageId === 3) {
+          console.log('✅ Can upgrade from BASIC to PLUS')
+          return true
+        }
+      }
+
+      // Gói 3 (PLUS): Không thể mua gói khác khi chưa hết hạn
+      if (currentPackageMembershipId === 3) {
+        console.log('🚫 Cannot upgrade from PLUS - highest package')
         return false
       }
 
-      if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
-        console.log('🚫 Cannot register - already has free package')
-        return false
-      }
+      // Nếu có package ID khác không nằm trong quy tắc
+      console.log('🚫 Unknown package upgrade rule')
+      return false
     }
 
+    // Nếu không có gói hiện tại hoặc đã hết hạn, cho phép mua bất kỳ gói nào
     return true
   }
 
@@ -498,18 +525,55 @@ export default function Payment() {
 
     if (activePackage && activePackage.isActive && !activePackage.isExpired) {
       const currentPackageMembershipId = activePackage.package_membership_ID
+      const targetPackageId = pkg.package_membership_ID
 
-      if (currentPackageMembershipId !== 1) {
-        return `Đã có gói ${activePackage.name}`
+      // 🐛 DEBUG: Log để kiểm tra vấn đề
+      console.log('🔍 getButtonLabel debug:', {
+        activePackageName: activePackage.name,
+        currentPackageMembershipId,
+        targetPackageId,
+        targetCategory: pkg.category,
+        isCurrentPackage: isCurrentPackage(pkg),
+        canRegister: canRegisterPackage(pkg)
+      })
+
+      // Gói 1 (FREE): Có thể mua gói 2 và 3
+      if (currentPackageMembershipId === 1) {
+        if (targetPackageId === 1) {
+          console.log('✅ Same FREE package detected')
+          return `Đã có gói ${activePackage.name}`
+        }
+        if (targetPackageId === 2 || targetPackageId === 3) {
+          console.log('✅ Can upgrade from FREE to BASIC/PLUS')
+          return "Nâng cấp ngay"
+        }
       }
 
-      if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
-        return `Đã có gói ${activePackage.name}`
+      // Gói 2 (BASIC): Chỉ có thể mua gói 3
+      if (currentPackageMembershipId === 2) {
+        if (targetPackageId === 1) {
+          return "Không thể hạ cấp"
+        }
+        if (targetPackageId === 2) {
+          return `Đã có gói ${activePackage.name}`
+        }
+        if (targetPackageId === 3) {
+          return "Nâng cấp ngay"
+        }
       }
 
-      if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
-        return "Nâng cấp ngay"
+      // Gói 3 (PLUS): Không thể mua gói khác
+      if (currentPackageMembershipId === 3) {
+        if (targetPackageId === 1 || targetPackageId === 2) {
+          return "Không thể hạ cấp"
+        }
+        if (targetPackageId === 3) {
+          return `Đã có gói ${activePackage.name}`
+        }
       }
+
+      console.log('⚠️ Fallback button label case')
+      return `Đã có gói ${activePackage.name}`
     }
 
     return "Mua gói ngay"
@@ -520,13 +584,9 @@ export default function Payment() {
     if (isCurrentPackage(pkg)) return "fas fa-check-circle"
     if (!canRegisterPackage(pkg)) return "fas fa-lock"
 
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
-      if (currentPackageInfo?.package_membership_ID === 1 && pkg.package_membership_ID !== 1) {
-        return "fas fa-arrow-up"
-      }
+    // Kiểm tra nếu là upgrade package
+    if (isUpgradePackage(pkg)) {
+      return "fas fa-arrow-up"
     }
 
     return "fas fa-shopping-cart"
@@ -549,11 +609,28 @@ export default function Payment() {
       p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
     )
 
-    return currentPackageInfo?.package_membership_ID === 1 && pkg.package_membership_ID !== 1
+    if (!currentPackageInfo) return false
+
+    const currentPackageId = currentPackageInfo.package_membership_ID
+    const targetPackageId = pkg.package_membership_ID
+
+    // ✅ QUYỀN NÂNG CẤP:
+    // Gói 1 -> Gói 2, 3
+    if (currentPackageId === 1 && (targetPackageId === 2 || targetPackageId === 3)) {
+      return true
+    }
+
+    // Gói 2 -> Gói 3
+    if (currentPackageId === 2 && targetPackageId === 3) {
+      return true
+    }
+
+    // Gói 3 -> Không thể nâng cấp
+    return false
   }
 
   // LOGIC GIỐNG MEMBERSHIPPACKAGE: Handle register với validation
-  const handleRegister = (pkg) => {
+  const handleRegister = async (pkg) => {
     console.log("🎯 Payment register attempt:", {
       hasToken: !!token,
       userRole,
@@ -609,9 +686,31 @@ export default function Payment() {
       }
     }
 
-    console.log("✅ Opening QR for package:", pkg)
-    setBuyingPkg(pkg)
-    setShowQR(true)
+    try {
+      // Tạo payment record trước khi hiển thị QR
+      const paymentData = {
+        packageMembershipId: pkg.package_membership_ID,
+        amount: pkg.price,
+        transactionCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        paymentMethod: 'Bank Transfer',
+        description: `Payment for ${pkg.category} package`
+      };
+
+      console.log("📝 Creating payment record:", paymentData);
+
+      // Gọi API tạo payment
+      await handleCreatePayment(paymentData);
+
+      // Nếu thành công, hiển thị QR
+      console.log("✅ Opening QR for package:", pkg);
+      setBuyingPkg(pkg);
+      setTransactionCode(paymentData.transactionCode);
+      setShowQR(true);
+
+    } catch (error) {
+      console.error("❌ Failed to create payment:", error);
+      showToast("❌ Không thể tạo thanh toán. Vui lòng thử lại.", "warning");
+    }
   }
 
   const getPackageIcon = (category) => {
@@ -1578,6 +1677,48 @@ export default function Payment() {
                       : "Quét mã QR để thanh toán..."
                 }
               </span>
+            </div>
+
+            {/* THÊM NÚT MANUAL CONFIRMATION */}
+            <div style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              background: '#FEF3C7',
+              borderRadius: '12px',
+              border: '1px solid #F59E0B'
+            }}>
+              <p style={{
+                margin: '0 0 1rem 0',
+                fontSize: '0.9rem',
+                color: '#92400E',
+                textAlign: 'center'
+              }}>
+                <i className="fas fa-info-circle"></i>
+                {' '}Đã thanh toán nhưng chưa được xác nhận?
+              </p>
+              <button
+                onClick={handleManualConfirmation}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  background: '#F59E0B',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#D97706';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#F59E0B';
+                }}
+              >
+                <i className="fas fa-check-circle me-2"></i>
+                Xác nhận đã thanh toán
+              </button>
             </div>
           </div>
         </div>

@@ -85,7 +85,7 @@ export default function MembershipPackage() {
   const userId = getUserId()
   const userRole = getUserRole()
 
-  // Fetch packages khi component mount
+  // Fetch packages khi component mount - KHÔNG CẦN TOKEN
   useEffect(() => {
     console.log("🚀 Dispatching fetchPackagesRequest from MembershipPackage...")
     dispatch(fetchPackagesRequest())
@@ -100,9 +100,10 @@ export default function MembershipPackage() {
       currentPackageFromUser: !!currentPackageFromUser,
       currentPackageInfo: currentPackageFromUser,
       userId,
-      userRole
+      userRole,
+      hasToken: !!token
     })
-  }, [packagesLoading, packagesError, packages, currentPackageFromUser, userId, userRole])
+  }, [packagesLoading, packagesError, packages, currentPackageFromUser, userId, userRole, token])
 
   const handleRegister = (pkg) => {
     console.log("🎯 Register attempt:", {
@@ -113,13 +114,13 @@ export default function MembershipPackage() {
     })
 
     if (!token) {
-      showToast("Vui lòng đăng nhập để mua gói")
+      showToast("Vui lòng đăng nhập để mua gói", "warning")
       navigate("/login")
       return
     }
 
     if (userRole !== "Member") {
-      showToast("Chỉ tài khoản thành viên mới được mua gói!")
+      showToast("Chỉ tài khoản thành viên mới được mua gói!", "warning")
       return
     }
 
@@ -225,9 +226,9 @@ export default function MembershipPackage() {
     return isMatchingCategory && isActivePackage
   }
 
-  // Kiểm tra có thể đăng ký gói không (logic mới)
+  // CẬP NHẬT: Kiểm tra có thể đăng ký gói không
   const canRegisterPackage = (pkg) => {
-    // Không thể đăng ký nếu chưa đăng nhập
+    // Cho phép hiển thị packages nhưng disable button nếu chưa đăng nhập
     if (!token) return false
 
     // Không thể đăng ký nếu không phải Member
@@ -269,9 +270,9 @@ export default function MembershipPackage() {
     return true
   }
 
-  // Hàm lấy nhãn button phù hợp
+  // CẬP NHẬT: Hàm lấy nhãn button phù hợp
   const getButtonLabel = (pkg) => {
-    if (!token) return "Cần đăng nhập"
+    if (!token) return "Đăng nhập để mua"
     if (userRole !== "Member") return "Chỉ dành cho Member"
     if (pkg.status !== "Active") return "Không khả dụng"
 
@@ -301,8 +302,9 @@ export default function MembershipPackage() {
     return "Đăng ký ngay"
   }
 
-  // Hàm lấy icon button phù hợp
+  // CẬP NHẬT: Hàm lấy icon button phù hợp
   const getButtonIcon = (pkg) => {
+    if (!token) return "fas fa-sign-in-alt"
     if (isCurrentPackage(pkg)) return "fas fa-check-circle"
     if (!canRegisterPackage(pkg)) return "fas fa-lock"
 
@@ -824,6 +826,7 @@ export default function MembershipPackage() {
                         isActive,
                         canRegister,
                         isUpgrade,
+                        hasToken: !!token,
                         currentPackageFromUser: currentPackageFromUser?.name
                       })
 
@@ -869,7 +872,7 @@ export default function MembershipPackage() {
                               <i className={getButtonIcon(pkg)}></i>
                               {getButtonLabel(pkg)}
                             </button>
-                          ) : canRegister ? (
+                          ) : token && canRegister ? (
                             <button
                               className={`package-button ${isUpgrade ? 'btn-upgrade' : 'btn-register'}`}
                               onClick={() => handleRegister(pkg)}
@@ -878,7 +881,11 @@ export default function MembershipPackage() {
                               {getButtonLabel(pkg)}
                             </button>
                           ) : (
-                            <button className="package-button btn-disabled" disabled>
+                            <button 
+                              className="package-button btn-disabled" 
+                              onClick={!token ? () => navigate("/login") : undefined}
+                              style={!token ? { cursor: "pointer" } : {}}
+                            >
                               <i className={getButtonIcon(pkg)}></i>
                               {getButtonLabel(pkg)}
                             </button>

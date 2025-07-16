@@ -51,6 +51,52 @@ export default function StartInformation() {
     const [apiError, setApiError] = useState(null);
     const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
 
+    // State cho custom input khi chọn "Khác"
+    const [customReason, setCustomReason] = useState("");
+    const [customMedicalHistory, setCustomMedicalHistory] = useState("");
+    const [showCustomReason, setShowCustomReason] = useState(false);
+    const [showCustomMedical, setShowCustomMedical] = useState(false);
+
+    // Danh sách lý do cai thuốc phổ biến
+    const reasonOptions = [
+        "Vì sức khỏe của bản thân",
+        "Vì gia đình và người thân",
+        "Tiết kiệm chi phí",
+        "Cải thiện ngoại hình (răng, da, mùi cơ thể)",
+        "Tăng cường thể lực và sức bền",
+        "Giảm nguy cơ ung thư và bệnh tim",
+        "Tạo hình ảnh tốt trong công việc",
+        "Vì con cái và thế hệ tương lai",
+        "Khác "
+    ];
+
+    // Danh sách tiền sử bệnh án phổ biến
+    const medicalOptions = [
+        "Không có tiền sử bệnh án đặc biệt",
+        "Bệnh tim mạch",
+        "Bệnh phổi, hen suyễn",
+        "Cao huyết áp",
+        "Tiểu đường",
+        "Bệnh dạ dày",
+        "Stress, lo âu, trầm cảm",
+        "Bệnh về xương khớp",
+        "Khác"
+    ];
+
+    // Thời điểm thèm thuốc trong ngày
+    const smokingTimeOptions = [
+        "Sáng sớm (khi thức dậy)",
+        "Buổi sáng (8-11h)",
+        "Buổi trưa (12-14h)",
+        "Chiều tối (15-18h)",
+        "Tối muộn (19-22h)",
+        "Đêm khuya (sau 22h)",
+        "Khi căng thẳng/stress",
+        "Sau bữa ăn",
+        "Khi uống cà phê/bia rượu",
+        "Khi rảnh rỗi/chán nản"
+    ];
+
     // Load dữ liệu đã submit trước đó khi component mount
     useEffect(() => {
         if (accountId) {
@@ -69,6 +115,20 @@ export default function StartInformation() {
                         medicalHistory: parsedInfo.medicalHistory || "",
                         mostSmokingTime: parsedInfo.mostSmokingTime || ""
                     });
+
+                    // Kiểm tra xem có phải custom input không
+                    if (parsedInfo.reason && !reasonOptions.slice(0, -1).includes(parsedInfo.reason)) {
+                        setCustomReason(parsedInfo.reason);
+                        setShowCustomReason(true);
+                        setForm(prev => ({ ...prev, reason: "Khác (tự nhập)" }));
+                    }
+
+                    if (parsedInfo.medicalHistory && !medicalOptions.slice(0, -1).includes(parsedInfo.medicalHistory)) {
+                        setCustomMedicalHistory(parsedInfo.medicalHistory);
+                        setShowCustomMedical(true);
+                        setForm(prev => ({ ...prev, medicalHistory: "Khác (tự nhập)" }));
+                    }
+
                     setHasSubmittedBefore(true);
                     setSubmitted(true);
                     console.log('📋 Loaded saved user info:', parsedInfo);
@@ -82,6 +142,25 @@ export default function StartInformation() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm({ ...form, [name]: value });
+
+        // Xử lý hiển thị custom input
+        if (name === "reason") {
+            if (value === "Khác (tự nhập)") {
+                setShowCustomReason(true);
+            } else {
+                setShowCustomReason(false);
+                setCustomReason("");
+            }
+        }
+
+        if (name === "medicalHistory") {
+            if (value === "Khác (tự nhập)") {
+                setShowCustomMedical(true);
+            } else {
+                setShowCustomMedical(false);
+                setCustomMedicalHistory("");
+            }
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -92,13 +171,17 @@ export default function StartInformation() {
         try {
             console.log('🚀 Submitting form with Redux token...');
 
+            // Sử dụng custom input nếu người dùng chọn "Khác"
+            const finalReason = form.reason === "Khác (tự nhập)" ? customReason : form.reason;
+            const finalMedicalHistory = form.medicalHistory === "Khác (tự nhập)" ? customMedicalHistory : form.medicalHistory;
+
             const body = {
                 cigarettesPerDay: Number(form.cigarettesPerDay),
                 smokingTime: form.smokingTime,
                 goalTime: form.goalTime,
-                reason: form.reason,
+                reason: finalReason,
                 costPerCigarette: Number(form.costPerCigarette),
-                medicalHistory: form.medicalHistory,
+                medicalHistory: finalMedicalHistory,
                 mostSmokingTime: form.mostSmokingTime
             };
 
@@ -152,7 +235,7 @@ export default function StartInformation() {
                     localStorage.setItem(`quit_start_${accountId}`, quitStartDate);
                 }
 
-                // Lưu thông tin form
+                // Lưu thông tin form với custom values
                 localStorage.setItem(`user_quit_info_${accountId}`, JSON.stringify({
                     ...body,
                     startDate: existingStartDate || new Date().toISOString(),
@@ -194,6 +277,10 @@ export default function StartInformation() {
                 medicalHistory: "",
                 mostSmokingTime: ""
             });
+            setCustomReason("");
+            setCustomMedicalHistory("");
+            setShowCustomReason(false);
+            setShowCustomMedical(false);
             setSubmitted(false);
             setHasSubmittedBefore(false);
             console.log('🔄 Reset all saved data');
@@ -207,8 +294,6 @@ export default function StartInformation() {
             navigate("/login");
         }
     }, [token, navigate]);
-
-
 
     return (
         <section
@@ -225,7 +310,7 @@ export default function StartInformation() {
         >
             <div
                 style={{
-                    maxWidth: 600,
+                    maxWidth: 700,
                     width: "100%",
                     background: COLORS.white,
                     borderRadius: 28,
@@ -237,7 +322,7 @@ export default function StartInformation() {
                     overflow: "hidden"
                 }}
             >
-                {/* Decorative top circle */}
+                {/* Decorative elements */}
                 <div style={{
                     position: "absolute",
                     top: -60,
@@ -249,7 +334,6 @@ export default function StartInformation() {
                     opacity: 0.18,
                     zIndex: 0
                 }} />
-                {/* Decorative bottom circle */}
                 <div style={{
                     position: "absolute",
                     bottom: -70,
@@ -290,8 +374,6 @@ export default function StartInformation() {
                 >
                     Hãy cung cấp các thông tin quan trọng dưới đây để cá nhân hóa lộ trình hỗ trợ bạn cai thuốc lá hiệu quả!
                 </p>
-
-
 
                 {/* Hiển thị trạng thái đã submit trước đó */}
                 {hasSubmittedBefore && !submitted && (
@@ -354,17 +436,18 @@ export default function StartInformation() {
                         </div>
                     )}
 
+                    {/* Số điếu hút/ngày và thời gian hút */}
                     <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
                         <div style={{ flex: 1 }}>
                             <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
-                                Số điếu hút/ngày
+                                📊 Số điếu hút/ngày
                             </label>
                             <input
                                 type="number"
                                 name="cigarettesPerDay"
                                 value={form.cigarettesPerDay}
                                 onChange={handleChange}
-                                placeholder="? điếu"
+                                placeholder="Nhập số điếu"
                                 min={1}
                                 max={100}
                                 required
@@ -383,14 +466,12 @@ export default function StartInformation() {
                         </div>
                         <div style={{ flex: 1 }}>
                             <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
-                                Thời gian hút (năm)
+                                ⏰ Thời gian hút thuốc
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 name="smokingTime"
                                 value={form.smokingTime}
                                 onChange={handleChange}
-                                placeholder="3 năm, 5 năm..."
                                 required
                                 style={{
                                     width: "100%",
@@ -403,13 +484,24 @@ export default function StartInformation() {
                                     outline: "none",
                                     boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
                                 }}
-                            />
+                            >
+                                <option value="">Chọn thời gian hút thuốc</option>
+                                <option value="Khoảng 1 năm">Khoảng 1 năm</option>
+                                <option value="Khoảng 2 năm">Khoảng 2 năm</option>
+                                <option value="Khoảng 3 năm">Khoảng 3 năm</option>
+                                <option value="Khoảng 4 năm">Khoảng 4 năm</option>
+                                <option value="Khoảng 5 năm">Khoảng 5 năm</option>
+                                <option value="Từ 6-10 năm">Từ 6-10 năm</option>
+                                <option value="Trên 10 năm">Trên 10 năm</option>
+                            </select>
                         </div>
                     </div>
+
+                    {/* Thời gian muốn cai và chi phí */}
                     <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
                         <div style={{ flex: 1 }}>
                             <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
-                                Thời gian muốn cai (ngày)
+                                🎯 Thời gian muốn cai (ngày)
                             </label>
                             <select
                                 name="goalTime"
@@ -436,7 +528,7 @@ export default function StartInformation() {
                         </div>
                         <div style={{ flex: 1 }}>
                             <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
-                                Chi phí (VND/điếu)
+                                💰 Chi phí (VND/điếu)
                             </label>
                             <select
                                 name="costPerCigarette"
@@ -456,69 +548,23 @@ export default function StartInformation() {
                                 }}
                             >
                                 <option value="">Chọn chi phí</option>
+                                <option value={5000}>Khoảng 5.000 VND</option>
                                 <option value={10000}>Khoảng 10.000 VND</option>
                                 <option value={20000}>Khoảng 20.000 VND</option>
                                 <option value={30000}>Khoảng 30.000 VND</option>
                             </select>
                         </div>
                     </div>
+
+                    {/* Lý do muốn cai thuốc */}
                     <div style={{ marginBottom: 20 }}>
                         <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
-                            Lý do bạn muốn cai thuốc lá
+                            💪 Lý do bạn muốn cai thuốc lá
                         </label>
-                        <textarea
+                        <select
                             name="reason"
                             value={form.reason}
                             onChange={handleChange}
-                            placeholder="Chia sẻ lý do của bạn..."
-                            rows={3}
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.7rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#f8fafc",
-                                color: COLORS.text,
-                                resize: "vertical",
-                                outline: "none",
-                            }}
-                        />
-                    </div>
-                    <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
-                            Tiền sử bệnh án (nếu có)
-                        </label>
-                        <textarea
-                            name="medicalHistory"
-                            value={form.medicalHistory}
-                            onChange={handleChange}
-                            placeholder="Nhập nếu có..."
-                            rows={2}
-                            style={{
-                                width: "100%",
-                                padding: "0.7rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#f8fafc",
-                                color: COLORS.text,
-                                resize: "vertical",
-                                outline: "none",
-                            }}
-                        />
-                    </div>
-                    <div style={{ marginBottom: 28 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
-                            Thời điểm bạn thèm thuốc nhất trong ngày
-                        </label>
-                        <input
-                            type="text"
-                            name="mostSmokingTime"
-                            value={form.mostSmokingTime}
-                            onChange={handleChange}
-                            placeholder="Sáng, trưa, tối..."
                             required
                             style={{
                                 width: "100%",
@@ -531,8 +577,124 @@ export default function StartInformation() {
                                 outline: "none",
                                 boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
                             }}
-                        />
+                        >
+                            <option value="">Chọn lý do chính</option>
+                            {reasonOptions.map((reason, index) => (
+                                <option key={index} value={reason}>
+                                    {reason}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Custom reason input */}
+                        {showCustomReason && (
+                            <textarea
+                                value={customReason}
+                                onChange={(e) => setCustomReason(e.target.value)}
+                                placeholder="Nhập lý do của bạn..."
+                                rows={3}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #27ae60",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fff8",
+                                    color: COLORS.text,
+                                    resize: "vertical",
+                                    outline: "none",
+                                    marginTop: "0.5rem"
+                                }}
+                            />
+                        )}
                     </div>
+
+                    {/* Tiền sử bệnh án */}
+                    <div style={{ marginBottom: 20 }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                            🏥 Tiền sử bệnh án
+                        </label>
+                        <select
+                            name="medicalHistory"
+                            value={form.medicalHistory}
+                            onChange={handleChange}
+                            required
+                            style={{
+                                width: "100%",
+                                padding: "0.7rem",
+                                borderRadius: 10,
+                                border: "1.5px solid #2d98da",
+                                fontSize: "1rem",
+                                backgroundColor: "#f8fafc",
+                                color: COLORS.text,
+                                outline: "none",
+                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                            }}
+                        >
+                            <option value="">Chọn tình trạng sức khỏe</option>
+                            {medicalOptions.map((medical, index) => (
+                                <option key={index} value={medical}>
+                                    {medical}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Custom medical history input */}
+                        {showCustomMedical && (
+                            <textarea
+                                value={customMedicalHistory}
+                                onChange={(e) => setCustomMedicalHistory(e.target.value)}
+                                placeholder="Mô tả tình trạng sức khỏe của bạn..."
+                                rows={3}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #27ae60",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fff8",
+                                    color: COLORS.text,
+                                    resize: "vertical",
+                                    outline: "none",
+                                    marginTop: "0.5rem"
+                                }}
+                            />
+                        )}
+                    </div>
+
+                    {/* Thời điểm thèm thuốc nhất */}
+                    <div style={{ marginBottom: 28 }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                            🕐 Thời điểm bạn thèm thuốc nhất trong ngày
+                        </label>
+                        <select
+                            name="mostSmokingTime"
+                            value={form.mostSmokingTime}
+                            onChange={handleChange}
+                            required
+                            style={{
+                                width: "100%",
+                                padding: "0.7rem",
+                                borderRadius: 10,
+                                border: "1.5px solid #2d98da",
+                                fontSize: "1rem",
+                                backgroundColor: "#f8fafc",
+                                color: COLORS.text,
+                                outline: "none",
+                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                            }}
+                        >
+                            <option value="">Chọn thời điểm thèm thuốc nhất</option>
+                            {smokingTimeOptions.map((timeOption, index) => (
+                                <option key={index} value={timeOption}>
+                                    {timeOption}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div style={{ display: "flex", gap: "1rem" }}>
                         <button
                             type="submit"
@@ -556,8 +718,6 @@ export default function StartInformation() {
                         >
                             {loading ? "Đang gửi..." : !token ? "Cần đăng nhập" : hasSubmittedBefore ? "Cập nhật thông tin" : "Gửi thông tin"}
                         </button>
-
-
                     </div>
                 </form>
             </div>

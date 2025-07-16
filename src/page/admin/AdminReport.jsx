@@ -11,10 +11,11 @@ import {
     Tooltip,
     Legend,
     BarElement,
+    ArcElement,
 } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar, Pie } from 'react-chartjs-2';
 
-// Đăng ký các components của Chart.js
+// Đăng ký các components của Chart.js (thêm ArcElement cho Pie chart)
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -23,7 +24,8 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    BarElement
+    BarElement,
+    ArcElement
 );
 
 // API endpoints mới
@@ -53,8 +55,9 @@ function AdminReport() {
     const [packageStats, setPackageStats] = useState(null);
     const [cessationStats, setCessationStats] = useState(null);
 
-    // State cho biểu đồ doanh thu
+    // State cho biểu đồ
     const [revenueChartData, setRevenueChartData] = useState(null);
+    const [accountPieChartData, setAccountPieChartData] = useState(null);
 
     // Loading states
     const [loading, setLoading] = useState(true);
@@ -321,6 +324,114 @@ function AdminReport() {
         }
     }, [revenueStats]);
 
+    // Tạo data cho biểu đồ tròn Account Stats
+    const generateAccountPieChart = (accountData) => {
+        if (!accountData) return null;
+
+        return {
+            labels: ['Coach', 'Member', 'Tài khoản ngưng hoạt động'],
+            datasets: [
+                {
+                    label: 'Phân bố tài khoản',
+                    data: [
+                        accountData.TotalCoaches || 0,
+                        accountData.TotalMembers || 0,
+                        accountData.InactiveAccounts || 0
+                    ],
+                    backgroundColor: [
+                        `${COLORS.info}B3`,      // Coach - Blue
+                        `${COLORS.success}B3`,   // Member - Green  
+                        `${COLORS.purple}B3`,    // Inactive - Purple
+                    ],
+                    borderColor: [
+                        COLORS.info,
+                        COLORS.success,
+                        COLORS.purple,
+                    ],
+                    borderWidth: 3,
+                    hoverBackgroundColor: [
+                        `${COLORS.info}E6`,
+                        `${COLORS.success}E6`,
+                        `${COLORS.purple}E6`,
+                    ],
+                    hoverBorderColor: [
+                        COLORS.info,
+                        COLORS.success,
+                        COLORS.purple,
+                    ],
+                    hoverBorderWidth: 4,
+                    hoverOffset: 15
+                }
+            ]
+        };
+    };
+
+    // Cấu hình biểu đồ tròn
+    const pieChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: 20,
+                    font: {
+                        size: 14,
+                        weight: '600'
+                    }
+                }
+            },
+            title: {
+                display: true,
+                text: 'Phân Bố Loại Tài Khoản',
+                font: {
+                    size: 18,
+                    weight: 'bold'
+                },
+                color: COLORS.primary,
+                padding: {
+                    bottom: 20
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: COLORS.primary,
+                borderWidth: 1,
+                cornerRadius: 8,
+                displayColors: true,
+                callbacks: {
+                    label: function (context) {
+                        const total = context.dataset.data.reduce((sum, value) => sum + value, 0);
+                        const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                        return `${context.label}: ${formatNumber(context.parsed)} (${percentage}%)`;
+                    }
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        animation: {
+            animateRotate: true,
+            animateScale: true,
+            duration: 1000
+        }
+    };
+
+    // Cập nhật useEffect để tạo biểu đồ tròn account
+    useEffect(() => {
+        if (accountStats) {
+            console.log('📊 Generating pie chart data from account stats:', accountStats);
+            const chartData = generateAccountPieChart(accountStats);
+            setAccountPieChartData(chartData);
+        }
+    }, [accountStats]);
+
     // Format number với dấu phẩy
     const formatNumber = (num) => {
         if (num === null || num === undefined) return "0";
@@ -440,44 +551,280 @@ function AdminReport() {
                 boxShadow: "0 8px 32px rgba(0,106,113,0.1)",
             }}>
 
-                {/* Account Stats Section */}
+                {/* Account Stats Section với Biểu Đồ Tròn */}
                 {accountStats && (
                     <div style={{ marginBottom: "3rem" }}>
                         <SectionHeader icon="👥" title="Thống Kê Tài Khoản" />
+
+                        {/* Stat Cards */}
                         <div style={{
                             display: "grid",
                             gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                            gap: 25
+                            gap: 25,
+                            marginBottom: "2.5rem"
                         }}>
                             <StatCard
                                 icon="👤"
                                 title="Tài khoản hoạt động"
                                 value={formatNumber(accountStats.ActiveAccounts)}
                                 color={COLORS.error}
-
                             />
                             <StatCard
                                 icon="🎯"
                                 title="Tổng Coach"
                                 value={formatNumber(accountStats.TotalCoaches)}
                                 color={COLORS.info}
-
                             />
                             <StatCard
                                 icon="👥"
                                 title="Tổng Member"
                                 value={formatNumber(accountStats.TotalMembers)}
                                 color={COLORS.success}
-
                             />
                             <StatCard
                                 icon="📊"
                                 title="Tài khoản ngưng hoạt động"
                                 value={formatNumber(accountStats.InactiveAccounts)}
                                 color={COLORS.purple}
-
                             />
                         </div>
+
+                        {/* Biểu đồ tròn Account Stats */}
+                        {accountPieChartData && (
+                            <div style={{
+                                background: "#fff",
+                                padding: "2rem",
+                                borderRadius: "20px",
+                                boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+                                border: "1px solid #f0f0f0",
+                                marginBottom: "2rem"
+                            }}>
+                                <div style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: "1.5rem"
+                                }}>
+                                    <div>
+                                        <h3 style={{
+                                            color: COLORS.primary,
+                                            fontSize: "1.4rem",
+                                            fontWeight: 700,
+                                            margin: 0,
+                                            marginBottom: "0.5rem"
+                                        }}>
+                                            📊 Phân Bố Loại Tài Khoản
+                                        </h3>
+                                        <p style={{
+                                            color: "#666",
+                                            fontSize: "0.95rem",
+                                            margin: 0
+                                        }}>
+                                            Tỷ lệ phân bố Coach, Member và tài khoản ngưng hoạt động
+                                        </p>
+                                    </div>
+
+                                    <div style={{
+                                        background: "#f8f9fa",
+                                        padding: "0.8rem 1.2rem",
+                                        borderRadius: "12px",
+                                        border: "1px solid #e9ecef"
+                                    }}>
+                                        <span style={{
+                                            color: COLORS.primary,
+                                            fontSize: "0.9rem",
+                                            fontWeight: 600
+                                        }}>
+                                            🔄 LIVE VIEW
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: "2rem",
+                                    alignItems: "center"
+                                }}>
+                                    {/* Biểu đồ tròn */}
+                                    <div style={{
+                                        height: "400px",
+                                        background: "#fafafa",
+                                        borderRadius: "16px",
+                                        padding: "1rem",
+                                        border: "1px solid #f0f0f0"
+                                    }}>
+                                        <Pie data={accountPieChartData} options={pieChartOptions} />
+                                    </div>
+
+                                    {/* Thống kê chi tiết */}
+                                    <div style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: "1rem",
+                                        padding: "1rem"
+                                    }}>
+                                        {/* Total Accounts */}
+                                        <div style={{
+                                            background: "#f8f9fa",
+                                            padding: "1.5rem",
+                                            borderRadius: "12px",
+                                            textAlign: "center",
+                                            border: "2px solid #e9ecef"
+                                        }}>
+                                            <div style={{
+                                                fontSize: "2.5rem",
+                                                fontWeight: "800",
+                                                color: COLORS.primary,
+                                                marginBottom: "0.5rem"
+                                            }}>
+                                                {formatNumber(accountStats.ActiveAccounts + accountStats.InactiveAccounts)}
+                                            </div>
+                                            <div style={{
+                                                fontSize: "1.1rem",
+                                                fontWeight: "600",
+                                                color: "#666"
+                                            }}>
+                                                👨‍👩‍👧‍👦 Tổng Tài Khoản
+                                            </div>
+                                        </div>
+
+                                        {/* Detailed Stats */}
+                                        <div style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "1fr",
+                                            gap: "1rem"
+                                        }}>
+                                            {/* Coach Stats */}
+                                            <div style={{
+                                                background: `${COLORS.info}15`,
+                                                padding: "1rem 1.5rem",
+                                                borderRadius: "10px",
+                                                border: `2px solid ${COLORS.info}30`,
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center"
+                                            }}>
+                                                <div>
+                                                    <span style={{ fontSize: "1.5rem" }}>🎯</span>
+                                                    <span style={{
+                                                        marginLeft: "0.5rem",
+                                                        fontWeight: "600",
+                                                        color: COLORS.info
+                                                    }}>Coach</span>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: "1.5rem",
+                                                    fontWeight: "700",
+                                                    color: COLORS.info
+                                                }}>
+                                                    {formatNumber(accountStats.TotalCoaches)}
+                                                </div>
+                                            </div>
+
+                                            {/* Member Stats */}
+                                            <div style={{
+                                                background: `${COLORS.success}15`,
+                                                padding: "1rem 1.5rem",
+                                                borderRadius: "10px",
+                                                border: `2px solid ${COLORS.success}30`,
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center"
+                                            }}>
+                                                <div>
+                                                    <span style={{ fontSize: "1.5rem" }}>👥</span>
+                                                    <span style={{
+                                                        marginLeft: "0.5rem",
+                                                        fontWeight: "600",
+                                                        color: COLORS.success
+                                                    }}>Member</span>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: "1.5rem",
+                                                    fontWeight: "700",
+                                                    color: COLORS.success
+                                                }}>
+                                                    {formatNumber(accountStats.TotalMembers)}
+                                                </div>
+                                            </div>
+
+                                            {/* Inactive Stats */}
+                                            <div style={{
+                                                background: `${COLORS.purple}15`,
+                                                padding: "1rem 1.5rem",
+                                                borderRadius: "10px",
+                                                border: `2px solid ${COLORS.purple}30`,
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center"
+                                            }}>
+                                                <div>
+                                                    <span style={{ fontSize: "1.5rem" }}>📊</span>
+                                                    <span style={{
+                                                        marginLeft: "0.5rem",
+                                                        fontWeight: "600",
+                                                        color: COLORS.purple
+                                                    }}>Ngưng hoạt động</span>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: "1.5rem",
+                                                    fontWeight: "700",
+                                                    color: COLORS.purple
+                                                }}>
+                                                    {formatNumber(accountStats.InactiveAccounts)}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Percentage Stats */}
+                                        <div style={{
+                                            background: "#fff",
+                                            padding: "1.5rem",
+                                            borderRadius: "12px",
+                                            border: "1px solid #e9ecef"
+                                        }}>
+                                            <h4 style={{
+                                                margin: "0 0 1rem 0",
+                                                color: COLORS.primary,
+                                                fontSize: "1rem",
+                                                fontWeight: "600"
+                                            }}>
+                                                📈 Tỷ lệ phần trăm
+                                            </h4>
+                                            <div style={{
+                                                display: "grid",
+                                                gridTemplateColumns: "1fr",
+                                                gap: "0.5rem",
+                                                fontSize: "0.9rem"
+                                            }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                    <span>🎯 Coach:</span>
+                                                    <strong style={{ color: COLORS.info }}>
+                                                        {accountStats.ActiveAccounts + accountStats.InactiveAccounts > 0 ?
+                                                            formatPercentage((accountStats.TotalCoaches / (accountStats.ActiveAccounts + accountStats.InactiveAccounts)) * 100) : "0%"}
+                                                    </strong>
+                                                </div>
+                                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                    <span>👥 Member:</span>
+                                                    <strong style={{ color: COLORS.success }}>
+                                                        {accountStats.ActiveAccounts + accountStats.InactiveAccounts > 0 ?
+                                                            formatPercentage((accountStats.TotalMembers / (accountStats.ActiveAccounts + accountStats.InactiveAccounts)) * 100) : "0%"}
+                                                    </strong>
+                                                </div>
+                                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                    <span>📊 Ngưng hoạt động:</span>
+                                                    <strong style={{ color: COLORS.purple }}>
+                                                        {accountStats.ActiveAccounts + accountStats.InactiveAccounts > 0 ?
+                                                            formatPercentage((accountStats.InactiveAccounts / (accountStats.ActiveAccounts + accountStats.InactiveAccounts)) * 100) : "0%"}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

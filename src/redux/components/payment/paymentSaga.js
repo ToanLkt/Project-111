@@ -1,4 +1,4 @@
-import { call, put, takeLatest, select, delay } from 'redux-saga/effects'
+import { call, put, takeLatest, select } from 'redux-saga/effects'
 import {
     fetchPackagesRequest,
     fetchPackagesSuccess,
@@ -6,40 +6,49 @@ import {
     createPaymentRequest,
     createPaymentSuccess,
     createPaymentFailure,
-    fetchUserTransactionsRequest,
-    fetchUserTransactionsSuccess,
-    fetchUserTransactionsFailure,
     checkTransactionRequest,
     checkTransactionSuccess,
     checkTransactionFailure,
-    stopTransactionCheck
+    setCurrentPackage
 } from './paymentSlice'
 
 const BASE_URL = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net"
+
+// Helper function to get user info from state
+function* getUserInfo() {
+    const state = yield select()
+    const token = state.account?.token
+    const user = state.account?.user
+
+    if (!token || !user) {
+        throw new Error("No token or user found")
+    }
+
+    const accountId = user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+        user.userId ||
+        user.id ||
+        user.accountId
+
+    if (!accountId) {
+        throw new Error("No account ID found")
+    }
+
+    return { token, user, accountId }
+}
 
 // Fetch packages saga
 function* fetchPackagesSaga() {
     try {
         console.log("🚀 Fetching packages...")
 
-        const state = yield select()
-        const token = state.account?.token
-
-        if (!token) {
-            yield put(fetchPackagesFailure("No token found"))
-            return
-        }
-
-        const response = yield call(fetch, `${BASE_URL}/api/PackageMembership`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-        })
+        // Không cần token để fetch packages
+        const response = yield call(fetch,
+            'https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PackageMembership'
+            // Không có headers Authorization
+        )
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+            throw new Error(`HTTP ${response.status}`)
         }
 
         const data = yield response.json()
@@ -52,164 +61,51 @@ function* fetchPackagesSaga() {
     }
 }
 
-// Create payment saga với API endpoint mới
-function* createPaymentSaga(action) {
+// Create payment record to API
+function* createPaymentRecordSaga(paymentData) {
     try {
-        console.log("🚀 Creating payment with payload:", action.payload)
+        console.log("💳 Creating payment record in API:", paymentData)
 
-        const state = yield select()
-        const token = state.account?.token
+        const { token } = yield call(getUserInfo)
 
-        if (!token) {
-            yield put(createPaymentFailure("No token found"))
-            return
-        }
-
-        // Thử API endpoint mới trước
-        const newEndpoint = "/api/Payment/create"
-
-        try {
-            console.log(`🔍 Trying new payment endpoint: ${BASE_URL}${newEndpoint}`)
-
-            const response = yield call(fetch, `${BASE_URL}${newEndpoint}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(action.payload),
-            })
-
-            if (response.ok) {
-                const data = yield response.json()
-                console.log(`✅ Payment success with new endpoint:`, data)
-                yield put(createPaymentSuccess(data))
-                return
-            } else {
-                console.log(`❌ New endpoint failed with status: ${response.status}`)
-            }
-        } catch (error) {
-            console.log(`❌ New endpoint failed:`, error.message)
-        }
-
-        // Fallback to old endpoints
-        const fallbackEndpoints = [
-            "/api/Purchase",
-            "/api/Payment"
-        ]
-
-        let paymentSuccess = false
-
-        for (const endpoint of fallbackEndpoints) {
-            try {
-                console.log(`🔍 Trying fallback endpoint: ${BASE_URL}${endpoint}`)
-
-                const response = yield call(fetch, `${BASE_URL}${endpoint}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify(action.payload),
-                })
-
-                if (response.ok) {
-                    const data = yield response.json()
-                    console.log(`✅ Payment success with ${endpoint}:`, data)
-                    yield put(createPaymentSuccess(data))
-                    paymentSuccess = true
-                    break
-                }
-            } catch (error) {
-                console.log(`❌ ${endpoint} failed:`, error.message)
-            }
-        }
-
-        // Nếu API fails, sử dụng mock success (vì đã verify qua Google Sheets)
-        if (!paymentSuccess) {
-            console.log("📝 All API endpoints failed, using verified payment data")
-
-            // Delay ngắn để UX tốt hơn
-            yield delay(1000)
-
-            const mockResponse = {
-                purchaseID: Date.now(),
-                accountId: action.payload.accountId,
-                packageMembershipId: action.payload.packageMembershipId,
-                packageCategory: action.payload.packageCategory || "Package",
-                totalPrice: action.payload.totalPrice,
-                paymentStatus: "Success",
-                transactionCode: action.payload.transactionCode,
-                timeBuy: action.payload.timeBuy,
-                startDate: action.payload.startDate,
-                endDate: action.payload.endDate,
-                memberName: action.payload.memberName || "Member",
-                message: "Payment verified through banking system",
-                verified: true,
-                source: "bank_verification"
-            }
-
-            console.log("✅ Payment verified successfully:", mockResponse)
-            yield put(createPaymentSuccess(mockResponse))
-        }
-
-    } catch (error) {
-        console.error("❌ Payment saga error:", error)
-        yield put(createPaymentFailure(error.message || "Payment failed"))
-    }
-}
-
-// Fetch user transactions saga
-function* fetchUserTransactionsSaga() {
-    try {
-        console.log("🚀 Fetching user transactions...")
-
-        const state = yield select()
-        const token = state.account?.token
-        const user = state.account?.user
-
-        if (!token || !user) {
-            yield put(fetchUserTransactionsFailure("No token or user found"))
-            return
-        }
-
-        // Extract account ID từ user object
-        const accountId = user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
-            user.userId ||
-            user.id ||
-            user.accountId
-
-        if (!accountId) {
-            yield put(fetchUserTransactionsFailure("No account ID found"))
-            return
-        }
-
-        const response = yield call(fetch, `${BASE_URL}/api/Member/my-transactions`, {
-            method: "GET",
+        const response = yield call(fetch, `${BASE_URL}/api/Payment/create`, {
+            method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
+            body: JSON.stringify({
+                packageMembershipId: parseInt(paymentData.packageMembershipId),
+                amount: parseFloat(paymentData.totalPrice),
+                paymentDate: new Date().toISOString(),
+                paymentStatus: "SUCCESS", // ĐẢM BẢO LÀ SUCCESS
+                transactionCode: paymentData.transactionCode,
+                paymentMethod: "BANK_TRANSFER",
+                description: `Thanh toán gói ${paymentData.packageCategory}`,
+                transactionReference: paymentData.transactionCode
+            }),
         })
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+            const errorText = yield call([response, 'text'])
+            console.warn(`❌ Payment API failed: ${response.status} - ${errorText}`)
+            return { success: false, error: errorText }
         }
 
-        const data = yield response.json()
-        console.log("✅ User transactions fetched:", data)
+        const result = yield call([response, 'json'])
+        console.log("✅ Payment record created successfully:", result)
+        return { success: true, data: result }
 
-        yield put(fetchUserTransactionsSuccess(data))
     } catch (error) {
-        console.error("❌ Fetch user transactions error:", error)
-        yield put(fetchUserTransactionsFailure(error.message || "Failed to fetch transactions"))
+        console.warn("❌ Error creating payment record:", error)
+        return { success: false, error: error.message }
     }
 }
 
-// Transaction verification saga từ Google Docs
+// Transaction verification saga từ Google Sheets
 function* checkTransactionSaga(action) {
     try {
-        console.log("🔍 Checking transaction from Google Docs:", action.payload)
+        console.log("🔍 Checking transaction from Google Sheets:", action.payload)
 
         const { expectedPrice, expectedContent, transactionCode, packageData } = action.payload
 
@@ -223,7 +119,7 @@ function* checkTransactionSaga(action) {
 
         // Fetch data từ Google Sheets
         const response = yield call(fetch, TRANSACTION_API)
-        const text = yield response.text()
+        const text = yield call([response, 'text'])
 
         // Parse JSON từ Google Sheets response
         const json = JSON.parse(text.substring(47, text.length - 2))
@@ -232,34 +128,14 @@ function* checkTransactionSaga(action) {
         )
 
         if (rows.length === 0) {
-            yield put(checkTransactionFailure("No transactions found in Google Docs"))
+            yield put(checkTransactionFailure("No transactions found in Google Sheets"))
             return
         }
 
-        console.log("📊 Google Docs has", rows.length, "transactions")
-
-        // Log vài transactions gần nhất để debug
-        const recentTransactions = rows.slice(-5).map(row => ({
-            amount: Number(row["Giá trị"] || 0),
-            description: (row["Mô tả"] || "").toString().trim()
-        }))
-        console.log("🔍 Recent 5 transactions:", recentTransactions)
+        console.log("📊 Google Sheets has", rows.length, "transactions")
 
         // Tìm giao dịch khớp với nội dung và số tiền
         const expectedContentUpper = expectedContent.toUpperCase().trim()
-
-        // Debug: Tìm tất cả transactions có chứa expected content
-        const matchingContentTransactions = rows.filter(row => {
-            const description = (row["Mô tả"] || "").toString().trim().toUpperCase()
-            return description.includes(expectedContentUpper)
-        })
-
-        console.log(`🔍 Found ${matchingContentTransactions.length} transactions containing "${expectedContentUpper}":`,
-            matchingContentTransactions.map(row => ({
-                amount: Number(row["Giá trị"] || 0),
-                description: (row["Mô tả"] || "").toString().trim()
-            }))
-        )
 
         const matchingTransaction = rows
             .slice()
@@ -268,90 +144,130 @@ function* checkTransactionSaga(action) {
                 const amount = Number(row["Giá trị"] || 0)
                 const description = (row["Mô tả"] || "").toString().trim().toUpperCase()
 
-                // Log chi tiết để debug
-                console.log("🔍 Checking transaction row:", {
-                    amount,
-                    expectedAmount: expectedPrice,
-                    description: `"${description}"`,
-                    expectedContent: `"${expectedContentUpper}"`,
-                    amountMatch: amount === expectedPrice,
-                    contentMatch: description.includes(expectedContentUpper),
-                    descriptionLength: description.length,
-                    expectedLength: expectedContentUpper.length
-                })
-
-                // Kiểm tra số tiền khớp
                 const amountMatches = amount === expectedPrice
-
-                // Kiểm tra nội dung - chỉ cần expectedContent có trong description
                 const contentMatches = description.includes(expectedContentUpper)
 
-                const isMatch = amountMatches && contentMatches
-                if (isMatch) {
+                if (amountMatches && contentMatches) {
                     console.log("🎉 FOUND MATCHING TRANSACTION!", {
                         amount,
                         description,
                         expectedPrice,
                         expectedContent: expectedContentUpper
                     })
+                    return true
                 }
-
-                return isMatch
+                return false
             })
 
         if (matchingTransaction) {
             console.log("✅ Matching transaction found:", matchingTransaction)
 
-            // Lưu transaction đã verify
+            const { user, accountId } = yield call(getUserInfo)
+
+            // Tính toán ngày bắt đầu và kết thúc
+            const now = new Date()
+            const startDate = new Date(now.setHours(0, 0, 0, 0))
+            const endDate = new Date(startDate.getTime() + (packageData.duration || 30) * 24 * 60 * 60 * 1000)
+
+            // Tạo current package mới
+            const newCurrentPackage = {
+                name: packageData.category,
+                category: packageData.category,
+                package_membership_ID: packageData.package_membership_ID,
+                duration: packageData.duration,
+                price: packageData.price,
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                daysLeft: packageData.duration,
+                isActive: true,
+                isExpired: false,
+                paymentDate: now.toISOString(),
+                transactionCode: transactionCode,
+                paymentStatus: "SUCCESS"
+            }
+
+            // 1. Cập nhật current package trong Redux NGAY LẬP TỨC
+            console.log("📦 Setting new current package in Redux...")
+            yield put(setCurrentPackage(newCurrentPackage))
+
+            // 2. Lưu transaction đã verify
             yield put(checkTransactionSuccess({
                 transaction: matchingTransaction,
                 transactionCode,
                 packageData,
+                currentPackage: newCurrentPackage,
                 verifiedAt: new Date().toISOString()
             }))
 
-            // Tiến hành tạo payment với dữ liệu đã verify
-            const state = yield select()
-            const token = state.account?.token
-            const user = state.account?.user
-
-            const accountId = user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
-                user.userId ||
-                user.id ||
-                user.accountId
-
-            // Tính toán ngày bắt đầu và kết thúc
-            const nowVN = new Date().toISOString()
-            const startDate = new Date(new Date(nowVN).setHours(0, 0, 0, 0)).toISOString()
-            const endDate = new Date(new Date(nowVN).getTime() + (packageData.duration || 30) * 24 * 60 * 60 * 1000).toISOString()
-
+            // 3. POST payment record vào API (không blocking)
             const paymentPayload = {
                 accountId,
                 packageMembershipId: packageData.package_membership_ID,
                 packageCategory: packageData.category,
                 totalPrice: packageData.price,
                 transactionCode,
-                timeBuy: nowVN,
-                startDate,
-                endDate,
+                timeBuy: now.toISOString(),
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
                 memberName: user?.fullName || "Member",
                 verified: true,
-                googleDocsTransaction: matchingTransaction
+                googleSheetsTransaction: matchingTransaction
             }
 
-            console.log("🚀 Creating payment with verified transaction:", paymentPayload)
+            console.log("🚀 Creating payment record in API (non-blocking)...")
+            const paymentResult = yield call(createPaymentRecordSaga, paymentPayload)
 
-            // Gọi createPaymentSaga để lưu vào API
-            yield call(createPaymentSaga, { payload: paymentPayload })
+            if (paymentResult.success) {
+                console.log("✅ Payment record saved to API successfully")
+                yield put(createPaymentSuccess({
+                    ...paymentResult.data,
+                    currentPackage: newCurrentPackage,
+                    verified: true
+                }))
+            } else {
+                console.warn("⚠️ Payment record API failed, but package is still activated:", paymentResult.error)
+                // Vẫn success vì đã verify qua Google Sheets và đã set current package
+                yield put(createPaymentSuccess({
+                    purchaseID: Date.now(),
+                    accountId,
+                    packageMembershipId: packageData.package_membership_ID,
+                    packageCategory: packageData.category,
+                    totalPrice: packageData.price,
+                    paymentStatus: "SUCCESS",
+                    transactionCode,
+                    timeBuy: now.toISOString(),
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                    memberName: user?.fullName || "Member",
+                    currentPackage: newCurrentPackage,
+                    verified: true,
+                    apiError: paymentResult.error,
+                    source: "google_sheets_verification"
+                }))
+            }
 
         } else {
             console.log("❌ No matching transaction found")
-            yield put(checkTransactionFailure("No matching transaction found"))
+            yield put(checkTransactionFailure("Không tìm thấy giao dịch phù hợp. Vui lòng kiểm tra lại nội dung chuyển khoản."))
         }
 
     } catch (error) {
         console.error("❌ Check transaction error:", error)
-        yield put(checkTransactionFailure(error.message || "Failed to check transaction"))
+        yield put(checkTransactionFailure(error.message || "Lỗi kiểm tra giao dịch"))
+    }
+}
+
+// Create payment saga
+function* createPaymentSaga(action) {
+    try {
+        console.log("🚀 Payment saga called:", action.payload)
+
+        // Chuyển sang checkTransactionSaga để xử lý đúng flow
+        yield call(checkTransactionSaga, action)
+
+    } catch (error) {
+        console.error("❌ Payment saga error:", error)
+        yield put(createPaymentFailure(error.message || "Payment failed"))
     }
 }
 
@@ -359,6 +275,5 @@ function* checkTransactionSaga(action) {
 export default function* paymentSaga() {
     yield takeLatest(fetchPackagesRequest.type, fetchPackagesSaga)
     yield takeLatest(createPaymentRequest.type, createPaymentSaga)
-    yield takeLatest(fetchUserTransactionsRequest.type, fetchUserTransactionsSaga)
     yield takeLatest(checkTransactionRequest.type, checkTransactionSaga)
 }

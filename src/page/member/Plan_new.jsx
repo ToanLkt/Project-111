@@ -9,34 +9,17 @@ export default function Plan() {
     const auth = useContext(AuthContext);
     const dispatch = useDispatch();
 
-    // Lấy user info từ Redux hoặc AuthContext với debug
-    const reduxState = useSelector((state) => state.account || {});
-    const { user: reduxUser, token: reduxToken } = reduxState;
+    // Lấy user info từ Redux hoặc AuthContext
+    const { user: reduxUser, token: reduxToken } = useSelector((state) => state.account || {});
     const token = reduxToken || auth?.token;
     const user = reduxUser || auth?.user;
 
-    // Debug Redux state
-    console.log("🔍 Redux state debug:", {
-        reduxUser: reduxUser ? "exists" : "null",
-        reduxToken: reduxToken ? "exists" : "null",
-        authUser: auth?.user ? "exists" : "null",
-        authToken: auth?.token ? "exists" : "null"
-    });
-
     const getUserId = () => {
-        if (!user) {
-            console.log("❌ No user found in Redux or AuthContext");
-            return null;
-        }
-
-        const claimId = user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
-        const userId = user.userId;
-        const id = user.id;
-        const accountId = user.accountId;
-
-        console.log("🔍 User ID fields:", { claimId, userId, id, accountId });
-
-        return claimId || userId || id || accountId || null;
+        if (!user) return null;
+        return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+            user.userId ||
+            user.id ||
+            null;
     };
 
     const accountId = getUserId();
@@ -47,11 +30,6 @@ export default function Plan() {
     const [planData, setPlanData] = useState(null);
     const [phaseData, setPhaseData] = useState(null);
 
-    // State cho việc kiểm tra membership transactions
-    const [membershipData, setMembershipData] = useState(null);
-    const [membershipLoading, setMembershipLoading] = useState(true);
-    const [hasValidMembership, setHasValidMembership] = useState(false);
-
     // BƯỚC 1: FETCH STATUS PROCESS TỪ API
     useEffect(() => {
         const fetchStatusProcess = async () => {
@@ -59,32 +37,29 @@ export default function Plan() {
                 console.log("⏸️ No accountId or token, skipping status check");
                 setStatusLoading(false);
                 return;
-            } try {
+            }
+
+            try {
                 setStatusLoading(true);
                 console.log("🔍 Fetching status-process for accountId:", accountId);
-                console.log("🔍 Using token:", token ? "exists" : "null");
 
-                const statusUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/status-process?accountId=${accountId}`;
-                console.log("🔍 Status API URL:", statusUrl);
-
-                const response = await fetch(statusUrl, {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/json"
+                const response = await fetch(
+                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/status-process?accountId=${accountId}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        }
                     }
-                });
-
-                console.log("🔍 Status response status:", response.status);
+                );
 
                 if (response.ok) {
                     const data = await response.json();
                     console.log("✅ Status process data:", data);
                     setStatusProcess(data);
                 } else {
-                    const errorText = await response.text();
                     console.error("❌ Failed to fetch status process:", response.status);
-                    console.error("❌ Error response:", errorText);
                     setStatusProcess(null);
                 }
             } catch (error) {
@@ -97,101 +72,6 @@ export default function Plan() {
 
         fetchStatusProcess();
     }, [accountId, token]);
-
-    // BƯỚC 1.5: FETCH MEMBERSHIP TRANSACTIONS ĐỂ KIỂM TRA GÓI CÒN HẠN
-    useEffect(() => {
-        const fetchMembershipTransactions = async () => {
-            if (!accountId || !token) {
-                console.log("⏸️ No accountId or token, skipping membership check");
-                setMembershipLoading(false);
-                setHasValidMembership(false);
-                return;
-            }
-
-            try {
-                setMembershipLoading(true);
-                console.log("🔍 Fetching membership transactions for accountId:", accountId);
-
-                const response = await fetch(
-                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/my-transactions?accountId=${accountId}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Authorization": `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
-
-                if (response.ok) {
-                    const transactions = await response.json();
-                    console.log("✅ Membership transactions data:", transactions);
-                    setMembershipData(transactions);
-
-                    // Kiểm tra giao dịch gần nhất có còn hạn không
-                    const validMembership = checkValidMembership(transactions);
-                    setHasValidMembership(validMembership);
-
-                } else {
-                    console.error("❌ Failed to fetch membership transactions:", response.status);
-                    setMembershipData(null);
-                    setHasValidMembership(false);
-                }
-            } catch (error) {
-                console.error("❌ Error fetching membership transactions:", error);
-                setMembershipData(null);
-                setHasValidMembership(false);
-            } finally {
-                setMembershipLoading(false);
-            }
-        };
-
-        fetchMembershipTransactions();
-    }, [accountId, token]);
-
-    // Hàm kiểm tra membership còn hạn
-    const checkValidMembership = (transactions) => {
-        if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
-            console.log("❌ No transactions found");
-            return false;
-        }
-
-        // Sắp xếp giao dịch theo ngày gần nhất
-        const sortedTransactions = transactions.sort((a, b) =>
-            new Date(b.transactionDate || b.paymentDate || b.createdDate) -
-            new Date(a.transactionDate || a.paymentDate || a.createdDate)
-        );
-
-        const latestTransaction = sortedTransactions[0];
-        console.log("🔍 Latest transaction:", latestTransaction);
-
-        if (!latestTransaction) {
-            console.log("❌ No latest transaction found");
-            return false;
-        }
-
-        // Kiểm tra endDate hoặc expiryDate
-        const endDate = latestTransaction.endDate || latestTransaction.expiryDate || latestTransaction.packageEndDate;
-
-        if (!endDate) {
-            console.log("❌ No end date found in transaction");
-            return false;
-        }
-
-        const now = new Date();
-        const expiry = new Date(endDate);
-        const isValid = expiry > now;
-
-        console.log("🔍 Membership validity check:", {
-            endDate,
-            expiryDate: expiry.toISOString(),
-            currentDate: now.toISOString(),
-            isValid,
-            daysLeft: Math.ceil((expiry - now) / (1000 * 60 * 60 * 24))
-        });
-
-        return isValid;
-    };
 
     // BƯỚC 2: FETCH PLAN & PHASE DATA CHỈ KHI STATUS = "processing"
     useEffect(() => {
@@ -213,7 +93,7 @@ export default function Plan() {
 
                 // Fetch Plan data
                 const planResponse = await fetch(
-                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan?accountId=${accountId}`,
+                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/Plan?accountId=${accountId}`,
                     {
                         method: "GET",
                         headers: {
@@ -229,12 +109,11 @@ export default function Plan() {
                     setPlanData(planResult);
                 } else {
                     console.error("❌ Failed to fetch plan data:", planResponse.status);
-                    console.error("❌ Plan API URL:", `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan?accountId=${accountId}`);
                 }
 
                 // Fetch Phase data
                 const phaseResponse = await fetch(
-                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat?accountId=${accountId}`,
+                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/Phase/fail-stat?accountId=${accountId}`,
                     {
                         method: "GET",
                         headers: {
@@ -250,7 +129,6 @@ export default function Plan() {
                     setPhaseData(phaseResult);
                 } else {
                     console.error("❌ Failed to fetch phase data:", phaseResponse.status);
-                    console.error("❌ Phase API URL:", `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat?accountId=${accountId}`);
                 }
 
             } catch (error) {
@@ -377,7 +255,7 @@ export default function Plan() {
                     📝 Nhập số điếu thuốc bạn đã hút hôm nay
                 </h3>
                 <p style={{ color: "#6B7280", marginBottom: "1.5rem" }}>
-                    📊 Giới hạn cho phép: {planData?.maxCigarettes || 0} điếu/ngày<br />
+                    📊 Giới hạn cho phép: {phaseData?.maxCigarettes || 0} điếu/ngày<br />
                     Vượt quá giới hạn này sẽ được tính là thất bại
                 </p>
                 <div style={{ display: "flex", justifyContent: "center", gap: "1rem", alignItems: "center" }}>
@@ -429,7 +307,7 @@ export default function Plan() {
 
     // Component hiển thị thống kê progress phases từ API
     function ProgressPhasesSection() {
-        if (!planData && !phaseData) {
+        if (!planData || !phaseData) {
             return (
                 <div style={{ textAlign: "center", padding: "2rem", color: "#6B7280" }}>
                     📊 Đang tải dữ liệu kế hoạch...
@@ -437,35 +315,31 @@ export default function Plan() {
             );
         }
 
-        // Tính tổng ngày và tổng ngày fail từ Phase API
-        const calculateTotals = () => {
-            if (!phaseData || !Array.isArray(phaseData)) return { totalDays: 0, totalFailedDays: 0 };
-
-            const totalDays = phaseData.reduce((sum, phase) => sum + (phase.totalDays || 0), 0);
-            const totalFailedDays = phaseData.reduce((sum, phase) => sum + (phase.failedDays || 0), 0);
-
-            return { totalDays, totalFailedDays };
+        const formatDate = (dateString) => {
+            if (!dateString) return "N/A";
+            const date = new Date(dateString);
+            return date.toLocaleDateString("vi-VN");
         };
 
-        const { totalDays, totalFailedDays } = calculateTotals();
-        const successDays = totalDays - totalFailedDays;
-        const successRate = totalDays > 0 ? (successDays / totalDays * 100) : 0;
+        const calculateProgress = (phase) => {
+            const now = new Date();
+            const start = new Date(phase.startDate);
+            const end = new Date(phase.endDate);
 
-        // Tìm phase hiện tại
-        const getCurrentPhase = () => {
-            if (!planData) return null;
+            if (now < start) return 0;
+            if (now > end) return 100;
 
-            // Dựa vào phaseNumber từ Plan API
-            const currentPhaseNum = planData.phaseNumber || 1;
-            return {
-                phase: currentPhaseNum,
-                startDate: planData[`startDatePhase${currentPhaseNum}`],
-                endDate: planData[`endDatePhase${currentPhaseNum}`],
-                status: planData[`statusPhase${currentPhaseNum}`] || "Đang thực hiện"
-            };
+            const total = end - start;
+            const elapsed = now - start;
+            return Math.round((elapsed / total) * 100);
         };
 
-        const currentPhase = getCurrentPhase();
+        const currentPhase = planData.phases?.find(phase => {
+            const now = new Date();
+            const start = new Date(phase.startDate);
+            const end = new Date(phase.endDate);
+            return now >= start && now <= end;
+        });
 
         return (
             <section style={{
@@ -488,220 +362,191 @@ export default function Plan() {
                     Theo dõi hành trình cai thuốc qua 5 giai đoạn quan trọng
                 </div>
 
-                {/* Thông tin tổng quan từ APIs */}
-                <div style={{
-                    background: "#D1FAE5",
-                    borderRadius: 12,
-                    padding: "1.5rem",
-                    marginBottom: "2rem",
-                    textAlign: "center"
-                }}>
+                {/* Thông tin tổng quan */}
+                {currentPhase && (
                     <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                        gap: "1rem",
-                        marginBottom: "1rem"
+                        background: "#D1FAE5",
+                        borderRadius: 12,
+                        padding: "1.5rem",
+                        marginBottom: "2rem",
+                        textAlign: "center"
                     }}>
-                        <div>
-                            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16A34A" }}>
-                                {planData?.phaseNumber || 1}/5
-                            </div>
-                            <div style={{ fontSize: "0.9rem", color: "#059669" }}>Giai đoạn hiện tại</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16A34A" }}>
-                                {planData?.numberOfDays || 0}
-                            </div>
-                            <div style={{ fontSize: "0.9rem", color: "#059669" }}>Ngày đã cai thuốc</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#059669" }}>
-                                {planData?.totalSaveMoney?.toLocaleString() || 0}₫
-                            </div>
-                            <div style={{ fontSize: "0.9rem", color: "#059669" }}>Tiền đã tiết kiệm</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#DC2626" }}>
-                                {planData?.maxCigarettes || 0}
-                            </div>
-                            <div style={{ fontSize: "0.9rem", color: "#DC2626" }}>Giới hạn điếu/ngày</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#DC2626" }}>
-                                {totalFailedDays}
-                            </div>
-                            <div style={{ fontSize: "0.9rem", color: "#DC2626" }}>Tổng ngày thất bại</div>
-                        </div>
-                    </div>
-
-                    {/* Tỷ lệ thành công */}
-                    <div style={{
-                        background: "#F0FDF4",
-                        borderRadius: 8,
-                        padding: "1rem",
-                        marginTop: "1rem"
-                    }}>
-                        <div style={{ fontWeight: 600, color: "#16A34A", marginBottom: "0.5rem" }}>
-                            📈 Tỷ lệ thành công tổng quan
-                        </div>
-                        <div style={{ color: "#6B7280", fontSize: "0.8rem", marginBottom: "1rem", fontStyle: "italic" }}>
-                            * Thất bại được tính khi số điếu hút {'>'} giới hạn ({planData?.maxCigarettes || 0} điếu/ngày)
-                        </div>
                         <div style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "1rem"
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                            gap: "1rem",
+                            marginBottom: "1rem"
                         }}>
-                            <div style={{
-                                fontSize: "2rem",
-                                fontWeight: 700,
-                                color: successRate >= 80 ? "#16A34A" :
-                                    successRate >= 60 ? "#EAB308" : "#DC2626"
-                            }}>
-                                {successRate.toFixed(1)}%
+                            <div>
+                                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16A34A" }}>
+                                    {currentPhase.phase}/{planData.phases?.length || 5}
+                                </div>
+                                <div style={{ fontSize: "0.9rem", color: "#059669" }}>Giai đoạn hiện tại</div>
                             </div>
-                            <div style={{
-                                color: "#6B7280",
-                                fontSize: "0.9rem",
-                                textAlign: "left"
-                            }}>
-                                <div>Ngày thành công: {successDays}</div>
-                                <div>Ngày thất bại: {totalFailedDays}</div>
-                                <div>Tổng ngày cai thuốc: {totalDays}</div>
+                            <div>
+                                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#16A34A" }}>
+                                    {planData.daysQuit || 0}
+                                </div>
+                                <div style={{ fontSize: "0.9rem", color: "#059669" }}>Ngày đã cai thuốc</div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#059669" }}>
+                                    {planData.moneySaved || 0}₫
+                                </div>
+                                <div style={{ fontSize: "0.9rem", color: "#059669" }}>Tiền đã tiết kiệm</div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#DC2626" }}>
+                                    {phaseData.maxCigarettes || 0}
+                                </div>
+                                <div style={{ fontSize: "0.9rem", color: "#DC2626" }}>Giới hạn điếu/ngày</div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#DC2626" }}>
+                                    {phaseData.failedDays || 0}
+                                </div>
+                                <div style={{ fontSize: "0.9rem", color: "#DC2626" }}>Tổng ngày thất bại</div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Danh sách các phases từ Plan API */}
-                <div style={{ marginTop: "2rem" }}>
-                    <h4 style={{ color: "#374151", marginBottom: "1rem", textAlign: "center" }}>
-                        📅 Chi tiết 5 giai đoạn cai thuốc
-                    </h4>
+                        {/* Tỷ lệ thành công */}
+                        <div style={{
+                            background: "#F0FDF4",
+                            borderRadius: 8,
+                            padding: "1rem",
+                            marginTop: "1rem"
+                        }}>
+                            <div style={{ fontWeight: 600, color: "#16A34A", marginBottom: "0.5rem" }}>
+                                📈 Tỷ lệ thành công tổng quan
+                            </div>
+                            <div style={{ color: "#6B7280", fontSize: "0.8rem", marginBottom: "1rem", fontStyle: "italic" }}>
+                                * Thất bại được tính khi số điếu hút {'>'} giới hạn ({phaseData.maxCigarettes || 0} điếu/ngày)
+                            </div>
+                            {(() => {
+                                const totalFail = phaseData.failedDays || 0;
+                                const totalDays = planData.daysQuit || 0;
+                                const successDays = totalDays - totalFail;
+                                const successRate = totalDays > 0 ? (successDays / totalDays * 100) : 0;
 
-                    {[1, 2, 3, 4, 5].map((phaseNum) => {
-                        const startDate = planData?.[`startDatePhase${phaseNum}`];
-                        const endDate = planData?.[`endDatePhase${phaseNum}`];
-                        const status = planData?.[`statusPhase${phaseNum}`] || "Chưa bắt đầu";
-
-                        // Tìm thống kê cho phase này từ Phase API
-                        const phaseStats = Array.isArray(phaseData) ?
-                            phaseData.find(p => p.phaseId === (15 + phaseNum)) : null;
-
-                        const isActive = currentPhase?.phase === phaseNum;
-                        const isCompleted = status === "Hoàn thành";
-                        const isUpcoming = status === "Chưa bắt đầu";
-
-                        return (
-                            <div
-                                key={phaseNum}
-                                style={{
-                                    background: isActive ? "#FEF3F2" : isCompleted ? "#F0F9FF" : "#F9FAFB",
-                                    border: `2px solid ${isActive ? "#FECACA" : isCompleted ? "#BFDBFE" : "#E5E7EB"}`,
-                                    borderRadius: 12,
-                                    padding: "1.5rem",
-                                    marginBottom: "1rem",
-                                    position: "relative"
-                                }}
-                            >
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                                        <div style={{
-                                            width: 40,
-                                            height: 40,
-                                            borderRadius: "50%",
-                                            background: isActive ? "#DC2626" : isCompleted ? "#2563EB" : "#9CA3AF",
-                                            color: "white",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            fontWeight: "bold"
-                                        }}>
-                                            {phaseNum}
-                                        </div>
-                                        <div>
-                                            <h4 style={{ margin: 0, color: "#111827", fontSize: "1.1rem" }}>
-                                                Giai đoạn {phaseNum}
-                                            </h4>
-                                            <p style={{ margin: "4px 0 0 0", color: "#6B7280", fontSize: "0.9rem" }}>
-                                                {status}
-                                            </p>
-                                        </div>
-                                    </div>
+                                return (
                                     <div style={{
-                                        background: isActive ? "#DC2626" : isCompleted ? "#059669" : "#6B7280",
-                                        color: "white",
-                                        padding: "0.3rem 0.8rem",
-                                        borderRadius: 20,
-                                        fontSize: "0.8rem",
-                                        fontWeight: 600
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "1rem"
                                     }}>
-                                        {isActive ? "ĐANG TIẾN HÀNH" : isCompleted ? "HOÀN THÀNH" : "SẮP TỚI"}
-                                    </div>
-                                </div>
-
-                                <div style={{ marginBottom: "1rem" }}>
-                                    <div style={{ color: "#374151", fontSize: "0.9rem", marginBottom: "0.5rem" }}>
-                                        📅 {startDate ? new Date(startDate).toLocaleDateString("vi-VN") : "N/A"} - {endDate ? new Date(endDate).toLocaleDateString("vi-VN") : "N/A"}
-                                    </div>
-
-                                    {phaseStats && (
-                                        <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: "#6B7280" }}>
-                                            <span>❌ Ngày thất bại: {phaseStats.failedDays || 0}</span>
-                                            <span>📈 Tổng ngày: {phaseStats.totalDays || 0}</span>
-                                            <span>Trạng thái: {phaseStats.statusPhase || "N/A"}</span>
+                                        <div style={{
+                                            fontSize: "2rem",
+                                            fontWeight: 700,
+                                            color: successRate >= 80 ? "#16A34A" :
+                                                successRate >= 60 ? "#EAB308" : "#DC2626"
+                                        }}>
+                                            {successRate.toFixed(1)}%
                                         </div>
-                                    )}
-                                </div>
+                                        <div style={{
+                                            color: "#6B7280",
+                                            fontSize: "0.9rem",
+                                            textAlign: "left"
+                                        }}>
+                                            <div>Ngày thành công: {successDays}</div>
+                                            <div>Ngày thất bại: {totalFail}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                )}
 
-                                {/* Progress bar */}
-                                <div style={{
-                                    background: "#E5E7EB",
-                                    height: 8,
-                                    borderRadius: 4,
-                                    overflow: "hidden"
-                                }}>
+                {/* Danh sách các phases */}
+                {planData.phases && planData.phases.map((phase, index) => {
+                    const progress = calculateProgress(phase);
+                    const isActive = currentPhase?.phase === phase.phase;
+                    const isCompleted = progress === 100;
+                    const isUpcoming = progress === 0;
+
+                    return (
+                        <div
+                            key={phase.phase}
+                            style={{
+                                background: isActive ? "#FEF3F2" : isCompleted ? "#F0F9FF" : "#F9FAFB",
+                                border: `2px solid ${isActive ? "#FECACA" : isCompleted ? "#BFDBFE" : "#E5E7EB"}`,
+                                borderRadius: 12,
+                                padding: "1.5rem",
+                                marginBottom: "1rem",
+                                position: "relative"
+                            }}
+                        >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                                     <div style={{
-                                        background: isActive ? "#DC2626" : isCompleted ? "#059669" : "#9CA3AF",
-                                        height: "100%",
-                                        width: isCompleted ? "100%" : isActive ? "50%" : "0%",
-                                        transition: "width 0.3s ease"
-                                    }} />
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: "50%",
+                                        background: isActive ? "#DC2626" : isCompleted ? "#2563EB" : "#9CA3AF",
+                                        color: "white",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: "bold"
+                                    }}>
+                                        {phase.phase}
+                                    </div>
+                                    <div>
+                                        <h4 style={{ margin: 0, color: "#111827", fontSize: "1.1rem" }}>
+                                            Giai đoạn {phase.phase}
+                                        </h4>
+                                        <p style={{ margin: "4px 0 0 0", color: "#6B7280", fontSize: "0.9rem" }}>
+                                            {phase.description || "Đang thực hiện"}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style={{
+                                    background: isActive ? "#DC2626" : isCompleted ? "#059669" : "#6B7280",
+                                    color: "white",
+                                    padding: "0.3rem 0.8rem",
+                                    borderRadius: 20,
+                                    fontSize: "0.8rem",
+                                    fontWeight: 600
+                                }}>
+                                    {isActive ? "ĐANG TIẾN HÀNH" : isCompleted ? "HOÀN THÀNH" : "SẮP TỚI"}
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
+
+                            <div style={{ marginBottom: "1rem" }}>
+                                <div style={{ color: "#374151", fontSize: "0.9rem", marginBottom: "0.5rem" }}>
+                                    📅 {formatDate(phase.startDate)} - {formatDate(phase.endDate)}
+                                </div>
+
+                                {phase.statistics && (
+                                    <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: "#6B7280" }}>
+                                        <span>❌ Ngày thất bại: {phase.statistics.failedDays || 0}</span>
+                                        <span>📈 Tổng ngày: {phase.statistics.totalDays || 0}</span>
+                                        <span>Tỷ lệ thành công: {phase.statistics.successRate || "0%"}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Progress bar */}
+                            <div style={{
+                                background: "#E5E7EB",
+                                height: 8,
+                                borderRadius: 4,
+                                overflow: "hidden"
+                            }}>
+                                <div style={{
+                                    background: isActive ? "#DC2626" : isCompleted ? "#059669" : "#9CA3AF",
+                                    height: "100%",
+                                    width: `${progress}%`,
+                                    transition: "width 0.3s ease"
+                                }} />
+                            </div>
+                        </div>
+                    );
+                })}
             </section>
         );
     }
-
-    // Hàm xử lý khi nhấn "Tham gia ngay"
-    const handleJoinNow = () => {
-        // Kiểm tra đăng nhập
-        if (!token || !accountId) {
-            alert("Vui lòng đăng nhập để tham gia!");
-            navigate("/login");
-            return;
-        }
-
-        // Kiểm tra membership loading
-        if (membershipLoading) {
-            alert("Đang kiểm tra gói thành viên, vui lòng đợi...");
-            return;
-        }
-
-        // Kiểm tra có gói membership hợp lệ không
-        if (!hasValidMembership) {
-            alert("Bạn cần mua gói thành viên còn hạn sử dụng để tham gia chương trình!");
-            navigate("/payment");
-            return;
-        }
-
-        // Nếu có gói hợp lệ, cho phép tham gia
-        navigate("/start-information");
-    };
 
     // RETURN CHÍNH CỦA COMPONENT
     return (
@@ -713,8 +558,8 @@ export default function Plan() {
                 padding: "0 0 2rem 0"
             }}
         >
-            {/* HIỂN THỊ LOADING KHI ĐANG FETCH STATUS HOẶC MEMBERSHIP */}
-            {statusLoading || membershipLoading ? (
+            {/* HIỂN THỊ LOADING KHI ĐANG FETCH STATUS */}
+            {statusLoading ? (
                 <div style={{
                     display: "flex",
                     justifyContent: "center",
@@ -723,57 +568,11 @@ export default function Plan() {
                     fontSize: "1.2rem",
                     color: "#48A6A7"
                 }}>
-                    🔄 {statusLoading ? "Đang kiểm tra trạng thái..." : "Đang kiểm tra gói thành viên..."}
+                    🔄 Đang kiểm tra trạng thái...
                 </div>
             ) : !statusProcess ? (
                 // KHÔNG CÓ STATUS - HIỆN CALL TO ACTION
                 <>
-                    {/* Thông báo trạng thái membership */}
-                    {!membershipLoading && (
-                        <div
-                            style={{
-                                margin: "20px auto",
-                                maxWidth: 900,
-                                background: hasValidMembership ?
-                                    "linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)" :
-                                    "linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)",
-                                border: `2px solid ${hasValidMembership ? "#10B981" : "#EF4444"}`,
-                                borderRadius: 12,
-                                padding: "1rem 1.5rem",
-                                textAlign: "center"
-                            }}
-                        >
-                            <div style={{
-                                color: hasValidMembership ? "#065F46" : "#991B1B",
-                                fontWeight: 600,
-                                fontSize: "1rem"
-                            }}>
-                                {hasValidMembership ? (
-                                    "✅ Bạn có gói thành viên hợp lệ"
-                                ) : (
-                                    "❌ Bạn chưa có gói thành viên hoặc đã hết hạn"
-                                )}
-                            </div>
-                            {!hasValidMembership && (
-                                <button
-                                    onClick={() => navigate("/payment")}
-                                    style={{
-                                        background: "#EF4444",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: 8,
-                                        padding: "0.5rem 1rem",
-                                        marginTop: "0.5rem",
-                                        cursor: "pointer",
-                                        fontWeight: 600
-                                    }}
-                                >
-                                    💳 Mua gói ngay
-                                </button>
-                            )}
-                        </div>
-                    )}
-
                     <div
                         style={{
                             margin: "40px auto 36px auto",
@@ -791,11 +590,9 @@ export default function Plan() {
                             Hãy cho chúng tớ xin vài thông tin để bắt đầu quá trình bạn nhé!
                         </p>
                         <button
-                            onClick={handleJoinNow}
-                            disabled={membershipLoading || !hasValidMembership}
+                            onClick={() => navigate("/start-information")}
                             style={{
-                                background: membershipLoading ? "#9CA3AF" :
-                                    !hasValidMembership ? "#EF4444" : "#006A71",
+                                background: "#006A71",
                                 color: "#fff",
                                 fontWeight: 700,
                                 padding: "0.7rem 2.2rem",
@@ -805,17 +602,10 @@ export default function Plan() {
                                 boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
                                 transition: "background 0.2s, color 0.2s",
                                 border: "none",
-                                cursor: membershipLoading || !hasValidMembership ? "not-allowed" : "pointer",
-                                opacity: membershipLoading || !hasValidMembership ? 0.7 : 1
+                                cursor: "pointer"
                             }}
                         >
-                            {membershipLoading ? (
-                                "🔄 Đang kiểm tra gói..."
-                            ) : !hasValidMembership ? (
-                                "❌ Cần mua gói thành viên"
-                            ) : (
-                                "🚀 Tham gia ngay"
-                            )}
+                            🚀 Tham gia ngay
                         </button>
                     </div>
 
@@ -836,22 +626,10 @@ export default function Plan() {
                             fontWeight: 600,
                             marginBottom: "1rem"
                         }}>
-                            {membershipLoading ? (
-                                "🔄 Đang kiểm tra gói thành viên..."
-                            ) : !hasValidMembership ? (
-                                "❌ Cần mua gói thành viên để tham gia"
-                            ) : (
-                                "🎯 Chưa tham gia chương trình cai thuốc"
-                            )}
+                            🎯 Chưa tham gia chương trình cai thuốc
                         </div>
                         <div style={{ color: "#718096", fontSize: "1.1rem" }}>
-                            {membershipLoading ? (
-                                "Đang kiểm tra trạng thái gói thành viên của bạn..."
-                            ) : !hasValidMembership ? (
-                                "Bạn cần mua gói thành viên còn hạn sử dụng để có thể bắt đầu chương trình cai thuốc."
-                            ) : (
-                                'Vui lòng nhấn "Tham gia ngay" để bắt đầu hành trình cai thuốc của bạn.'
-                            )}
+                            Vui lòng nhấn "Tham gia ngay" để bắt đầu hành trình cai thuốc của bạn.
                         </div>
                     </div>
                 </>
@@ -935,7 +713,30 @@ export default function Plan() {
                         >
                             🚀 Tiếp tục cai nghiện
                         </button>
-
+                        <button
+                            onClick={() => navigate("/member/dashboard")}
+                            style={{
+                                background: "rgba(255,255,255,0.2)",
+                                color: "#fff",
+                                fontWeight: 600,
+                                padding: "1rem 2.5rem",
+                                borderRadius: 30,
+                                fontSize: "1.1rem",
+                                border: "2px solid rgba(255,255,255,0.3)",
+                                cursor: "pointer",
+                                transition: "all 0.3s ease"
+                            }}
+                            onMouseOver={e => {
+                                e.target.style.background = "rgba(255,255,255,0.3)";
+                                e.target.style.borderColor = "rgba(255,255,255,0.5)";
+                            }}
+                            onMouseOut={e => {
+                                e.target.style.background = "rgba(255,255,255,0.2)";
+                                e.target.style.borderColor = "rgba(255,255,255,0.3)";
+                            }}
+                        >
+                            📊 Về Dashboard
+                        </button>
                     </div>
                 </div>
             ) : statusProcess.statusProcess?.toLowerCase() === "fail" ? (
@@ -1053,8 +854,8 @@ export default function Plan() {
                         }}
                     >
                         {/* Timer section */}
-                        {planData?.startDatePhase1 && (
-                            <TimerSection startDate={planData.startDatePhase1} />
+                        {planData?.startDate && (
+                            <TimerSection startDate={planData.startDate} />
                         )}
 
                         {/* Progress Phases section - CHỨA THỐNG KÊ TỪ API */}
