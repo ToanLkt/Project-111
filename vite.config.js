@@ -10,6 +10,7 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false,
     rollupOptions: {
+      external: [],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
@@ -18,10 +19,17 @@ export default defineConfig({
         }
       }
     },
-    chunkSizeWarningLimit: 1600
+    chunkSizeWarningLimit: 1600,
+    commonjsOptions: {
+      transformMixedEsModules: true
+    }
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom']
+    include: ['react', 'react-dom', 'react-router-dom'],
+    force: true
+  },
+  esbuild: {
+    target: 'es2020'
   },
   base: './'
 });
