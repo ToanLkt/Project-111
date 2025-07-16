@@ -30,6 +30,17 @@ export default function Community() {
 
     const accountId = getUserId()
 
+    // Check if user is admin
+    const isAdmin = () => {
+        if (!user) return false
+        const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+            user.role ||
+            user.roles
+        return role === 'Admin' || (Array.isArray(role) && role.includes('Admin'))
+    }
+
+    const userIsAdmin = isAdmin()
+
     const [allPosts, setAllPosts] = useState([])
     const [posts, setPosts] = useState([])
     const [content, setContent] = useState("")
@@ -38,12 +49,14 @@ export default function Community() {
     const [commentInputs, setCommentInputs] = useState({})
     const [comments, setComments] = useState({})
     const [commentLoading, setCommentLoading] = useState({})
+    const [deleteLoading, setDeleteLoading] = useState({})
 
     // Lấy danh sách bài post
     useEffect(() => {
         console.log('🔐 Redux Token:', token ? 'Có token' : 'Không có token')
         console.log('👤 Redux User:', user)
         console.log('📝 Full Name:', fullName)
+        console.log('👑 Is Admin:', userIsAdmin)
 
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/CommunityPost/get")
             .then((res) => {
@@ -212,6 +225,144 @@ export default function Community() {
         setCommentLoading((prev) => ({ ...prev, [postId]: false }))
     }
 
+    // Xóa bài viết
+    const handleDeletePost = async (postId, postAuthorId) => {
+        // Kiểm tra quyền xóa
+        const canDelete = userIsAdmin || (accountId && accountId.toString() === postAuthorId?.toString())
+
+        if (!canDelete) {
+            alert("❌ Bạn không có quyền xóa bài viết này!")
+            return
+        }
+
+        const confirmMessage = userIsAdmin
+            ? "🛡️ Admin: Bạn có chắc chắn muốn xóa bài viết này không?"
+            : "🗑️ Bạn có chắc chắn muốn xóa bài viết của mình không?"
+
+        if (!confirm(confirmMessage)) return
+
+        setDeleteLoading((prev) => ({ ...prev, [`post_${postId}`]: true }))
+
+        try {
+            console.log(`🗑️ Deleting post ${postId}...`)
+            const res = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/CommunityPost/${postId}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            )
+
+            if (!res.ok) {
+                const errorText = await res.text()
+                console.error('❌ Post deletion failed:', errorText)
+                throw new Error(`HTTP ${res.status}: ${errorText}`)
+            }
+
+            console.log('✅ Post deleted successfully')
+
+            // Cập nhật state để remove post
+            setAllPosts((prev) => prev.filter((post) => {
+                const currentPostId = post.communityPostId || post.postId || post.id
+                return currentPostId.toString() !== postId.toString()
+            }))
+            setPosts((prev) => prev.filter((post) => {
+                const currentPostId = post.communityPostId || post.postId || post.id
+                return currentPostId.toString() !== postId.toString()
+            }))
+
+            // Xóa comments của post này
+            setComments((prev) => {
+                const newComments = { ...prev }
+                delete newComments[postId]
+                return newComments
+            })
+
+            alert("✅ Xóa bài viết thành công!")
+
+        } catch (error) {
+            console.error("❌ Error deleting post:", error)
+            alert(`❌ Xóa bài viết thất bại: ${error.message}`)
+        } finally {
+            setDeleteLoading((prev) => ({ ...prev, [`post_${postId}`]: false }))
+        }
+    }
+
+    // Xóa comment
+    const handleDeleteComment = async (commentId, commentAuthorId, postId) => {
+        // Kiểm tra quyền xóa
+        const canDelete = userIsAdmin || (accountId && accountId.toString() === commentAuthorId?.toString())
+
+        if (!canDelete) {
+            alert("❌ Bạn không có quyền xóa bình luận này!")
+            return
+        }
+
+        const confirmMessage = userIsAdmin
+            ? "🛡️ Admin: Bạn có chắc chắn muốn xóa bình luận này không?"
+            : "🗑️ Bạn có chắc chắn muốn xóa bình luận của mình không?"
+
+        if (!confirm(confirmMessage)) return
+
+        setDeleteLoading((prev) => ({ ...prev, [`comment_${commentId}`]: true }))
+
+        try {
+            console.log(`🗑️ Deleting comment ${commentId}...`)
+            const res = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Comment/${commentId}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            )
+
+            if (!res.ok) {
+                const errorText = await res.text()
+                console.error('❌ Comment deletion failed:', errorText)
+                throw new Error(`HTTP ${res.status}: ${errorText}`)
+            }
+
+            console.log('✅ Comment deleted successfully')
+
+            // Cập nhật comments state
+            setComments((prev) => ({
+                ...prev,
+                [postId]: (prev[postId] || []).filter((comment) => {
+                    const currentCommentId = comment.commentId || comment.id
+                    return currentCommentId.toString() !== commentId.toString()
+                })
+            }))
+
+            alert("✅ Xóa bình luận thành công!")
+
+        } catch (error) {
+            console.error("❌ Error deleting comment:", error)
+            alert(`❌ Xóa bình luận thất bại: ${error.message}`)
+        } finally {
+            setDeleteLoading((prev) => ({ ...prev, [`comment_${commentId}`]: false }))
+        }
+    }
+
+    // Kiểm tra quyền xóa post
+    const canDeletePost = (post) => {
+        if (!token || !accountId) return false
+        const postAuthorId = post.accountId || post.userId || post.authorId
+        return userIsAdmin || (accountId && accountId.toString() === postAuthorId?.toString())
+    }
+
+    // Kiểm tra quyền xóa comment
+    const canDeleteComment = (comment) => {
+        if (!token || !accountId) return false
+        const commentAuthorId = comment.accountId || comment.userId || comment.authorId
+        return userIsAdmin || (accountId && accountId.toString() === commentAuthorId?.toString())
+    }
+
     return (
         <>
             <style jsx>{`
@@ -369,6 +520,45 @@ export default function Community() {
                     cursor: not-allowed;
                 }
 
+                .btn-danger {
+                    background: #dc2626;
+                    border: none;
+                    color: white;
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 6px;
+                    font-weight: 500;
+                    font-size: 0.75rem;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                }
+
+                .btn-danger:hover:not(:disabled) {
+                    background: #b91c1c;
+                    transform: translateY(-1px);
+                }
+
+                .btn-danger:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+
+                .admin-badge {
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    color: white;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    margin-left: 0.5rem;
+                }
+
                 .sidebar-card {
                     background: white;
                     border-radius: 12px;
@@ -441,12 +631,21 @@ export default function Community() {
                 .post-header {
                     padding: 1.5rem 1.5rem 1rem;
                     border-bottom: 1px solid #f1f5f9;
+                    position: relative;
                 }
 
                 .post-author-info {
                     display: flex;
                     align-items: center;
                     gap: 0.75rem;
+                }
+
+                .post-actions {
+                    position: absolute;
+                    top: 1rem;
+                    right: 1rem;
+                    display: flex;
+                    gap: 0.5rem;
                 }
 
                 .post-avatar {
@@ -467,6 +666,9 @@ export default function Community() {
                     font-size: 1rem;
                     font-weight: 600;
                     color: #1e293b;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
                 }
 
                 .post-time {
@@ -515,6 +717,7 @@ export default function Community() {
                     padding: 1rem;
                     margin-bottom: 0.75rem;
                     border: 1px solid #e2e8f0;
+                    position: relative;
                 }
 
                 .comment-item:last-child {
@@ -526,6 +729,12 @@ export default function Community() {
                     align-items: center;
                     gap: 0.5rem;
                     margin-bottom: 0.5rem;
+                }
+
+                .comment-actions {
+                    position: absolute;
+                    top: 0.75rem;
+                    right: 0.75rem;
                 }
 
                 .comment-avatar {
@@ -545,6 +754,9 @@ export default function Community() {
                     font-weight: 600;
                     color: #1e293b;
                     font-size: 0.875rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
                 }
 
                 .comment-time {
@@ -558,6 +770,7 @@ export default function Community() {
                     line-height: 1.5;
                     color: #374151;
                     white-space: pre-wrap;
+                    margin-right: 2rem;
                 }
 
                 .comment-form {
@@ -663,6 +876,16 @@ export default function Community() {
                         flex-direction: column;
                         align-items: stretch;
                     }
+
+                    .post-actions {
+                        position: static;
+                        margin-top: 1rem;
+                        justify-content: flex-end;
+                    }
+
+                    .comment-content {
+                        margin-right: 0;
+                    }
                 }
             `}</style>
 
@@ -707,6 +930,7 @@ export default function Community() {
                                             {fullName && token ? (
                                                 <div className="user-status">
                                                     ✅ Đăng bài với tên: <strong>{fullName}</strong>
+                                                    {userIsAdmin && <span className="admin-badge">🛡️ Admin</span>}
                                                 </div>
                                             ) : (
                                                 <div className="auth-warning">
@@ -739,19 +963,49 @@ export default function Community() {
                             ) : (
                                 posts.map((post, idx) => {
                                     const postId = post.communityPostId || post.postId || post.id || idx
+                                    const postAuthorId = post.accountId || post.userId || post.authorId
                                     return (
                                         <div key={postId} className="post-card">
                                             {/* Post Header */}
                                             <div className="post-header">
                                                 <div className="post-author-info">
                                                     <div className="post-avatar">
-                                                        {(post.fullName || "A").charAt(0).toUpperCase()}
+                                                        {(post.fullName || "A").charAt(0).toUpperCase()
+                                                        }
                                                     </div>
                                                     <div className="post-author-details">
-                                                        <h4>{post.fullName || "Ẩn danh"}</h4>
+                                                        <h4>
+                                                            {post.fullName || "Ẩn danh"}
+                                                            {userIsAdmin && postAuthorId && postAuthorId.toString() === accountId?.toString() && (
+                                                                <span className="admin-badge">🛡️ Admin</span>
+                                                            )}
+                                                        </h4>
                                                         <p className="post-time">📅 {post.createTime || "Vừa xong"}</p>
                                                     </div>
                                                 </div>
+
+                                                {/* Post Actions */}
+                                                {canDeletePost(post) && (
+                                                    <div className="post-actions">
+                                                        <button
+                                                            className="btn-danger"
+                                                            onClick={() => handleDeletePost(postId, postAuthorId)}
+                                                            disabled={deleteLoading[`post_${postId}`]}
+                                                            title={userIsAdmin ? "Admin: Xóa bài viết" : "Xóa bài viết của bạn"}
+                                                        >
+                                                            {deleteLoading[`post_${postId}`] ? (
+                                                                <>
+                                                                    <span className="loading-spinner"></span>
+                                                                    Đang xóa...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    {userIsAdmin ? "🛡️" : "🗑️"} Xóa
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Post Content */}
@@ -778,18 +1032,46 @@ export default function Community() {
                                                                     <em>💭 Chưa có bình luận nào. Hãy là người đầu tiên!</em>
                                                                 </div>
                                                             ) : (
-                                                                comments[postId].map((cmt, cidx) => (
-                                                                    <div key={cmt.commentId || cidx} className="comment-item">
-                                                                        <div className="comment-header">
-                                                                            <div className="comment-avatar">
-                                                                                {(cmt.fullName || "A").charAt(0).toUpperCase()}
+                                                                comments[postId].map((cmt, cidx) => {
+                                                                    const commentId = cmt.commentId || cmt.id || cidx
+                                                                    const commentAuthorId = cmt.accountId || cmt.userId || cmt.authorId
+                                                                    return (
+                                                                        <div key={commentId} className="comment-item">
+                                                                            <div className="comment-header">
+                                                                                <div className="comment-avatar">
+                                                                                    {(cmt.fullName || "A").charAt(0).toUpperCase()
+                                                                                    }
+                                                                                </div>
+                                                                                <span className="comment-author">
+                                                                                    {cmt.fullName || "Ẩn danh"}
+                                                                                    {userIsAdmin && commentAuthorId && commentAuthorId.toString() === accountId?.toString() && (
+                                                                                        <span className="admin-badge">🛡️</span>
+                                                                                    )}
+                                                                                </span>
+                                                                                <span className="comment-time">🕐 {cmt.createTime || "Vừa xong"}</span>
                                                                             </div>
-                                                                            <span className="comment-author">{cmt.fullName || "Ẩn danh"}</span>
-                                                                            <span className="comment-time">🕐 {cmt.createTime || "Vừa xong"}</span>
+                                                                            <div className="comment-content">{cmt.content}</div>
+
+                                                                            {/* Comment Actions */}
+                                                                            {canDeleteComment(cmt) && (
+                                                                                <div className="comment-actions">
+                                                                                    <button
+                                                                                        className="btn-danger"
+                                                                                        onClick={() => handleDeleteComment(commentId, commentAuthorId, postId)}
+                                                                                        disabled={deleteLoading[`comment_${commentId}`]}
+                                                                                        title={userIsAdmin ? "Admin: Xóa bình luận" : "Xóa bình luận của bạn"}
+                                                                                    >
+                                                                                        {deleteLoading[`comment_${commentId}`] ? (
+                                                                                            <span className="loading-spinner"></span>
+                                                                                        ) : (
+                                                                                            userIsAdmin ? "🛡️" : "🗑️"
+                                                                                        )}
+                                                                                    </button>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                        <div className="comment-content">{cmt.content}</div>
-                                                                    </div>
-                                                                ))
+                                                                    )
+                                                                })
                                                             )}
                                                         </div>
 
@@ -904,10 +1186,21 @@ export default function Community() {
                                     <div className="d-flex align-items-center gap-3">
                                         <div className="post-avatar">{fullName.charAt(0).toUpperCase()}</div>
                                         <div>
-                                            <h6 className="mb-1">{fullName}</h6>
+                                            <h6 className="mb-1">
+                                                {fullName}
+                                                {userIsAdmin && <span className="admin-badge">🛡️ Admin</span>}
+                                            </h6>
                                             <small className="text-muted">🌟 Thành viên hoạt động</small>
                                             <br />
                                             <small className="text-muted">🎯 ID: {accountId || "Không xác định"}</small>
+                                            {userIsAdmin && (
+                                                <>
+                                                    <br />
+                                                    <small style={{ color: '#f59e0b', fontWeight: 600 }}>
+                                                        🛡️ Quản trị viên - Có thể xóa mọi bài viết
+                                                    </small>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -943,6 +1236,7 @@ export default function Community() {
                                     <li>🚫 Không spam hoặc quảng cáo</li>
                                     <li>🎯 Tập trung vào mục tiêu cai thuốc</li>
                                     <li>❤️ Động viên những người khó khăn</li>
+                                    <li>🛡️ Admin có quyền kiểm duyệt nội dung</li>
                                 </ul>
                             </div>
                         </div>

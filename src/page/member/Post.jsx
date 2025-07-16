@@ -91,7 +91,7 @@ export default function Post({ post, onReport, onComment }) {
                         userSelect: "none",
                     }}
                 >
-                    Bình luận
+
                 </div>
 
                 {post.comments.map((c, idx) => (

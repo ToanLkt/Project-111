@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, Outlet, Navigate, useNavigate } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
 import { logout as logoutAction } from "../../redux/login/loginSlice"
@@ -28,12 +28,24 @@ export default function AdminNavbar() {
   const navigate = useNavigate()
   const { user, token, loading } = useSelector((state) => state.account || {});
 
+  // State cho dropdown
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef(null)
+
   // Extract thông tin từ user object
   const getUserEmail = () => {
     if (!user) return null
     return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] ||
       user.email ||
       user.emailAddress ||
+      null
+  }
+
+  const getUserFullName = () => {
+    if (!user) return null
+    return user["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ||
+      user.fullName ||
+      user.name ||
       null
   }
 
@@ -48,13 +60,29 @@ export default function AdminNavbar() {
   // Logic authentication
   const userRole = getUserRole()
   const userEmail = getUserEmail()
+  const userFullName = getUserFullName()
   const isAdmin = userRole === "Admin"
   const isAuthenticated = !!(token && user)
+
+  // Đóng dropdown khi click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   // Xử lý đăng xuất
   const handleLogout = async () => {
     try {
       console.log("🚪 Admin logout process starting...")
+      setShowDropdown(false) // Đóng dropdown
 
       // Clear data first
       clearUserData()
@@ -95,7 +123,7 @@ export default function AdminNavbar() {
     { to: "/admin", label: "Trang chủ", icon: "🏠" },
     { to: "/admin/list", label: "Danh sách", icon: "📋" },
     { to: "/admin/community", label: "Cộng đồng", icon: "👥" },
-    { to: "/admin/feedback", label: "Phản hồi", icon: "💬" },
+    { to: "/admin/feedback", label: "Đánh giá", icon: "💬" },
     { to: "/admin/payment", label: "Thanh toán", icon: "💳" },
     { to: "/admin/report", label: "Báo cáo", icon: "📊" },
   ]
@@ -276,6 +304,12 @@ export default function AdminNavbar() {
           gap: 1.2rem;
         }
 
+        /* Dropdown Styles */
+        .admin-dropdown {
+          position: relative;
+          display: inline-block;
+        }
+
         .admin-user-info {
           background: ${COLORS.white};
           border: 2px solid ${COLORS.color1};
@@ -287,8 +321,9 @@ export default function AdminNavbar() {
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 6px 20px rgba(26, 75, 82, 0.08);
           font-weight: 600;
-          text-decoration: none;
           color: ${COLORS.admin};
+          cursor: pointer;
+          user-select: none;
         }
 
         .admin-user-info:hover {
@@ -296,8 +331,12 @@ export default function AdminNavbar() {
           border-color: ${COLORS.admin};
           transform: translateY(-3px);
           box-shadow: 0 12px 40px rgba(26, 75, 82, 0.15);
-          text-decoration: none;
-          color: ${COLORS.admin};
+        }
+
+        .admin-user-info.active {
+          background: ${COLORS.color1};
+          border-color: ${COLORS.admin};
+          box-shadow: 0 8px 24px rgba(26, 75, 82, 0.2);
         }
 
         .admin-user-avatar {
@@ -315,6 +354,143 @@ export default function AdminNavbar() {
           border: 2px solid ${COLORS.white};
         }
 
+        .admin-dropdown-arrow {
+          font-size: 0.8rem;
+          transition: transform 0.3s ease;
+          color: ${COLORS.admin};
+        }
+
+        .admin-dropdown-arrow.rotated {
+          transform: rotate(180deg);
+        }
+
+        .admin-dropdown-menu {
+          position: absolute;
+          top: calc(100% + 12px);
+          right: 0;
+          background: ${COLORS.white};
+          border: 2px solid ${COLORS.color1};
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(26, 75, 82, 0.15);
+          z-index: 1060;
+          min-width: 280px;
+          overflow: hidden;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(-10px) scale(0.95);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          backdrop-filter: blur(20px);
+        }
+
+        .admin-dropdown-menu.show {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0) scale(1);
+        }
+
+        .admin-dropdown-menu::before {
+          content: '';
+          position: absolute;
+          top: -8px;
+          right: 24px;
+          width: 16px;
+          height: 16px;
+          background: ${COLORS.white};
+          border: 2px solid ${COLORS.color1};
+          border-bottom: none;
+          border-right: none;
+          transform: rotate(45deg);
+          z-index: -1;
+        }
+
+        .admin-dropdown-header {
+          padding: 1.5rem 1.5rem 1rem;
+          border-bottom: 1px solid ${COLORS.color1};
+          text-align: center;
+          background: linear-gradient(135deg, ${COLORS.color1} 0%, ${COLORS.white} 100%);
+        }
+
+        .admin-dropdown-avatar {
+          width: 60px;
+          height: 60px;
+          background: ${COLORS.gradientAdmin};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 1.5rem;
+          font-weight: 700;
+          margin: 0 auto 1rem;
+          box-shadow: 0 8px 24px rgba(26, 75, 82, 0.3);
+          border: 3px solid ${COLORS.white};
+        }
+
+        .admin-dropdown-name {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: ${COLORS.admin};
+          margin-bottom: 0.5rem;
+        }
+
+        .admin-dropdown-email {
+          font-size: 0.9rem;
+          color: ${COLORS.textLight};
+          margin-bottom: 0.5rem;
+        }
+
+        .admin-dropdown-role {
+          display: inline-block;
+          background: ${COLORS.success};
+          color: ${COLORS.white};
+          font-size: 0.8rem;
+          font-weight: 600;
+          padding: 0.3rem 1rem;
+          border-radius: 15px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .admin-dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem 1.5rem;
+          color: ${COLORS.text};
+          text-decoration: none;
+          transition: all 0.3s ease;
+          border: none;
+          background: none;
+          width: 100%;
+          text-align: left;
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .admin-dropdown-item:hover {
+          background: ${COLORS.color1};
+          color: ${COLORS.admin};
+          text-decoration: none;
+          padding-left: 2rem;
+        }
+
+        .admin-dropdown-item.danger {
+          color: #dc3545;
+          border-top: 1px solid ${COLORS.color1};
+        }
+
+        .admin-dropdown-item.danger:hover {
+          background: #dc3545;
+          color: white;
+        }
+
+        .admin-dropdown-icon {
+          font-size: 1.1rem;
+          width: 20px;
+          text-align: center;
+        }
+
         .admin-logout-btn {
           background: ${COLORS.gradientAdmin};
           border: 2px solid transparent;
@@ -328,27 +504,7 @@ export default function AdminNavbar() {
           box-shadow: 0 8px 24px rgba(26, 75, 82, 0.2);
           position: relative;
           overflow: hidden;
-        }
-
-        .admin-logout-btn::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-          transition: left 0.6s;
-        }
-
-        .admin-logout-btn:hover::before {
-          left: 100%;
-        }
-
-        .admin-logout-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 16px 48px rgba(26, 75, 82, 0.3);
-          background: linear-gradient(135deg, #1A4B52 0%, #0F2E33 100%);
+          display: none; /* Ẩn button cũ */
         }
 
         .admin-nav {
@@ -459,14 +615,14 @@ export default function AdminNavbar() {
             padding: 1rem 1.8rem;
             font-size: 1rem;
           }
+
+          .admin-dropdown-menu {
+            min-width: 260px;
+            right: -10px;
+          }
         }
 
         @media (max-width: 576px) {
-          .admin-logout-btn {
-            padding: 0.8rem 1.8rem;
-            font-size: 1rem;
-          }
-
           .admin-brand {
             font-size: 1.3rem;
           }
@@ -479,6 +635,11 @@ export default function AdminNavbar() {
           .admin-user-section {
             flex-direction: column;
             gap: 0.8rem;
+          }
+
+          .admin-dropdown-menu {
+            right: -20px;
+            min-width: 240px;
           }
         }
       `}</style>
@@ -513,25 +674,69 @@ export default function AdminNavbar() {
                 </div>
               </div>
 
-              {/* Admin Account Section */}
+              {/* Admin Account Section với Dropdown */}
               <div className="col-lg-3 col-md-4 col-sm-6">
                 <div className="d-flex align-items-center justify-content-end">
                   <div className="admin-user-section">
                     {userEmail && (
-                      <>
-                        <Link to="/admin/profile" className="admin-user-info">
+                      <div className="admin-dropdown" ref={dropdownRef}>
+                        <div
+                          className={`admin-user-info ${showDropdown ? 'active' : ''}`}
+                          onClick={() => setShowDropdown(!showDropdown)}
+                        >
                           <div className="admin-user-avatar">
                             <i className="fas fa-user-shield"></i>
                           </div>
                           <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
-                            {userEmail.split("@")[0]}
+                            {userFullName || userEmail.split("@")[0]}
                           </span>
-                        </Link>
-                        <button onClick={handleLogout} className="admin-logout-btn">
-                          <i className="fas fa-sign-out-alt me-2"></i>
-                          Đăng xuất
-                        </button>
-                      </>
+                          <i className={`fas fa-chevron-down admin-dropdown-arrow ${showDropdown ? 'rotated' : ''}`}></i>
+                        </div>
+
+                        {/* Dropdown Menu */}
+                        <div className={`admin-dropdown-menu ${showDropdown ? 'show' : ''}`}>
+                          {/* Header với thông tin admin */}
+                          <div className="admin-dropdown-header">
+                            <div className="admin-dropdown-avatar">
+                              <i className="fas fa-user-shield"></i>
+                            </div>
+                            <div className="admin-dropdown-name">
+                              {userFullName || userEmail.split("@")[0]}
+                            </div>
+                            <div className="admin-dropdown-email">
+                              {userEmail}
+                            </div>
+                            <span className="admin-dropdown-role">Admin</span>
+                          </div>
+
+                          {/* Menu Items */}
+                          <Link
+                            to="/admin/profile"
+                            className="admin-dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            <i className="fas fa-user admin-dropdown-icon"></i>
+                            Thông tin Admin
+                          </Link>
+
+                          <Link
+                            to="/admin/settings"
+                            className="admin-dropdown-item"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            <i className="fas fa-cog admin-dropdown-icon"></i>
+                            Chỉnh sửa
+                          </Link>
+
+                          <button
+                            onClick={handleLogout}
+                            className="admin-dropdown-item danger"
+                          >
+                            <i className="fas fa-sign-out-alt admin-dropdown-icon"></i>
+                            Đăng xuất
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

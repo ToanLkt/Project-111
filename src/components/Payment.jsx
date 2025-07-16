@@ -12,7 +12,13 @@ import {
   setCurrentPackage,
   clearPaymentState,
   fetchPackagesRequest,
-  fetchUserTransactionsRequest
+  fetchUserTransactionsRequest,
+  checkTransactionRequest,
+  stopTransactionCheck,
+  clearTransactionCheck,
+  updateCurrentPackage,
+  setLastSuccessfulPayment,
+  clearCurrentPackage,
 } from "../redux/components/payment/paymentSlice"
 
 // Thông tin ngân hàng
@@ -120,8 +126,15 @@ export default function Payment() {
     currentPackage,
     currentPackageLoading,
 
+    // Transaction verification
+    transactionCheckLoading,
+    transactionCheckError,
+    verifiedTransactions,
+    isCheckingTransaction,
+
     // Completed payments
-    completedPayments
+    completedPayments,
+    lastSuccessfulPayment,
   } = useSelector((state) => {
     return state.payment || {}
   })
@@ -153,6 +166,24 @@ export default function Payment() {
   const [buyingPkg, setBuyingPkg] = useState(null)
   const [transactionCode, setTransactionCode] = useState("")
   const [selectedPackageId, setSelectedPackageId] = useState(null)
+
+  // Debug log để theo dõi payment state
+  useEffect(() => {
+    if (showQR && buyingPkg && transactionCode) {
+      console.log("🔧 Payment Debug Info:", {
+        showQR,
+        buyingPkg,
+        transactionCode,
+        accountId,
+        expectedContent: `THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID}${transactionCode}`,
+        expectedPrice: buyingPkg.price,
+        isCheckingTransaction,
+        paymentLoading,
+        paymentSuccess,
+        verifiedTransactionsCount: verifiedTransactions?.length || 0
+      })
+    }
+  }, [showQR, buyingPkg, transactionCode, accountId, isCheckingTransaction, paymentLoading, paymentSuccess, verifiedTransactions])
 
   // Scroll to top khi component mount
   useEffect(() => {
@@ -220,146 +251,198 @@ export default function Payment() {
     }
   }, [showQR, buyingPkg])
 
-  // Handle payment success
+  // Handle payment success với logic cập nhật current package
   useEffect(() => {
-    if (paymentSuccess) {
-      showToast("✅ Thanh toán thành công! Gói đã được kích hoạt.", "success")
+    if (paymentSuccess && buyingPkg) {
+      console.log("🎉 Payment success detected:", paymentSuccess)
 
-      if (buyingPkg && accountId) {
-        const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
-        // Dispatch action để add completed payment nếu cần
+      // Tính toán current package mới
+      const now = new Date()
+      const startDate = now
+      const endDate = new Date(now.getTime() + (buyingPkg.duration * 24 * 60 * 60 * 1000))
+
+      const newCurrentPackage = {
+        name: buyingPkg.category,
+        category: buyingPkg.category,
+        package_membership_ID: buyingPkg.package_membership_ID,
+        duration: buyingPkg.duration,
+        price: buyingPkg.price,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        daysLeft: buyingPkg.duration,
+        isActive: true,
+        isExpired: false,
+        paymentDate: now.toISOString(),
+        transactionCode: transactionCode
       }
 
-      if (accountId) {
-        // Fetch lại current package để đảm bảo sync
-      }
+      console.log("📦 Updating current package to:", newCurrentPackage)
 
+      // Cập nhật current package trong Redux
+      dispatch(updateCurrentPackage(newCurrentPackage))
+      dispatch(setLastSuccessfulPayment({
+        ...paymentSuccess,
+        packageInfo: newCurrentPackage
+      }))
+
+      showToast(`✅ Thanh toán thành công! Gói ${buyingPkg.category} đã được kích hoạt.`, "success")
+
+      // Stop checking và đóng QR
       setShowQR(false)
       setBuyingPkg(null)
+      dispatch(stopTransactionCheck())
 
-      setTimeout(() => {
+      // Refresh user transactions để đồng bộ với server
+      console.log("🔄 Refreshing user transactions...")
+      dispatch(fetchUserTransactionsRequest())
+
+      // Navigate về home sau 3 giây
+      const navTimer = setTimeout(() => {
+        console.log("🏠 Navigating to home...")
         navigate("/")
-      }, 2000)
-
-      setTimeout(() => {
-        dispatch(clearPaymentState())
       }, 3000)
-    }
-  }, [paymentSuccess, navigate, dispatch, buyingPkg, accountId])
 
-  // Handle payment error
+      // Clear payment state sau 5 giây (nhưng giữ current package)
+      const clearTimer = setTimeout(() => {
+        console.log("🧹 Clearing payment state...")
+        dispatch(clearPaymentState())
+        dispatch(clearTransactionCheck())
+      }, 5000)
+
+      return () => {
+        clearTimeout(navTimer)
+        clearTimeout(clearTimer)
+      }
+    }
+  }, [paymentSuccess, navigate, dispatch, buyingPkg, transactionCode])
+
+  // Handle verified transaction từ saga
   useEffect(() => {
-    if (paymentError) {
-      showToast(`❌ Thanh toán thất bại: ${paymentError}`, "warning")
-      dispatch(clearPaymentState())
-    }
-  }, [paymentError, dispatch])
+    if (verifiedTransactions.length > 0) {
+      const latestTransaction = verifiedTransactions[verifiedTransactions.length - 1]
+      console.log("🎯 Verified transaction detected:", latestTransaction)
 
-  // Check giao dịch khi mở popup QR
+      // Đóng QR modal và hiển thị thông báo
+      setShowQR(false)
+      setBuyingPkg(null)
+      showToast("✅ Giao dịch đã được xác thực! Đang lưu vào hệ thống...", "success")
+    }
+  }, [verifiedTransactions])
+
+  // Handle transaction check error
+  useEffect(() => {
+    if (transactionCheckError) {
+      console.log("❌ Transaction check error:", transactionCheckError)
+      // Không hiển thị lỗi cho user vì có thể là do chưa có giao dịch
+    }
+  }, [transactionCheckError])
+
+  // Check giao dịch khi mở popup QR - Sử dụng saga mới
   useEffect(() => {
     if (!showQR || !buyingPkg || !transactionCode || !accountId) return
-
-    let stop = false
-    let timeoutId
 
     const price = buyingPkg.price
     const content = `THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID}${transactionCode}`
 
-    async function checkPaid() {
-      if (stop) return
+    console.log("🔍 Starting payment check with saga:", {
+      price,
+      content,
+      transactionCode,
+      category: buyingPkg.category,
+      packageId: buyingPkg.package_membership_ID,
+      isCheckingTransaction
+    })
 
-      try {
-        const response = await fetch(TRANSACTION_API)
-        const text = await response.text()
-        const json = JSON.parse(text.substring(47, text.length - 2))
+    let intervalId
 
-        const rows = json.table.rows.map((row) =>
-          Object.fromEntries(row.c.map((cell, i) => [json.table.cols[i].label, cell?.v])),
-        )
-
-        if (rows.length === 0) return
-
-        const lastPaid = rows
-          .slice()
-          .reverse()
-          .find(
-            (row) =>
-              Number(row["Giá trị"] || 0) === price &&
-              (row["Mô tả"] || "").toUpperCase().includes(content.toUpperCase()),
-          )
-
-        if (lastPaid) {
-          const paymentKey = `${buyingPkg.package_membership_ID}_${accountId}`
-          const isAlreadyPaid = completedPayments?.includes(paymentKey)
-
-          if (!isAlreadyPaid) {
-            const nowVN = getVietnamNowISO()
-            const startDate = new Date(new Date(nowVN).setHours(0, 0, 0, 0)).toISOString()
-            const endDate = new Date(new Date(nowVN).getTime() + (buyingPkg.duration || 30) * 24 * 60 * 60 * 1000).toISOString()
-
-            dispatch(createPaymentRequest({
-              accountId,
-              packageMembershipId: buyingPkg.package_membership_ID,
-              totalPrice: buyingPkg.price,
-              paymentStatus: "Success",
-              duration: buyingPkg.duration,
-              transactionCode,
-              timeBuy: nowVN,
-              startDate,
-              endDate
-            }))
-
-            dispatch(setCurrentPackage({
-              package_membership_ID: buyingPkg.package_membership_ID,
-              category: buyingPkg.category,
-              description: buyingPkg.description,
-              price: buyingPkg.price,
-              duration: buyingPkg.duration,
-              endDate: endDate,
-              startDate: startDate,
-              accountId: accountId,
-              paymentStatus: "Success",
-              transactionCode
-            }))
-          }
-
-          stop = true
-          clearTimeout(timeoutId)
-        }
-      } catch (e) {
-        console.error("❌ Check payment error:", e)
+    // Hàm check giao dịch sử dụng saga
+    const checkTransactionWithSaga = () => {
+      if (paymentSuccess) {
+        console.log("✅ Payment already successful, stopping check")
+        return
       }
+
+      console.log("📡 Dispatching checkTransactionRequest with:", {
+        expectedPrice: price,
+        expectedContent: content,
+        transactionCode,
+        packageData: buyingPkg
+      })
+
+      dispatch(checkTransactionRequest({
+        expectedPrice: price,
+        expectedContent: content,
+        transactionCode,
+        packageData: buyingPkg
+      }))
     }
 
-    const interval = setInterval(checkPaid, 2000)
+    // Bắt đầu check ngay và lặp lại mỗi 3 giây (giảm xuống để test nhanh hơn)
+    checkTransactionWithSaga()
+    intervalId = setInterval(checkTransactionWithSaga, 3000)
+
+    // Timeout sau 10 phút
+    const timeoutId = setTimeout(() => {
+      console.log("⏰ Payment check timeout after 10 minutes")
+      dispatch(stopTransactionCheck())
+      showToast("⏰ Hết thời gian kiểm tra giao dịch. Vui lòng thử lại.", "warning")
+    }, 10 * 60 * 1000)
+
     return () => {
-      stop = true
-      clearInterval(interval)
+      console.log("🧹 Cleaning up payment check")
+      if (intervalId) clearInterval(intervalId)
+      if (timeoutId) clearTimeout(timeoutId)
+      dispatch(stopTransactionCheck())
     }
-  }, [showQR, buyingPkg, transactionCode, accountId, dispatch, completedPayments])
+  }, [showQR, buyingPkg, transactionCode, accountId, dispatch, paymentSuccess])
 
-  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Kiểm tra gói hiện tại
+  // Cập nhật logic lấy current package - ưu tiên từ Redux state
+  const getCurrentPackage = () => {
+    // Ưu tiên current package từ payment state (vừa mua)
+    if (currentPackage) {
+      return currentPackage
+    }
+
+    // Fallback về current package từ user object
+    return currentPackageFromUser
+  }
+
+  // Cập nhật logic kiểm tra gói hiện tại
   const isCurrentPackage = (pkg) => {
-    if (!currentPackageFromUser) return false
+    const activePackage = getCurrentPackage()
 
-    // So sánh theo category (tên gói)
-    const isMatchingCategory = currentPackageFromUser.name?.toLowerCase() === pkg.category?.toLowerCase()
+    if (!activePackage) return false
 
-    // Kiểm tra gói có đang hoạt động không
-    const isActivePackage = currentPackageFromUser.isActive && !currentPackageFromUser.isExpired
+    // So sánh theo package_membership_ID nếu có
+    if (activePackage.package_membership_ID && pkg.package_membership_ID) {
+      const isMatchingId = activePackage.package_membership_ID === pkg.package_membership_ID
+      const isActivePackage = activePackage.isActive && !activePackage.isExpired
 
-    console.log('🔍 Checking if current package in Payment:', {
+      console.log('🔍 Checking current package by ID:', {
+        packageId: pkg.package_membership_ID,
+        currentPackageId: activePackage.package_membership_ID,
+        isMatchingId,
+        isActivePackage
+      })
+
+      return isMatchingId && isActivePackage
+    }
+
+    // Fallback: So sánh theo category (tên gói)
+    const isMatchingCategory = activePackage.name?.toLowerCase() === pkg.category?.toLowerCase()
+    const isActivePackage = activePackage.isActive && !activePackage.isExpired
+
+    console.log('🔍 Checking current package by category:', {
       packageCategory: pkg.category,
-      currentPackageName: currentPackageFromUser.name,
+      currentPackageName: activePackage.name,
       isMatchingCategory,
-      isActivePackage,
-      packageMembershipId: pkg.package_membership_ID
+      isActivePackage
     })
 
     return isMatchingCategory && isActivePackage
   }
 
-  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Kiểm tra có thể đăng ký gói không
+  // Cập nhật logic kiểm tra có thể đăng ký gói không
   const canRegisterPackage = (pkg) => {
     // Không thể đăng ký nếu chưa đăng nhập
     if (!token) return false
@@ -374,28 +457,24 @@ export default function Payment() {
     if (isCurrentPackage(pkg)) return false
 
     // Kiểm tra gói hiện tại
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      // Tìm package hiện tại từ danh sách để lấy package_membership_ID
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
+    const activePackage = getCurrentPackage()
 
-      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+    if (activePackage && activePackage.isActive && !activePackage.isExpired) {
+      const currentPackageMembershipId = activePackage.package_membership_ID
 
-      console.log('🔍 Payment canRegisterPackage check:', {
-        currentPackageName: currentPackageFromUser.name,
+      console.log('🔍 Payment canRegisterPackage check with updated package:', {
+        currentPackageName: activePackage.name,
         currentPackageMembershipId,
         targetPackageId: pkg.package_membership_ID,
         canUpgrade: currentPackageMembershipId === 1
       })
 
-      // Nếu gói hiện tại không phải ID = 1, không cho phép mua gói khác
+      // Logic tương tự như trước
       if (currentPackageMembershipId !== 1) {
         console.log('🚫 Cannot register - user has premium package (not ID=1)')
         return false
       }
 
-      // Nếu gói hiện tại là ID = 1 (Free), có thể mua gói khác nhưng không mua lại Free
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
         console.log('🚫 Cannot register - already has free package')
         return false
@@ -405,28 +484,27 @@ export default function Payment() {
     return true
   }
 
-  // LOGIC GIỐNG MEMBERSHIPPACKAGE: Hàm lấy nhãn button phù hợp
+  // Cập nhật logic lấy button label
   const getButtonLabel = (pkg) => {
     if (!token) return "Cần đăng nhập"
     if (userRole !== "Member") return "Chỉ dành cho Member"
     if (pkg.status !== "Active") return "Không khả dụng"
 
+    const activePackage = getCurrentPackage()
+
     if (isCurrentPackage(pkg)) {
-      return `Đang sử dụng (${formatTimeLeft(currentPackageFromUser.daysLeft)})`
+      return `Đang sử dụng (${formatTimeLeft(activePackage.daysLeft)})`
     }
 
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
-      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
+    if (activePackage && activePackage.isActive && !activePackage.isExpired) {
+      const currentPackageMembershipId = activePackage.package_membership_ID
 
       if (currentPackageMembershipId !== 1) {
-        return `Đã có gói ${currentPackageFromUser.name}`
+        return `Đã có gói ${activePackage.name}`
       }
 
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
-        return `Đã có gói ${currentPackageFromUser.name}`
+        return `Đã có gói ${activePackage.name}`
       }
 
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
@@ -1268,26 +1346,46 @@ export default function Payment() {
                   )}
                 </p>
 
-                {/* Hiển thị thông tin gói hiện tại - giống MembershipPackage */}
-                {currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired && (
-                  <div className="current-package-info">
-                    <div className="current-package-title">
-                      🎉 Bạn đang sử dụng gói {currentPackageFromUser.name}
-                    </div>
-                    <div className="current-package-details">
-                      {formatTimeLeft(currentPackageFromUser.daysLeft)} •
-                      Hết hạn: {new Date(currentPackageFromUser.endDate).toLocaleDateString('vi-VN')}
-                      {packages.find(p => p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase())?.package_membership_ID === 1 && (
-                        <>
-                          <br />
-                          <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>
-                            ⬆️ Có thể nâng cấp lên gói cao hơn
+                {/* Hiển thị thông tin gói hiện tại - cập nhật logic */}
+                {(() => {
+                  const activePackage = getCurrentPackage()
+                  return activePackage && activePackage.isActive && !activePackage.isExpired && (
+                    <div className="current-package-info">
+                      <div className="current-package-title">
+                        🎉 Bạn đang sử dụng gói {activePackage.name}
+                        {lastSuccessfulPayment && (
+                          <span style={{
+                            marginLeft: '0.5rem',
+                            fontSize: '0.9rem',
+                            color: '#10B981'
+                          }}>
+                            ✨ Vừa kích hoạt
                           </span>
-                        </>
-                      )}
+                        )}
+                      </div>
+                      <div className="current-package-details">
+                        {formatTimeLeft(activePackage.daysLeft)} •
+                        Hết hạn: {new Date(activePackage.endDate).toLocaleDateString('vi-VN')}
+                        {activePackage.package_membership_ID === 1 && (
+                          <>
+                            <br />
+                            <span style={{ color: '#F59E0B', fontWeight: 'bold' }}>
+                              ⬆️ Có thể nâng cấp lên gói cao hơn
+                            </span>
+                          </>
+                        )}
+                        {lastSuccessfulPayment && (
+                          <>
+                            <br />
+                            <span style={{ color: '#10B981', fontSize: '0.85rem' }}>
+                              💳 Mã GD: {lastSuccessfulPayment.transactionCode || transactionCode}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
 
                 {/* Show loading skeleton while fetching packages */}
                 {packagesLoading ? (
@@ -1471,7 +1569,14 @@ export default function Payment() {
             <div className="qr-status">
               <div className="loading-spinner"></div>
               <span>
-                {paymentLoading ? "Đang xử lý thanh toán..." : "Đang chờ thanh toán..."}
+                {paymentLoading
+                  ? "Đang xử lý thanh toán..."
+                  : transactionCheckLoading
+                    ? "Đang kiểm tra giao dịch..."
+                    : isCheckingTransaction
+                      ? "Đang chờ thanh toán..."
+                      : "Quét mã QR để thanh toán..."
+                }
               </span>
             </div>
           </div>

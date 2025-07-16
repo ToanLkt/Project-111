@@ -44,11 +44,20 @@ export default function AdminPayment() {
 
   const [packages, setPackages] = useState([]);
   const [history, setHistory] = useState([]);
+  const [filteredHistory, setFilteredHistory] = useState([]);
   const [showEdit, setShowEdit] = useState(false);
   const [editPkg, setEditPkg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // States cho filter
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    packageCategory: "",
+    showFilters: false
+  });
 
   const [form, setForm] = useState({
     packageMembershipId: "",
@@ -57,6 +66,82 @@ export default function AdminPayment() {
     description: "",
     duration: "",
   });
+
+  // Get unique package categories cho filter dropdown
+  const getUniquePackageCategories = () => {
+    const categories = [...new Set(history.map(item => item.packageCategory).filter(Boolean))];
+    return categories.sort();
+  };
+
+  // Filter history based on date and package
+  const applyFilters = () => {
+    let filtered = [...history];
+
+    // Filter by date range
+    if (filters.startDate) {
+      filtered = filtered.filter(item => {
+        if (!item.timeBuy) return false;
+        const buyDate = new Date(item.timeBuy);
+        const startDate = new Date(filters.startDate);
+        return buyDate >= startDate;
+      });
+    }
+
+    if (filters.endDate) {
+      filtered = filtered.filter(item => {
+        if (!item.timeBuy) return false;
+        const buyDate = new Date(item.timeBuy);
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999); // Include full end date
+        return buyDate <= endDate;
+      });
+    }
+
+    // Filter by package category
+    if (filters.packageCategory) {
+      filtered = filtered.filter(item =>
+        item.packageCategory && item.packageCategory.toLowerCase().includes(filters.packageCategory.toLowerCase())
+      );
+    }
+
+    setFilteredHistory(filtered);
+  };
+
+  // Apply filters whenever filters or history change
+  useEffect(() => {
+    applyFilters();
+  }, [filters, history]);
+
+  // Handle filter change
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      startDate: "",
+      endDate: "",
+      packageCategory: "",
+      showFilters: filters.showFilters
+    });
+  };
+
+  // Set quick date filters
+  const setQuickDateFilter = (days) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    setFilters(prev => ({
+      ...prev,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    }));
+  };
 
   const fetchDataHistoryPayment = () => {
     dispatch(fetchHistory());
@@ -138,14 +223,18 @@ export default function AdminPayment() {
         if (res.ok) {
           const data = await res.json();
           console.log("✅ History data received:", data);
-          setHistory(Array.isArray(data) ? data : []);
+          const historyData = Array.isArray(data) ? data : [];
+          setHistory(historyData);
+          setFilteredHistory(historyData); // Initialize filtered history
         } else {
           console.warn("⚠️ History API failed, using empty array");
           setHistory([]);
+          setFilteredHistory([]);
         }
       } catch (err) {
         console.error("❌ Error fetching history:", err);
         setHistory([]);
+        setFilteredHistory([]);
       } finally {
         setHistoryLoading(false);
       }
@@ -184,12 +273,12 @@ export default function AdminPayment() {
 
       // Kiểm tra dữ liệu trước khi gửi
       const updateData = {
-        package_membership_ID: Number(form.packageMembershipId), // Sửa field name
+        package_membership_ID: Number(form.packageMembershipId),
         category: form.category.trim(),
         price: Number(form.price),
         description: form.description.trim(),
         duration: Number(form.duration),
-        status: "Active" // Thêm status field
+        status: "Active"
       };
 
       console.log("🚀 Update data:", updateData);
@@ -207,11 +296,6 @@ export default function AdminPayment() {
       );
 
       console.log("📡 Update response status:", res.status);
-      console.log("📡 Update response headers:", res.headers);
-
-      // Kiểm tra content type
-      const contentType = res.headers.get("content-type");
-      console.log("📡 Content-Type:", contentType);
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -219,22 +303,18 @@ export default function AdminPayment() {
         throw new Error(`Cập nhật gói thất bại: ${res.status} - ${errorText}`);
       }
 
-      // Kiểm tra xem response có phải JSON không
+      // Kiểm tra content type
+      const contentType = res.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const updated = await res.json();
         console.log("✅ Package updated successfully:", updated);
-
-        // Cập nhật state với dữ liệu mới
         setPackages((prev) =>
           prev.map((p) =>
             p.package_membership_ID === Number(form.packageMembershipId) ? { ...p, ...updateData } : p
           )
         );
       } else {
-        // Server trả về thành công nhưng không có JSON data
         console.log("✅ Package updated (no JSON response)");
-
-        // Cập nhật state với dữ liệu local
         setPackages((prev) =>
           prev.map((p) =>
             p.package_membership_ID === Number(form.packageMembershipId) ? { ...p, ...updateData } : p
@@ -254,9 +334,7 @@ export default function AdminPayment() {
       });
 
       alert("✅ Cập nhật gói thành công!");
-
-      // Tải lại danh sách packages
-      window.location.reload(); // Hoặc gọi lại API fetch packages
+      window.location.reload();
 
     } catch (err) {
       console.error("❌ Update error:", err);
@@ -331,11 +409,61 @@ export default function AdminPayment() {
           border-color: ${COLORS.primary};
           box-shadow: 0 0 0 3px rgba(72, 166, 167, 0.1);
         }
+
+        .filter-panel {
+          background: ${COLORS.tableBg};
+          border: 2px solid ${COLORS.primary};
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 24px;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .filter-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          align-items: end;
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 16px;
+        }
+
+        .quick-filter-btn {
+          padding: 6px 12px;
+          border: 2px solid ${COLORS.primary};
+          background: ${COLORS.card};
+          color: ${COLORS.primary};
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .quick-filter-btn:hover {
+          background: ${COLORS.primary};
+          color: ${COLORS.card};
+        }
+
+        @media (max-width: 768px) {
+          .filter-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .filter-buttons {
+            justify-content: center;
+          }
+        }
       `}</style>
 
       <div
         style={{
-          maxWidth: 900,
+          maxWidth: 1200,
           margin: "40px auto",
           background: COLORS.card,
           borderRadius: 18,
@@ -372,6 +500,7 @@ export default function AdminPayment() {
           </div>
         )}
 
+        {/* Package Management Section */}
         <div style={{
           marginBottom: 32,
           background: COLORS.card,
@@ -379,6 +508,7 @@ export default function AdminPayment() {
           boxShadow: "0 2px 12px #9ACBD011",
           padding: 28,
         }}>
+          {/* Edit Package Form - existing code... */}
           {showEdit && (
             <form
               onSubmit={handleSaveEdit}
@@ -577,6 +707,7 @@ export default function AdminPayment() {
             </form>
           )}
 
+          {/* Package Table - existing code... */}
           <div style={{ overflowX: "auto" }}>
             <table
               style={{
@@ -679,19 +810,217 @@ export default function AdminPayment() {
           </div>
         </div>
 
-        <h2
-          style={{
-            color: COLORS.accent,
-            margin: "40px 0 18px 0",
-            fontWeight: 800,
-            fontSize: "1.5rem",
-            textAlign: "center",
-            letterSpacing: 0.5,
-          }}
-        >
-          📊 Lịch sử giao dịch thành viên
-        </h2>
+        {/* Payment History Section with Filters */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <h2
+            style={{
+              color: COLORS.accent,
+              margin: 0,
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              letterSpacing: 0.5,
+            }}
+          >
+            📊 Lịch sử giao dịch thành viên ({filteredHistory.length})
+          </h2>
 
+          <button
+            onClick={() => setFilters(prev => ({ ...prev, showFilters: !prev.showFilters }))}
+            className="button-hover"
+            style={{
+              background: filters.showFilters ? COLORS.danger : COLORS.primary,
+              color: "#fff",
+              border: "none",
+              borderRadius: 10,
+              padding: "10px 20px",
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 14,
+              boxShadow: "0 2px 8px rgba(72, 166, 167, 0.3)",
+              transition: "all 0.3s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            {filters.showFilters ? "❌ Ẩn bộ lọc" : "🔍 Hiện bộ lọc"}
+          </button>
+        </div>
+
+        {/* Filter Panel */}
+        {filters.showFilters && (
+          <div className="filter-panel">
+            <h4 style={{
+              color: COLORS.accent,
+              marginBottom: "16px",
+              fontSize: "1.1rem",
+              fontWeight: "700",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}>
+              🔍 Bộ lọc lịch sử giao dịch
+            </h4>
+
+            <div className="filter-grid">
+              <div>
+                <label style={{
+                  fontWeight: 700,
+                  color: COLORS.accent,
+                  display: "block",
+                  marginBottom: "6px"
+                }}>
+                  📅 Từ ngày
+                </label>
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                  className="input-focus"
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: `2px solid ${COLORS.primary}`,
+                    fontSize: 14,
+                    width: "100%",
+                    background: COLORS.card,
+                    color: COLORS.accent,
+                    fontWeight: 600,
+                    transition: "all 0.3s ease"
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  fontWeight: 700,
+                  color: COLORS.accent,
+                  display: "block",
+                  marginBottom: "6px"
+                }}>
+                  📅 Đến ngày
+                </label>
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                  className="input-focus"
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: `2px solid ${COLORS.primary}`,
+                    fontSize: 14,
+                    width: "100%",
+                    background: COLORS.card,
+                    color: COLORS.accent,
+                    fontWeight: 600,
+                    transition: "all 0.3s ease"
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  fontWeight: 700,
+                  color: COLORS.accent,
+                  display: "block",
+                  marginBottom: "6px"
+                }}>
+                  📦 Gói thành viên
+                </label>
+                <select
+                  value={filters.packageCategory}
+                  onChange={(e) => handleFilterChange('packageCategory', e.target.value)}
+                  className="input-focus"
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: `2px solid ${COLORS.primary}`,
+                    fontSize: 14,
+                    width: "100%",
+                    background: COLORS.card,
+                    color: COLORS.accent,
+                    fontWeight: 600,
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  <option value="">-- Tất cả gói --</option>
+                  {getUniquePackageCategories().map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: "8px", alignItems: "end" }}>
+                <button
+                  onClick={resetFilters}
+                  style={{
+                    background: COLORS.warning,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "10px 16px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    transition: "all 0.3s ease"
+                  }}
+                >
+                  🔄 Reset
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Filter Buttons */}
+            <div className="filter-buttons">
+              <span style={{
+                color: COLORS.accent,
+                fontWeight: 700,
+                fontSize: 14,
+                marginRight: "8px",
+                alignSelf: "center"
+              }}>
+                ⚡ Nhanh:
+              </span>
+              <button className="quick-filter-btn" onClick={() => setQuickDateFilter(7)}>
+                7 ngày
+              </button>
+              <button className="quick-filter-btn" onClick={() => setQuickDateFilter(30)}>
+                30 ngày
+              </button>
+              <button className="quick-filter-btn" onClick={() => setQuickDateFilter(90)}>
+                3 tháng
+              </button>
+              <button className="quick-filter-btn" onClick={() => setQuickDateFilter(365)}>
+                1 năm
+              </button>
+            </div>
+
+            {/* Filter Summary */}
+            {(filters.startDate || filters.endDate || filters.packageCategory) && (
+              <div style={{
+                marginTop: "16px",
+                padding: "12px",
+                background: COLORS.primary + "10",
+                borderRadius: "8px",
+                border: `1px solid ${COLORS.primary}`,
+                fontSize: "14px",
+                color: COLORS.accent,
+                fontWeight: 600
+              }}>
+                <span style={{ fontWeight: 700 }}>📊 Đang lọc:</span>
+                {filters.startDate && <span> Từ {new Date(filters.startDate).toLocaleDateString("vi-VN")}</span>}
+                {filters.endDate && <span> đến {new Date(filters.endDate).toLocaleDateString("vi-VN")}</span>}
+                {filters.packageCategory && <span> • Gói: {filters.packageCategory}</span>}
+                <span style={{ marginLeft: "8px", color: COLORS.primary }}>
+                  (Tìm thấy {filteredHistory.length} giao dịch)
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Payment History Table */}
         <div style={{ overflowX: "auto", marginBottom: 32 }}>
           <table
             style={{
@@ -730,7 +1059,7 @@ export default function AdminPayment() {
                     Đang tải lịch sử giao dịch...
                   </td>
                 </tr>
-              ) : history.length === 0 ? (
+              ) : filteredHistory.length === 0 ? (
                 <tr>
                   <td colSpan={9} style={{
                     textAlign: "center",
@@ -738,10 +1067,13 @@ export default function AdminPayment() {
                     color: "#888",
                     fontSize: "1.1rem"
                   }}>
-                    📭 Không có giao dịch nào.
+                    {history.length === 0 ?
+                      "📭 Không có giao dịch nào." :
+                      "🔍 Không tìm thấy giao dịch phù hợp với bộ lọc."
+                    }
                   </td>
                 </tr>
-              ) : history.map((item, idx) => (
+              ) : filteredHistory.map((item, idx) => (
                 <tr
                   key={item.purchaseID || idx}
                   style={{
@@ -806,9 +1138,11 @@ export default function AdminPayment() {
             <div>Role: {userRole || "null"}</div>
             <div>Is Admin: {isAdmin ? "✅" : "❌"}</div>
             <div>Packages: {packages.length}</div>
-            <div>History: {history.length}</div>
+            <div>History Total: {history.length}</div>
+            <div>History Filtered: {filteredHistory.length}</div>
             <div>Loading: {loading ? "⏳" : "✅"}</div>
             <div>History Loading: {historyLoading ? "⏳" : "✅"}</div>
+            <div>Filters Active: {filters.startDate || filters.endDate || filters.packageCategory ? "🔍" : "❌"}</div>
           </div>
         )}
       </div>

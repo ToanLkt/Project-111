@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useContext } from "react"
 import { useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import AuthContext from '../../AuthContext/AuthContext'
 import "bootstrap/dist/css/bootstrap.min.css"
 
@@ -17,14 +18,67 @@ const COLORS = {
   gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
   success: "#10B981",
   warning: "#F59E0B",
+  error: "#EF4444",
 }
 
 export default function Coach() {
+  const navigate = useNavigate()
+
   // Auth và user data
   const auth = useContext(AuthContext);
   const { user: reduxUser, token: reduxToken } = useSelector((state) => state.account || {});
+
+  // Payment data từ Redux
+  const { currentPackage } = useSelector((state) => state.payment || {});
+
   const token = reduxToken || auth?.token;
   const user = reduxUser || auth?.user;
+
+  // Kiểm tra gói Plus
+  const hasActivePlusPackage = () => {
+    // Kiểm tra current package từ Redux (gói vừa mua)
+    if (currentPackage && currentPackage.isActive && !currentPackage.isExpired) {
+      const isPlus = currentPackage.name?.toLowerCase() === 'plus' ||
+        currentPackage.category?.toLowerCase() === 'plus' ||
+        currentPackage.package_membership_ID === 3; // ID của gói Plus
+
+      console.log('🔍 Checking Redux current package:', {
+        packageName: currentPackage.name,
+        category: currentPackage.category,
+        packageId: currentPackage.package_membership_ID,
+        isActive: currentPackage.isActive,
+        isExpired: currentPackage.isExpired,
+        isPlus
+      });
+
+      return isPlus;
+    }
+
+    // Fallback: Kiểm tra từ user object
+    if (user && user.currentPackage) {
+      const userPackage = user.currentPackage;
+      const isPlus = userPackage.name?.toLowerCase() === 'plus' ||
+        userPackage.category?.toLowerCase() === 'plus' ||
+        userPackage.package_membership_ID === 3;
+
+      const isActive = userPackage.isActive && !userPackage.isExpired;
+
+      console.log('🔍 Checking user current package:', {
+        packageName: userPackage.name,
+        category: userPackage.category,
+        packageId: userPackage.package_membership_ID,
+        isActive: userPackage.isActive,
+        isExpired: userPackage.isExpired,
+        isPlus,
+        finalResult: isPlus && isActive
+      });
+
+      return isPlus && isActive;
+    }
+
+    console.log('❌ No active Plus package found');
+    return false;
+  };
 
   // Extract accountId từ user object
   const getAccountId = (userObj) => {
@@ -44,6 +98,32 @@ export default function Coach() {
 
   const accountId = getAccountId(user);
 
+  // Kiểm tra quyền truy cập
+  const checkAccess = () => {
+    console.log('🔐 Checking Coach page access:', {
+      hasToken: !!token,
+      hasUser: !!user,
+      accountId,
+      hasActivePlusPackage: hasActivePlusPackage()
+    });
+
+    // Kiểm tra đăng nhập
+    if (!token || !user) {
+      console.log('❌ Access denied: Not logged in');
+      return { allowed: false, reason: 'login' };
+    }
+
+    // Kiểm tra gói Plus
+    if (!hasActivePlusPackage()) {
+      console.log('❌ Access denied: No active Plus package');
+      return { allowed: false, reason: 'package' };
+    }
+
+    console.log('✅ Access granted: User has active Plus package');
+    return { allowed: true };
+  };
+
+  // State variables
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -51,24 +131,290 @@ export default function Coach() {
   const [coaches, setCoaches] = useState([])
   const [selectedCoach, setSelectedCoach] = useState(null)
   const [loadingCoaches, setLoadingCoaches] = useState(true)
+  const [accessCheck, setAccessCheck] = useState({ allowed: false, reason: 'checking' })
   const chatEndRef = useRef(null)
 
-  // Fetch coaches và conversation khi component mount
+  // Kiểm tra quyền truy cập khi component mount hoặc khi user/package thay đổi
   useEffect(() => {
-    fetchCoaches()
-  }, [])
+    const access = checkAccess();
+    setAccessCheck(access);
+  }, [token, user, currentPackage]);
+
+  // Fetch coaches và conversation khi có quyền truy cập
+  useEffect(() => {
+    if (accessCheck.allowed) {
+      fetchCoaches()
+    }
+  }, [accessCheck.allowed])
 
   // Fetch conversation khi chọn coach
   useEffect(() => {
-    if (selectedCoach && accountId) {
+    if (selectedCoach && accountId && accessCheck.allowed) {
       fetchConversationWithCoach(selectedCoach.accountId)
     }
-  }, [selectedCoach, accountId])
+  }, [selectedCoach, accountId, accessCheck.allowed])
 
   // Auto scroll when messages change
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Render access denied screens
+  if (!accessCheck.allowed) {
+    if (accessCheck.reason === 'checking') {
+      return (
+        <>
+          <style jsx>{`
+            .access-container {
+              min-height: 100vh;
+              background: ${COLORS.background};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            }
+            .access-card {
+              background: ${COLORS.white};
+              border-radius: 24px;
+              padding: 3rem;
+              text-align: center;
+              box-shadow: 0 20px 40px rgba(51, 107, 115, 0.08);
+              border: 1px solid ${COLORS.color1};
+              max-width: 500px;
+            }
+            .spinner {
+              width: 40px;
+              height: 40px;
+              border: 4px solid ${COLORS.color1};
+              border-top: 4px solid ${COLORS.color2};
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+              margin: 0 auto 1.5rem;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+          <div className="access-container">
+            <div className="access-card">
+              <div className="spinner"></div>
+              <h2 style={{ color: COLORS.color3, marginBottom: '1rem' }}>
+                Đang kiểm tra quyền truy cập...
+              </h2>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (accessCheck.reason === 'login') {
+      return (
+        <>
+          <style jsx>{`
+            .access-container {
+              min-height: 100vh;
+              background: ${COLORS.background};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+              padding: 2rem;
+            }
+            .access-card {
+              background: ${COLORS.white};
+              border-radius: 24px;
+              padding: 3rem;
+              text-align: center;
+              box-shadow: 0 20px 40px rgba(51, 107, 115, 0.08);
+              border: 1px solid ${COLORS.color1};
+              max-width: 500px;
+            }
+            .access-button {
+              background: ${COLORS.gradient};
+              color: ${COLORS.white};
+              border: none;
+              border-radius: 12px;
+              padding: 1rem 2rem;
+              font-weight: 600;
+              font-size: 1rem;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              margin: 0.5rem;
+            }
+            .access-button:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 8px 24px rgba(106, 183, 197, 0.4);
+            }
+            .secondary-button {
+              background: transparent;
+              color: ${COLORS.color3};
+              border: 2px solid ${COLORS.color1};
+            }
+            .secondary-button:hover {
+              background: ${COLORS.color1};
+              border-color: ${COLORS.color2};
+            }
+          `}</style>
+          <div className="access-container">
+            <div className="access-card">
+              <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🔐</div>
+              <h2 style={{ color: COLORS.color3, fontWeight: 700, marginBottom: '1rem' }}>
+                Cần đăng nhập
+              </h2>
+              <p style={{ color: COLORS.textLight, marginBottom: '2rem', lineHeight: 1.6 }}>
+                Bạn cần đăng nhập để truy cập tính năng chat với Coach
+              </p>
+              <button
+                className="access-button"
+                onClick={() => navigate('/login')}
+              >
+                <i className="fas fa-sign-in-alt" style={{ marginRight: '0.5rem' }}></i>
+                Đăng nhập ngay
+              </button>
+              <button
+                className="access-button secondary-button"
+                onClick={() => navigate('/')}
+              >
+                <i className="fas fa-home" style={{ marginRight: '0.5rem' }}></i>
+                Về trang chủ
+              </button>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (accessCheck.reason === 'package') {
+      return (
+        <>
+          <style jsx>{`
+            .access-container {
+              min-height: 100vh;
+              background: ${COLORS.background};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+              padding: 2rem;
+            }
+            .access-card {
+              background: ${COLORS.white};
+              border-radius: 24px;
+              padding: 3rem;
+              text-align: center;
+              box-shadow: 0 20px 40px rgba(51, 107, 115, 0.08);
+              border: 1px solid ${COLORS.color1};
+              max-width: 500px;
+            }
+            .access-button {
+              background: ${COLORS.gradient};
+              color: ${COLORS.white};
+              border: none;
+              border-radius: 12px;
+              padding: 1rem 2rem;
+              font-weight: 600;
+              font-size: 1rem;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              margin: 0.5rem;
+            }
+            .access-button:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 8px 24px rgba(106, 183, 197, 0.4);
+            }
+            .secondary-button {
+              background: transparent;
+              color: ${COLORS.color3};
+              border: 2px solid ${COLORS.color1};
+            }
+            .secondary-button:hover {
+              background: ${COLORS.color1};
+              border-color: ${COLORS.color2};
+            }
+            .feature-list {
+              text-align: left;
+              margin: 2rem 0;
+              padding: 1.5rem;
+              background: ${COLORS.background};
+              border-radius: 12px;
+              border: 1px solid ${COLORS.color1};
+            }
+            .feature-item {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              margin-bottom: 0.75rem;
+              color: ${COLORS.text};
+            }
+            .feature-item:last-child {
+              margin-bottom: 0;
+            }
+          `}</style>
+          <div className="access-container">
+            <div className="access-card">
+              <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>👑</div>
+              <h2 style={{ color: COLORS.color3, fontWeight: 700, marginBottom: '1rem' }}>
+                Cần gói Plus để truy cập
+              </h2>
+              <p style={{ color: COLORS.textLight, marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                Tính năng chat với Coach chỉ dành cho thành viên gói <strong style={{ color: COLORS.color3 }}>Plus</strong>
+              </p>
+
+              <div className="feature-list">
+                <h4 style={{ color: COLORS.color3, marginBottom: '1rem', textAlign: 'center' }}>
+                  🎯 Tính năng gói Plus
+                </h4>
+                <div className="feature-item">
+                  <span style={{ fontSize: '1.2rem' }}>💬</span>
+                  <span>Chat trực tiếp với Coach chuyên nghiệp</span>
+                </div>
+                <div className="feature-item">
+                  <span style={{ fontSize: '1.2rem' }}>🧠</span>
+                  <span>Tư vấn tâm lý cá nhân hóa</span>
+                </div>
+                <div className="feature-item">
+                  <span style={{ fontSize: '1.2rem' }}>📅</span>
+                  <span>Lịch hẹn ưu tiên với chuyên gia</span>
+                </div>
+                <div className="feature-item">
+                  <span style={{ fontSize: '1.2rem' }}>🎯</span>
+                  <span>Kế hoạch cai nghiện chuyên sâu</span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '2rem' }}>
+                <button
+                  className="access-button"
+                  onClick={() => navigate('/payment')}
+                >
+                  <i className="fas fa-crown" style={{ marginRight: '0.5rem' }}></i>
+                  Nâng cấp lên Plus
+                </button>
+                <button
+                  className="access-button secondary-button"
+                  onClick={() => navigate('/')}
+                >
+                  <i className="fas fa-home" style={{ marginRight: '0.5rem' }}></i>
+                  Về trang chủ
+                </button>
+              </div>
+
+              <p style={{
+                color: COLORS.textLight,
+                fontSize: '0.85rem',
+                marginTop: '1.5rem',
+                fontStyle: 'italic'
+              }}>
+                💡 Nâng cấp ngay để nhận được sự hỗ trợ tốt nhất từ đội ngũ Coach chuyên nghiệp
+              </p>
+            </div>
+          </div>
+        </>
+      );
+    }
+  }
+
   const fetchConversationWithCoach = async (coachId) => {
     if (!token || !accountId || !coachId) {
       setLoadingMessages(false)
@@ -193,8 +539,6 @@ export default function Coach() {
 
     try {
       setLoadingCoaches(true)
-      // Gọi API để lấy danh sách tất cả coaches với accountId
-      // Member sẽ dùng coach.accountId làm receiverId khi gửi tin nhắn
       const response = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/all-coaches", {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -811,7 +1155,7 @@ export default function Coach() {
                     borderRadius: '50%',
                     animation: 'pulse 2s infinite'
                   }}></div>
-                  Online
+                  Plus Member
                 </div>
               </div>
             </div>
@@ -899,9 +1243,19 @@ export default function Coach() {
               color: COLORS.textLight,
               padding: '3rem'
             }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💬</div>
-              <h3>Chọn một coach để bắt đầu trò chuyện</h3>
-              <p>Hãy chọn coach từ danh sách bên trái để nhận được hỗ trợ</p>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👑</div>
+              <h3>Tính năng Premium Plus</h3>
+              <p>Chọn một coach để bắt đầu nhận tư vấn chuyên nghiệp</p>
+              <div style={{
+                background: COLORS.color1,
+                padding: '1rem',
+                borderRadius: '12px',
+                marginTop: '1rem'
+              }}>
+                <span style={{ color: COLORS.color3, fontWeight: 600 }}>
+                  🎯 Bạn đang sử dụng gói Plus
+                </span>
+              </div>
             </div>
           </div>
         )}

@@ -41,6 +41,7 @@ import Payment from "../components/Payment";
 import ConfirmRegister from "../components/ConfirmRegister";
 import ResetPassword from "../page/ResetPassword";
 import LoginGoogle from "../components/LoginGoogle";
+import AdminSettings from "../page/admin/AdminSettings";
 
 export default function AppRoutes() {
   console.log("🔥 AppRoutes rendering...");
@@ -55,6 +56,7 @@ export default function AppRoutes() {
         <Route path="payment" element={<AdminPayment />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="report" element={<AdminReport />} />
+        <Route path="settings" element={<AdminSettings />} />
 
         {/* Admin có thể truy cập các trang chung - KHÔNG dùng AppLayout */}
         <Route path="community" element={<AdminCommunity />} />

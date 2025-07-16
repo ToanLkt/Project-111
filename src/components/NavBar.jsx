@@ -77,11 +77,11 @@ export default function NavBar() {
 
   const navItems = [
     { to: "/", label: "Trang chủ", icon: "🏠", protected: false },
-    { to: "/plan", label: "Lộ trình", icon: "🗺️", protected: true }, // Cần đăng nhập
-    { to: "/community", label: "Cộng đồng", icon: "👥", protected: true }, // Cần đăng nhập
-    { to: "/coach", label: "Chuyên gia", icon: "🧠", protected: true }, // Cần đăng nhập
-    { to: "/ranking", label: "Bảng xếp hạng", icon: "🏆", protected: false }, // Xem được nhưng có giới hạn chức năng
-    { to: "/feedback", label: "Phản hồi", icon: "💬", protected: false }, // Xem được nhưng có giới hạn chức năng
+    { to: "/plan", label: "Lộ trình", icon: "🗺️", protected: true },
+    { to: "/community", label: "Cộng đồng", icon: "👥", protected: true },
+    { to: "/coach", label: "Chuyên gia", icon: "🧠", protected: true },
+    { to: "/ranking", label: "Bảng xếp hạng", icon: "🏆", protected: false },
+    { to: "/feedback", label: "Đánh giá", icon: "💬", protected: false },
   ]
 
   // Xử lý click navigation item

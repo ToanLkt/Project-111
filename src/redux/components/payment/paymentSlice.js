@@ -14,7 +14,9 @@ const initialState = {
     // Current active package của user
     currentPackage: null,
     currentPackageLoading: false,
-    currentPackageError: null,
+
+    // Payment success data
+    lastSuccessfulPayment: null,
 
     // User transactions từ API
     userTransactions: [],
@@ -25,6 +27,12 @@ const initialState = {
     canPurchase: true,
     purchaseCheckMessage: '',
     checkingPurchaseEligibility: false,
+
+    // Transaction verification from Google Docs
+    transactionCheckLoading: false,
+    transactionCheckError: null,
+    verifiedTransactions: [],
+    isCheckingTransaction: false,
 }
 
 const paymentSlice = createSlice({
@@ -88,6 +96,7 @@ const paymentSlice = createSlice({
         },
         clearCurrentPackage: (state) => {
             state.currentPackage = null
+            state.lastSuccessfulPayment = null
         },
 
         // User transactions actions
@@ -120,6 +129,31 @@ const paymentSlice = createSlice({
             state.purchaseCheckMessage = ''
         },
 
+        // Transaction verification actions
+        checkTransactionRequest: (state, action) => {
+            state.transactionCheckLoading = true
+            state.transactionCheckError = null
+            state.isCheckingTransaction = true
+        },
+        checkTransactionSuccess: (state, action) => {
+            state.transactionCheckLoading = false
+            state.transactionCheckError = null
+            state.verifiedTransactions.push(action.payload)
+        },
+        checkTransactionFailure: (state, action) => {
+            state.transactionCheckLoading = false
+            state.transactionCheckError = action.payload
+        },
+        stopTransactionCheck: (state) => {
+            state.isCheckingTransaction = false
+            state.transactionCheckLoading = false
+        },
+        clearTransactionCheck: (state) => {
+            state.transactionCheckLoading = false
+            state.transactionCheckError = null
+            state.isCheckingTransaction = false
+        },
+
         // Clear state
         clearPaymentState: (state) => {
             state.paymentLoading = false
@@ -128,6 +162,18 @@ const paymentSlice = createSlice({
         },
         clearAllPaymentData: (state) => {
             return { ...initialState }
+        },
+
+        // Update current package after successful payment
+        updateCurrentPackage: (state, action) => {
+            state.currentPackage = action.payload
+            console.log("📦 Current package updated:", action.payload)
+        },
+
+        // Set last successful payment
+        setLastSuccessfulPayment: (state, action) => {
+            state.lastSuccessfulPayment = action.payload
+            console.log("💳 Last successful payment set:", action.payload)
         },
     }
 })
@@ -152,6 +198,13 @@ export const {
     checkPurchaseEligibilityFailure,
     clearPaymentState,
     clearAllPaymentData,
+    checkTransactionRequest,
+    checkTransactionSuccess,
+    checkTransactionFailure,
+    stopTransactionCheck,
+    clearTransactionCheck,
+    updateCurrentPackage,
+    setLastSuccessfulPayment,
 } = paymentSlice.actions
 
 export default paymentSlice.reducer

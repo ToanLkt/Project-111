@@ -93,6 +93,10 @@ export default function List() {
     const [addingCoach, setAddingCoach] = useState(false);
     const [addCoachError, setAddCoachError] = useState("");
 
+    // State cho chức năng khóa/mở khóa member
+    const [updatingMemberStatus, setUpdatingMemberStatus] = useState({});
+    const [statusUpdateError, setStatusUpdateError] = useState("");
+
     // Lấy danh sách member
     useEffect(() => {
         if (!token || !isAdmin) {
@@ -244,6 +248,73 @@ export default function List() {
         }
     };
 
+    // Xử lý khóa/mở khóa member
+    const handleToggleMemberStatus = async (member) => {
+        if (!isAdmin) {
+            setStatusUpdateError("Chỉ Admin mới có thể thay đổi trạng thái member!");
+            return;
+        }
+
+        const newStatus = !member.status;
+        const memberId = member.accountId;
+
+        setUpdatingMemberStatus(prev => ({ ...prev, [memberId]: true }));
+        setStatusUpdateError("");
+
+        try {
+            console.log(`🔄 Updating member ${memberId} status to:`, newStatus);
+
+            const response = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/status/${memberId}?status=${newStatus}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            console.log("📡 Update member status response:", response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            console.log(`✅ Member ${memberId} status updated successfully`);
+
+            // Cập nhật state local
+            setMembers(prevMembers =>
+                prevMembers.map(m =>
+                    m.accountId === memberId
+                        ? { ...m, status: newStatus }
+                        : m
+                )
+            );
+
+            // Hiển thị thông báo thành công
+            const action = newStatus ? "mở khóa" : "khóa";
+            alert(`✅ ${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản ${member.fullName || member.email} thành công!`);
+
+        } catch (error) {
+            console.error("❌ Error updating member status:", error);
+            setStatusUpdateError(`Lỗi khi cập nhật trạng thái: ${error.message}`);
+        } finally {
+            setUpdatingMemberStatus(prev => ({ ...prev, [memberId]: false }));
+        }
+    };
+
+    // Confirmation dialog cho việc khóa/mở khóa
+    const confirmToggleStatus = (member) => {
+        const action = member.status ? "khóa" : "mở khóa";
+        const confirmMessage = `Bạn có chắc chắn muốn ${action} tài khoản của ${member.fullName || member.email}?`;
+
+        if (window.confirm(confirmMessage)) {
+            handleToggleMemberStatus(member);
+        }
+    };
+
     // Kiểm tra quyền Admin
     if (!token) {
         return (
@@ -280,6 +351,7 @@ export default function List() {
 
     return (
         <>
+            {/* ...existing styles... */}
             <style jsx>{`
                 @keyframes fadeIn {
                     from { opacity: 0; }
@@ -310,20 +382,75 @@ export default function List() {
                     border-color: ${COLORS.primary};
                     box-shadow: 0 0 0 3px rgba(72, 166, 167, 0.1);
                 }
+
+                .status-button {
+                    padding: 6px 12px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    min-width: 80px;
+                    justify-content: center;
+                }
+
+                .status-button:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                }
+
+                .status-button:disabled {
+                    cursor: not-allowed;
+                    opacity: 0.6;
+                    transform: none;
+                }
             `}</style>
 
-            <div
-                style={{
-                    maxWidth: 1100,
-                    margin: "40px auto",
-                    background: COLORS.card,
-                    borderRadius: 18,
-                    padding: 40,
-                    boxShadow: "0 6px 32px #9ACBD022",
-                    minHeight: 500,
-                    color: COLORS.text,
-                }}
-            >
+            <div style={{
+                maxWidth: 1100,
+                margin: "40px auto",
+                background: COLORS.card,
+                borderRadius: 18,
+                padding: 40,
+                boxShadow: "0 6px 32px #9ACBD022",
+                minHeight: 500,
+                color: COLORS.text,
+            }}>
+                {/* Status Update Error Alert */}
+                {statusUpdateError && (
+                    <div style={{
+                        background: COLORS.danger + "20",
+                        border: `2px solid ${COLORS.danger}`,
+                        color: COLORS.danger,
+                        padding: "12px 16px",
+                        borderRadius: 10,
+                        marginBottom: 20,
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                    }}>
+                        ❌ {statusUpdateError}
+                        <button
+                            onClick={() => setStatusUpdateError("")}
+                            style={{
+                                marginLeft: "auto",
+                                background: "none",
+                                border: "none",
+                                color: COLORS.danger,
+                                cursor: "pointer",
+                                fontSize: "16px"
+                            }}
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
+
                 {/* Member Section */}
                 <div style={{
                     display: "flex",
@@ -373,12 +500,13 @@ export default function List() {
                                 <th style={thStyle}>Ngày sinh</th>
                                 <th style={thStyle}>Giới tính</th>
                                 <th style={thStyle}>Trạng thái</th>
+                                <th style={thStyle}>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loadingMember ? (
                                 <tr>
-                                    <td colSpan={7} style={{
+                                    <td colSpan={8} style={{
                                         textAlign: "center",
                                         color: COLORS.primary,
                                         padding: "30px",
@@ -390,7 +518,7 @@ export default function List() {
                                 </tr>
                             ) : filteredMembers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} style={{
+                                    <td colSpan={8} style={{
                                         textAlign: "center",
                                         color: "#888",
                                         padding: "30px",
@@ -427,13 +555,40 @@ export default function List() {
                                             {renderStatus(m.status) === "Hoạt động" ? "✅ Hoạt động" : "🔒 Tạm khóa"}
                                         </span>
                                     </td>
+                                    <td style={tdStyle}>
+                                        <button
+                                            className="status-button"
+                                            onClick={() => confirmToggleStatus(m)}
+                                            disabled={updatingMemberStatus[m.accountId]}
+                                            style={{
+                                                background: m.status ? COLORS.danger : COLORS.success,
+                                                color: COLORS.white,
+                                            }}
+                                        >
+                                            {updatingMemberStatus[m.accountId] ? (
+                                                <>
+                                                    <div className="loading-spinner" style={{
+                                                        width: "12px",
+                                                        height: "12px",
+                                                        border: "2px solid rgba(255,255,255,0.3)",
+                                                        borderTopColor: "white"
+                                                    }}></div>
+                                                    Đang xử lý...
+                                                </>
+                                            ) : m.status ? (
+                                                <>🔒 Khóa</>
+                                            ) : (
+                                                <>🔓 Mở khóa</>
+                                            )}
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
 
-                {/* Coach Section */}
+                {/* Coach Section - cập nhật colspan cho table header */}
                 <div style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -496,6 +651,7 @@ export default function List() {
                     </div>
                 </div>
 
+                {/* Coach Table - giữ nguyên vì coach không cần chức năng khóa */}
                 <div style={{ overflowX: "auto" }}>
                     <table style={tableStyle}>
                         <thead>
@@ -822,7 +978,7 @@ export default function List() {
                     </div>
                 )}
 
-                {/* Debug Panel - Development Only */}
+                {/* Debug Panel - cập nhật */}
                 {process.env.NODE_ENV === 'development' && (
                     <div style={{
                         position: "fixed",
@@ -846,6 +1002,7 @@ export default function List() {
                         <div>Coaches: {coaches.length}</div>
                         <div>Loading Member: {loadingMember ? "⏳" : "✅"}</div>
                         <div>Loading Coach: {loadingCoach ? "⏳" : "✅"}</div>
+                        <div>Updating Status: {Object.keys(updatingMemberStatus).length}</div>
                     </div>
                 )}
             </div>

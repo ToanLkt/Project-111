@@ -683,6 +683,24 @@ export default function Plan() {
                 });
         };
 
+        // Thêm function để format ngày thành dd/mm/yyyy
+        function formatDateToDDMMYYYY(dateString) {
+            if (!dateString) return "N/A";
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return "N/A";
+
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+
+                return `${day}/${month}/${year}`;
+            } catch (error) {
+                console.error("Error formatting date:", error);
+                return "N/A";
+            }
+        }
+
         if (loading) {
             return (
                 <section style={{
@@ -742,7 +760,7 @@ export default function Plan() {
                 number: 1,
                 title: "Giai đoạn 1",
                 description: phaseData.statusPhase1 || "Bắt đầu hành trình",
-                dateRange: `${phaseData.startDatePhase1} - ${phaseData.endDatePhase1}`,
+                dateRange: `${formatDateToDDMMYYYY(phaseData.startDatePhase1)} - ${formatDateToDDMMYYYY(phaseData.endDatePhase1)}`,
                 color: "#EF4444",
                 bgColor: "#FEF2F2",
                 borderColor: "#FECACA",
@@ -753,7 +771,7 @@ export default function Plan() {
                 number: 2,
                 title: "Giai đoạn 2",
                 description: phaseData.statusPhase2 || "Vượt qua khó khăn ban đầu",
-                dateRange: `${phaseData.startDatePhase2} - ${phaseData.endDatePhase2}`,
+                dateRange: `${formatDateToDDMMYYYY(phaseData.startDatePhase2)} - ${formatDateToDDMMYYYY(phaseData.endDatePhase2)}`,
                 color: "#F97316",
                 bgColor: "#FFF7ED",
                 borderColor: "#FDBA74",
@@ -764,7 +782,7 @@ export default function Plan() {
                 number: 3,
                 title: "Giai đoạn 3",
                 description: phaseData.statusPhase3 || "Thích nghi với cuộc sống mới",
-                dateRange: `${phaseData.startDatePhase3} - ${phaseData.endDatePhase3}`,
+                dateRange: `${formatDateToDDMMYYYY(phaseData.startDatePhase3)} - ${formatDateToDDMMYYYY(phaseData.endDatePhase3)}`,
                 color: "#EAB308",
                 bgColor: "#FEFCE8",
                 borderColor: "#FDE047",
@@ -775,7 +793,7 @@ export default function Plan() {
                 number: 4,
                 title: "Giai đoạn 4",
                 description: phaseData.statusPhase4 || "Ổn định thói quen tốt",
-                dateRange: `${phaseData.startDatePhase4} - ${phaseData.endDatePhase4}`,
+                dateRange: `${formatDateToDDMMYYYY(phaseData.startDatePhase4)} - ${formatDateToDDMMYYYY(phaseData.endDatePhase4)}`,
                 color: "#22C55E",
                 bgColor: "#F0FDF4",
                 borderColor: "#BBF7D0",
@@ -786,7 +804,7 @@ export default function Plan() {
                 number: 5,
                 title: "Giai đoạn 5",
                 description: phaseData.statusPhase5 || "Hoàn thành mục tiêu",
-                dateRange: `${phaseData.startDatePhase5} - ${phaseData.endDatePhase5}`,
+                dateRange: `${formatDateToDDMMYYYY(phaseData.startDatePhase5)} - ${formatDateToDDMMYYYY(phaseData.endDatePhase5)}`,
                 color: "#8B5CF6",
                 bgColor: "#FAF5FF",
                 borderColor: "#DDD6FE",
@@ -1105,14 +1123,7 @@ export default function Plan() {
                                                     transition: "width 0.3s ease"
                                                 }}></div>
                                             </div>
-                                            <div style={{
-                                                fontSize: "0.75rem",
-                                                color: phase.color,
-                                                fontWeight: 600,
-                                                marginTop: "0.5rem"
-                                            }}>
-                                                {Math.min(Math.floor((new Date() - new Date(quitStartDate)) / (1000 * 60 * 60 * 24)), getPhaseLength(phase.number))} / {getPhaseLength(phase.number)} ngày
-                                            </div>
+                                            {/* BỎ PHẦN TEXT HIỂN THỊ "1/1 ngày" */}
                                         </div>
                                     )}
                                 </div>
@@ -1350,4 +1361,4 @@ export default function Plan() {
         </div>
     );
 
-} 
+}
