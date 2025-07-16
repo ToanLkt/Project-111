@@ -48,5 +48,8 @@
     "postcss": "^8.5.4",
     "tailwindcss": "^4.1.10",
     "vite": "^6.0.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
