@@ -132,7 +132,10 @@ export default function Coach() {
   const [selectedCoach, setSelectedCoach] = useState(null)
   const [loadingCoaches, setLoadingCoaches] = useState(true)
   const [accessCheck, setAccessCheck] = useState({ allowed: false, reason: 'checking' })
+  const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(true)
+  const [isAutoFetching, setIsAutoFetching] = useState(false)
   const chatEndRef = useRef(null)
+  const pollIntervalRef = useRef(null)
 
   // Kiểm tra quyền truy cập khi component mount hoặc khi user/package thay đổi
   useEffect(() => {
@@ -158,6 +161,39 @@ export default function Coach() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Auto refresh messages khi có coach được chọn
+  useEffect(() => {
+    if (selectedCoach && accountId && accessCheck.allowed && isAutoRefreshEnabled) {
+      // Clear interval cũ nếu có
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+
+      // Set up polling để check tin nhắn mới mỗi 3 giây
+      pollIntervalRef.current = setInterval(async () => {
+        setIsAutoFetching(true)
+        await fetchConversationWithCoach(selectedCoach.accountId, true) // true = silent fetch
+        setIsAutoFetching(false)
+      }, 3000)
+
+      // Cleanup khi component unmount hoặc thay đổi coach
+      return () => {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+        }
+      }
+    }
+  }, [selectedCoach, accountId, accessCheck.allowed, isAutoRefreshEnabled])
+
+  // Cleanup polling khi component unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+      }
+    }
+  }, [])
 
   // Render access denied screens
   if (!accessCheck.allowed) {
@@ -415,14 +451,14 @@ export default function Coach() {
     }
   }
 
-  const fetchConversationWithCoach = async (coachId) => {
+  const fetchConversationWithCoach = async (coachId, silent = false) => {
     if (!token || !accountId || !coachId) {
-      setLoadingMessages(false)
+      if (!silent) setLoadingMessages(false)
       return
     }
 
     try {
-      setLoadingMessages(true)
+      if (!silent) setLoadingMessages(true)
       const apiUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Chat/conversation?receiverId=${coachId}`
 
       const response = await fetch(apiUrl, {
@@ -453,18 +489,26 @@ export default function Coach() {
           ]
         }
 
-        setMessages(formattedMessages)
+        // Chỉ cập nhật messages nếu có thay đổi (để tránh scroll không cần thiết)
+        setMessages(prevMessages => {
+          const hasChanges = JSON.stringify(prevMessages) !== JSON.stringify(formattedMessages)
+          return hasChanges ? formattedMessages : prevMessages
+        })
       } else {
+        if (!silent) {
+          setMessages([
+            { from: "coach", text: `Chào bạn! Tôi là ${selectedCoach?.fullName || 'Coach'}. Bạn cần hỗ trợ gì hôm nay?` }
+          ])
+        }
+      }
+    } catch (error) {
+      if (!silent) {
         setMessages([
           { from: "coach", text: `Chào bạn! Tôi là ${selectedCoach?.fullName || 'Coach'}. Bạn cần hỗ trợ gì hôm nay?` }
         ])
       }
-    } catch (error) {
-      setMessages([
-        { from: "coach", text: `Chào bạn! Tôi là ${selectedCoach?.fullName || 'Coach'}. Bạn cần hỗ trợ gì hôm nay?` }
-      ])
     } finally {
-      setLoadingMessages(false)
+      if (!silent) setLoadingMessages(false)
     }
   }
 
@@ -1125,18 +1169,20 @@ export default function Coach() {
                 gap: '0.5rem'
               }}>
                 <button
-                  onClick={() => fetchConversationWithCoach(selectedCoach.accountId)}
+                  onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    border: 'none',
+                    background: isAutoRefreshEnabled ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    border: `1px solid ${isAutoRefreshEnabled ? '#22c55e' : '#ef4444'}`,
                     borderRadius: '8px',
-                    color: COLORS.color3,
+                    color: isAutoRefreshEnabled ? '#22c55e' : '#ef4444',
                     padding: '0.25rem 0.5rem',
                     cursor: 'pointer',
-                    fontSize: '0.75rem'
+                    fontSize: '0.75rem',
+                    fontWeight: '500'
                   }}
+                  title={isAutoRefreshEnabled ? 'Tắt tự động tải tin nhắn' : 'Bật tự động tải tin nhắn'}
                 >
-                  🔄 Refresh
+                  {isAutoRefreshEnabled ? '🟢 Auto' : '🔴 Manual'}
                 </button>
                 <div style={{
                   background: 'rgba(16, 185, 129, 0.1)',
@@ -1192,6 +1238,35 @@ export default function Coach() {
                 </>
               )}
               <div ref={chatEndRef} />
+
+              {/* Auto refresh status indicator */}
+              {isAutoRefreshEnabled && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '0.5rem',
+                  fontSize: '0.75rem',
+                  color: COLORS.textLight,
+                  background: 'rgba(34, 197, 94, 0.05)',
+                  borderRadius: '8px',
+                  margin: '0.5rem',
+                  border: '1px solid rgba(34, 197, 94, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '8px',
+                    height: '8px',
+                    backgroundColor: '#22c55e',
+                    borderRadius: '50%',
+                    animation: isAutoFetching ? 'pulse 1s infinite' : 'none'
+                  }}></span>
+                  Tự động tải tin nhắn mới mỗi 3 giây
+                  {isAutoFetching && <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>}
+                </div>
+              )}
             </div>
 
             {/* Quick Actions */}

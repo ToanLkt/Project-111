@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>API Test</title>
+</head>
+
+<body>
+    <h1>Status Process API Test</h1>
+    <div id="result"></div>
+
+    <script>
+        // Test the status process API with different scenarios
+        console.log("Testing API...");
+
+        // Mock some common response formats
+        const testResponses = [
+            { statusProcess: "SUCCESS" },
+            { statusProcess: "success" },
+            { statusProcess: "Success" },
+            { status: "success" },
+            { statusProcess: "PROCESSING" },
+            { statusProcess: "processing" },
+            { statusProcess: "FAIL" },
+            { statusProcess: "fail" }
+        ];
+
+        testResponses.forEach((response, index) => {
+            console.log(`Test ${index + 1}:`, {
+                original: response,
+                statusProcess: response?.statusProcess,
+                statusProcessLower: response?.statusProcess?.toLowerCase(),
+                isSuccess: response?.statusProcess?.toLowerCase() === "success",
+                isFail: response?.statusProcess?.toLowerCase() === "fail",
+                isProcessing: response?.statusProcess?.toLowerCase() === "processing"
+            });
+        });
+
+        // Display in browser
+        document.getElementById('result').innerHTML = `
+            <h3>Check browser console for detailed test results</h3>
+            <p>This tests various API response formats to identify potential issues.</p>
+        `;
+    </script>
+</body>
+
+</html>

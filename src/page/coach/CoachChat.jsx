@@ -56,6 +56,8 @@ export default function CoachChat() {
   const [isOnline, setIsOnline] = useState(true)
   const [lastActivity, setLastActivity] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(true)
+  const [isAutoFetching, setIsAutoFetching] = useState(false)
   const messagesEndRef = useRef(null)
   const refreshIntervalRef = useRef(null)
   const timeUpdateIntervalRef = useRef(null)
@@ -106,14 +108,27 @@ export default function CoachChat() {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Auto refresh conversations every 3 seconds
-    if (selectedMember) {
-      refreshIntervalRef.current = setInterval(() => {
-        fetchConversation(selectedMember.accountId, true); // silent refresh
+    // Auto refresh conversations every 3 seconds when member selected
+    if (selectedMember && isAutoRefreshEnabled) {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+
+      refreshIntervalRef.current = setInterval(async () => {
+        setIsAutoFetching(true);
+        await fetchConversation(selectedMember.accountId, true); // silent refresh
+        setIsAutoFetching(false);
       }, 3000);
-    } else {
-      refreshIntervalRef.current = setInterval(() => {
-        fetchMembersWithPackage3(true); // silent refresh
+    } else if (isAutoRefreshEnabled) {
+      // Auto refresh members list every 5 seconds when no member selected
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+
+      refreshIntervalRef.current = setInterval(async () => {
+        setIsAutoFetching(true);
+        await fetchMembersWithPackage3(true); // silent refresh
+        setIsAutoFetching(false);
       }, 5000);
     }
 
@@ -125,7 +140,7 @@ export default function CoachChat() {
         clearInterval(timeUpdateIntervalRef.current);
       }
     };
-  }, [selectedMember, accountId]);
+  }, [selectedMember, accountId, isAutoRefreshEnabled]);
 
   // Fetch members with package 3
   useEffect(() => {
@@ -314,10 +329,11 @@ export default function CoachChat() {
           formattedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         }
 
-        // Only update if messages changed (avoid unnecessary re-renders)
-        if (JSON.stringify(formattedMessages) !== JSON.stringify(messages)) {
-          setMessages(formattedMessages)
-        }
+        // Only update if messages changed (avoid unnecessary re-renders and scrolling)
+        setMessages(prevMessages => {
+          const hasChanges = JSON.stringify(prevMessages) !== JSON.stringify(formattedMessages)
+          return hasChanges ? formattedMessages : prevMessages
+        })
       } else {
         if (!silent) setMessages([])
       }
@@ -1046,6 +1062,36 @@ export default function CoachChat() {
               <div className="package-badge">
                 💎 {members.length} members với Package 3
               </div>
+
+              {/* Auto refresh toggle */}
+              <div style={{
+                marginTop: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <button
+                  onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
+                  style={{
+                    background: isAutoRefreshEnabled ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    border: `1px solid ${isAutoRefreshEnabled ? '#22c55e' : '#ef4444'}`,
+                    borderRadius: '8px',
+                    color: isAutoRefreshEnabled ? '#22c55e' : '#ef4444',
+                    padding: '0.5rem 0.75rem',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title={isAutoRefreshEnabled ? 'Tắt tự động tải danh sách' : 'Bật tự động tải danh sách'}
+                >
+                  {isAutoRefreshEnabled ? '🟢 Auto Refresh' : '🔴 Manual Refresh'}
+                  {isAutoFetching && !selectedMember && <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>}
+                </button>
+              </div>
             </div>
 
             <div className="members-list">
@@ -1119,11 +1165,26 @@ export default function CoachChat() {
                   </div>
                   <div className="chat-actions">
                     <button
-                      className="action-button"
-                      onClick={() => fetchConversation(selectedMember.accountId)}
-                      title="Làm mới"
+                      onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
+                      style={{
+                        background: isAutoRefreshEnabled ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        border: `1px solid ${isAutoRefreshEnabled ? '#22c55e' : '#ef4444'}`,
+                        borderRadius: '10px',
+                        color: isAutoRefreshEnabled ? '#22c55e' : '#ef4444',
+                        padding: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        width: '60px',
+                        height: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease'
+                      }}
+                      title={isAutoRefreshEnabled ? 'Tắt tự động tải tin nhắn' : 'Bật tự động tải tin nhắn'}
                     >
-                      🔄
+                      {isAutoRefreshEnabled ? '🟢 Auto' : '� Manual'}
                     </button>
                   </div>
                 </div>
@@ -1169,6 +1230,35 @@ export default function CoachChat() {
                     </>
                   )}
                   <div ref={messagesEndRef} />
+
+                  {/* Auto refresh status indicator */}
+                  {isAutoRefreshEnabled && (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '0.5rem',
+                      fontSize: '0.75rem',
+                      color: COLORS.textLight,
+                      background: 'rgba(34, 197, 94, 0.05)',
+                      borderRadius: '8px',
+                      margin: '0.5rem',
+                      border: '1px solid rgba(34, 197, 94, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        display: 'inline-block',
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: '#22c55e',
+                        borderRadius: '50%',
+                        animation: isAutoFetching ? 'pulse 1s infinite' : 'none'
+                      }}></span>
+                      Tự động tải tin nhắn mới mỗi 3 giây
+                      {isAutoFetching && <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>}
+                    </div>
+                  )}
                 </div>
 
                 <div className="chat-input-container">

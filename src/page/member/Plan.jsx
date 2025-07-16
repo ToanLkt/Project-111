@@ -20,8 +20,22 @@ export default function Plan() {
         reduxUser: reduxUser ? "exists" : "null",
         reduxToken: reduxToken ? "exists" : "null",
         authUser: auth?.user ? "exists" : "null",
-        authToken: auth?.token ? "exists" : "null"
+        authToken: auth?.token ? "exists" : "null",
+        localStorage: localStorage.getItem("user") ? "exists" : "null"
     });
+
+    // Additional debugging for deployed version
+    useEffect(() => {
+        console.log("🔍 Component mounted - checking authentication state");
+        console.log("🔍 localStorage user:", localStorage.getItem("user"));
+        console.log("🔍 Redux account state:", reduxState);
+        console.log("🔍 AuthContext state:", {
+            user: auth?.user,
+            token: auth?.token,
+            accountId: auth?.accountId,
+            role: auth?.role
+        });
+    }, []);
 
     const getUserId = () => {
         if (!user) {
@@ -55,11 +69,23 @@ export default function Plan() {
     // BƯỚC 1: FETCH STATUS PROCESS TỪ API
     useEffect(() => {
         const fetchStatusProcess = async () => {
+            console.log("🔍 fetchStatusProcess - Starting with:", { accountId, token: token ? "exists" : "null" });
+
             if (!accountId || !token) {
                 console.log("⏸️ No accountId or token, skipping status check");
+                console.log("⏸️ Details:", {
+                    accountId,
+                    token: token ? "exists" : "null",
+                    user,
+                    authUser: auth?.user,
+                    authToken: auth?.token,
+                    authAccountId: auth?.accountId
+                });
                 setStatusLoading(false);
                 return;
-            } try {
+            }
+
+            try {
                 setStatusLoading(true);
                 console.log("🔍 Fetching status-process for accountId:", accountId);
                 console.log("🔍 Using token:", token ? "exists" : "null");
@@ -80,6 +106,9 @@ export default function Plan() {
                 if (response.ok) {
                     const data = await response.json();
                     console.log("✅ Status process data:", data);
+                    console.log("✅ statusProcess field:", data?.statusProcess);
+                    console.log("✅ statusProcess toLowerCase:", data?.statusProcess?.toLowerCase());
+                    console.log("✅ Is success?", data?.statusProcess?.toLowerCase() === "success");
                     setStatusProcess(data);
                 } else {
                     const errorText = await response.text();
@@ -860,6 +889,17 @@ export default function Plan() {
     };
 
     // RETURN CHÍNH CỦA COMPONENT
+    console.log("🔍 Render decision:", {
+        statusLoading,
+        membershipLoading,
+        statusProcess,
+        statusProcessValue: statusProcess?.statusProcess,
+        statusProcessLower: statusProcess?.statusProcess?.toLowerCase(),
+        isSuccess: statusProcess?.statusProcess?.toLowerCase() === "success",
+        isFail: statusProcess?.statusProcess?.toLowerCase() === "fail",
+        isProcessing: statusProcess?.statusProcess?.toLowerCase() === "processing"
+    });
+
     return (
         <div
             style={{
@@ -869,8 +909,8 @@ export default function Plan() {
                 padding: "0 0 2rem 0"
             }}
         >
-            {/* HIỂN THỊ LOADING KHI ĐANG FETCH STATUS HOẶC MEMBERSHIP */}
-            {statusLoading || membershipLoading ? (
+            {/* HIỂN THỊ LOADING KHI ĐANG FETCH STATUS */}
+            {statusLoading ? (
                 <div style={{
                     display: "flex",
                     justifyContent: "center",
@@ -879,139 +919,9 @@ export default function Plan() {
                     fontSize: "1.2rem",
                     color: "#48A6A7"
                 }}>
-                    🔄 {statusLoading ? "Đang kiểm tra trạng thái..." : "Đang kiểm tra gói thành viên..."}
+                    🔄 Đang kiểm tra trạng thái...
                 </div>
-            ) : !statusProcess ? (
-                // KHÔNG CÓ STATUS - HIỆN CALL TO ACTION
-                <>
-                    {/* Thông báo trạng thái membership */}
-                    {!membershipLoading && (
-                        <div
-                            style={{
-                                margin: "20px auto",
-                                maxWidth: 900,
-                                background: hasValidMembership ?
-                                    "linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)" :
-                                    "linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)",
-                                border: `2px solid ${hasValidMembership ? "#10B981" : "#EF4444"}`,
-                                borderRadius: 12,
-                                padding: "1rem 1.5rem",
-                                textAlign: "center"
-                            }}
-                        >
-                            <div style={{
-                                color: hasValidMembership ? "#065F46" : "#991B1B",
-                                fontWeight: 600,
-                                fontSize: "1rem"
-                            }}>
-                                {hasValidMembership ? (
-                                    "✅ Bạn có gói thành viên hợp lệ"
-                                ) : (
-                                    "❌ Bạn chưa có gói thành viên hoặc đã hết hạn"
-                                )}
-                            </div>
-                            {!hasValidMembership && (
-                                <button
-                                    onClick={() => navigate("/payment")}
-                                    style={{
-                                        background: "#EF4444",
-                                        color: "white",
-                                        border: "none",
-                                        borderRadius: 8,
-                                        padding: "0.5rem 1rem",
-                                        marginTop: "0.5rem",
-                                        cursor: "pointer",
-                                        fontWeight: 600
-                                    }}
-                                >
-                                    💳 Mua gói ngay
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-                    <div
-                        style={{
-                            margin: "40px auto 36px auto",
-                            background: "linear-gradient(90deg, #9ACBD0 60%, #48A6A7 100%)",
-                            borderRadius: 14,
-                            padding: "2rem",
-                            color: "#006A71",
-                            textAlign: "center",
-                            boxShadow: "0 2px 12px rgba(72,166,167,0.13)",
-                            maxWidth: 900,
-                        }}
-                    >
-                        <h2 style={{ fontWeight: 800, marginBottom: 10 }}>Bạn đã sẵn sàng bắt đầu?</h2>
-                        <p style={{ fontSize: "1.15rem", marginBottom: 18 }}>
-                            Hãy cho chúng tớ xin vài thông tin để bắt đầu quá trình bạn nhé!
-                        </p>
-                        <button
-                            onClick={handleJoinNow}
-                            disabled={membershipLoading || !hasValidMembership}
-                            style={{
-                                background: membershipLoading ? "#9CA3AF" :
-                                    !hasValidMembership ? "#EF4444" : "#006A71",
-                                color: "#fff",
-                                fontWeight: 700,
-                                padding: "0.7rem 2.2rem",
-                                borderRadius: 30,
-                                textDecoration: "none",
-                                fontSize: "1.1rem",
-                                boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
-                                transition: "background 0.2s, color 0.2s",
-                                border: "none",
-                                cursor: membershipLoading || !hasValidMembership ? "not-allowed" : "pointer",
-                                opacity: membershipLoading || !hasValidMembership ? 0.7 : 1
-                            }}
-                        >
-                            {membershipLoading ? (
-                                "🔄 Đang kiểm tra gói..."
-                            ) : !hasValidMembership ? (
-                                "❌ Cần mua gói thành viên"
-                            ) : (
-                                "🚀 Tham gia ngay"
-                            )}
-                        </button>
-                    </div>
-
-                    <div
-                        style={{
-                            maxWidth: 900,
-                            margin: "2rem auto",
-                            background: "#fff",
-                            borderRadius: 16,
-                            boxShadow: "0 4px 24px rgba(72,166,167,0.13)",
-                            padding: "2.5rem 2rem",
-                            textAlign: "center"
-                        }}
-                    >
-                        <div style={{
-                            color: "#48A6A7",
-                            fontSize: "1.3rem",
-                            fontWeight: 600,
-                            marginBottom: "1rem"
-                        }}>
-                            {membershipLoading ? (
-                                "🔄 Đang kiểm tra gói thành viên..."
-                            ) : !hasValidMembership ? (
-                                "❌ Cần mua gói thành viên để tham gia"
-                            ) : (
-                                "🎯 Chưa tham gia chương trình cai thuốc"
-                            )}
-                        </div>
-                        <div style={{ color: "#718096", fontSize: "1.1rem" }}>
-                            {membershipLoading ? (
-                                "Đang kiểm tra trạng thái gói thành viên của bạn..."
-                            ) : !hasValidMembership ? (
-                                "Bạn cần mua gói thành viên còn hạn sử dụng để có thể bắt đầu chương trình cai thuốc."
-                            ) : (
-                                'Vui lòng nhấn "Tham gia ngay" để bắt đầu hành trình cai thuốc của bạn.'
-                            )}
-                        </div>
-                    </div>
-                </>
-            ) : statusProcess.statusProcess?.toLowerCase() === "success" ? (
+            ) : statusProcess?.statusProcess?.toLowerCase() === "success" ? (
                 // STATUS = SUCCESS - HIỆN THÔNG BÁO CHÚC MỪNG
                 <div
                     style={{
@@ -1091,10 +1001,9 @@ export default function Plan() {
                         >
                             🚀 Tiếp tục cai nghiện
                         </button>
-
                     </div>
                 </div>
-            ) : statusProcess.statusProcess?.toLowerCase() === "fail" ? (
+            ) : statusProcess?.statusProcess?.toLowerCase() === "fail" ? (
                 // STATUS = FAIL - HIỆN THÔNG BÁO THẤT BẠI
                 <div
                     style={{
@@ -1158,8 +1067,8 @@ export default function Plan() {
                         🔄 Thử lại ngay
                     </button>
                 </div>
-            ) : (
-                // STATUS = PROCESSING - HIỆN PLAN CONTENT (LIKE IN IMAGE)
+            ) : statusProcess?.statusProcess?.toLowerCase() === "processing" ? (
+                // STATUS = PROCESSING - HIỆN PLAN CONTENT
                 <>
                     {/* Call to action - với trạng thái đang tham gia */}
                     <div
@@ -1174,27 +1083,25 @@ export default function Plan() {
                             maxWidth: 900,
                         }}
                     >
-                        <h2 style={{ fontWeight: 800, marginBottom: 10 }}>Bạn đã sẵn sàng bắt đầu?</h2>
+                        <h2 style={{ fontWeight: 800, marginBottom: 10 }}>Bạn đang trong quá trình cai thuốc</h2>
                         <p style={{ fontSize: "1.15rem", marginBottom: 18 }}>
-                            Hãy cho chúng tớ xin vài thông tin để bắt đầu quá trình bạn nhé!
+                            Hãy theo dõi tiến trình và nhập số điếu thuốc hàng ngày để hoàn thành kế hoạch!
                         </p>
-                        <button
-                            disabled={true}
+                        <div
                             style={{
                                 background: "#27ae60",
                                 color: "#fff",
                                 fontWeight: 700,
                                 padding: "0.7rem 2.2rem",
                                 borderRadius: 30,
-                                textDecoration: "none",
                                 fontSize: "1.1rem",
                                 boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
                                 border: "none",
-                                cursor: "default"
+                                display: "inline-block"
                             }}
                         >
                             ✅ Đang tham gia
-                        </button>
+                        </div>
                     </div>
 
                     {/* Nội dung chính - Plan content */}
@@ -1220,6 +1127,204 @@ export default function Plan() {
                         <CigaretteInputSection />
                     </div>
                 </>
+            ) : !statusProcess ? (
+                // KHÔNG CÓ STATUS - HIỆN CALL TO ACTION VỚI KIỂM TRA MEMBERSHIP
+                <>
+                    {/* HIỂN THỊ LOADING CHO MEMBERSHIP */}
+                    {membershipLoading ? (
+                        <div style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            minHeight: "50vh",
+                            fontSize: "1.2rem",
+                            color: "#48A6A7"
+                        }}>
+                            🔄 Đang kiểm tra gói thành viên...
+                        </div>
+                    ) : (
+                        <>
+                            {/* Thông báo trạng thái membership */}
+                            <div
+                                style={{
+                                    margin: "20px auto",
+                                    maxWidth: 900,
+                                    background: hasValidMembership ?
+                                        "linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)" :
+                                        "linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)",
+                                    border: `2px solid ${hasValidMembership ? "#10B981" : "#EF4444"}`,
+                                    borderRadius: 12,
+                                    padding: "1rem 1.5rem",
+                                    textAlign: "center"
+                                }}
+                            >
+                                <div style={{
+                                    color: hasValidMembership ? "#065F46" : "#991B1B",
+                                    fontWeight: 600,
+                                    fontSize: "1rem"
+                                }}>
+                                    {hasValidMembership ? (
+                                        "✅ Bạn có gói thành viên hợp lệ"
+                                    ) : (
+                                        "❌ Bạn chưa có gói thành viên hoặc đã hết hạn"
+                                    )}
+                                </div>
+                                {!hasValidMembership && (
+                                    <button
+                                        onClick={() => navigate("/payment")}
+                                        style={{
+                                            background: "#EF4444",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: 8,
+                                            padding: "0.5rem 1rem",
+                                            marginTop: "0.5rem",
+                                            cursor: "pointer",
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        💳 Mua gói ngay
+                                    </button>
+                                )}
+                            </div>
+
+                            <div
+                                style={{
+                                    margin: "40px auto 36px auto",
+                                    background: "linear-gradient(90deg, #9ACBD0 60%, #48A6A7 100%)",
+                                    borderRadius: 14,
+                                    padding: "2rem",
+                                    color: "#006A71",
+                                    textAlign: "center",
+                                    boxShadow: "0 2px 12px rgba(72,166,167,0.13)",
+                                    maxWidth: 900,
+                                }}
+                            >
+                                <h2 style={{ fontWeight: 800, marginBottom: 10 }}>Bạn đã sẵn sàng bắt đầu?</h2>
+                                <p style={{ fontSize: "1.15rem", marginBottom: 18 }}>
+                                    Hãy cho chúng tớ xin vài thông tin để bắt đầu quá trình bạn nhé!
+                                </p>
+                                <button
+                                    onClick={handleJoinNow}
+                                    disabled={!hasValidMembership}
+                                    style={{
+                                        background: !hasValidMembership ? "#EF4444" : "#006A71",
+                                        color: "#fff",
+                                        fontWeight: 700,
+                                        padding: "0.7rem 2.2rem",
+                                        borderRadius: 30,
+                                        textDecoration: "none",
+                                        fontSize: "1.1rem",
+                                        boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
+                                        transition: "background 0.2s, color 0.2s",
+                                        border: "none",
+                                        cursor: !hasValidMembership ? "not-allowed" : "pointer",
+                                        opacity: !hasValidMembership ? 0.7 : 1
+                                    }}
+                                >
+                                    {!hasValidMembership ? (
+                                        "❌ Cần mua gói thành viên"
+                                    ) : (
+                                        "🚀 Tham gia ngay"
+                                    )}
+                                </button>
+                            </div>
+
+                            <div
+                                style={{
+                                    maxWidth: 900,
+                                    margin: "2rem auto",
+                                    background: "#fff",
+                                    borderRadius: 16,
+                                    boxShadow: "0 4px 24px rgba(72,166,167,0.13)",
+                                    padding: "2.5rem 2rem",
+                                    textAlign: "center"
+                                }}
+                            >
+                                <div style={{
+                                    color: "#48A6A7",
+                                    fontSize: "1.3rem",
+                                    fontWeight: 600,
+                                    marginBottom: "1rem"
+                                }}>
+                                    {!hasValidMembership ? (
+                                        "❌ Cần mua gói thành viên để tham gia"
+                                    ) : (
+                                        "🎯 Chưa tham gia chương trình cai thuốc"
+                                    )}
+                                </div>
+                                <div style={{ color: "#718096", fontSize: "1.1rem" }}>
+                                    {!hasValidMembership ? (
+                                        "Bạn cần mua gói thành viên còn hạn sử dụng để có thể bắt đầu chương trình cai thuốc."
+                                    ) : (
+                                        'Vui lòng nhấn "Tham gia ngay" để bắt đầu hành trình cai thuốc của bạn.'
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </>
+            ) : (
+                // DEFAULT CASE - Trạng thái không xác định
+                <div
+                    style={{
+                        maxWidth: 900,
+                        margin: "4rem auto",
+                        background: "#F3F4F6",
+                        borderRadius: 20,
+                        padding: "4rem 2rem",
+                        color: "#374151",
+                        textAlign: "center",
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.1)"
+                    }}
+                >
+                    <div style={{ fontSize: "3rem", marginBottom: "1.5rem" }}>❓</div>
+                    <h1 style={{
+                        fontSize: "2.2rem",
+                        fontWeight: 800,
+                        marginBottom: "1rem"
+                    }}>
+                        Trạng thái không xác định
+                    </h1>
+                    <p style={{
+                        fontSize: "1.2rem",
+                        marginBottom: "2rem",
+                        lineHeight: 1.6
+                    }}>
+                        Không thể xác định trạng thái hiện tại của bạn.
+                        <br />
+                        Vui lòng thử lại hoặc liên hệ hỗ trợ.
+                    </p>
+                    <div style={{
+                        color: "#6B7280",
+                        fontSize: "0.9rem",
+                        marginBottom: "2rem",
+                        padding: "1rem",
+                        background: "#F9FAFB",
+                        borderRadius: 8
+                    }}>
+                        Trạng thái hiện tại: {statusProcess?.statusProcess || "Không có"}
+                    </div>
+                    <button
+                        onClick={() => window.location.reload()}
+                        style={{
+                            background: "#6B7280",
+                            color: "white",
+                            fontWeight: 700,
+                            padding: "0.8rem 2.5rem",
+                            borderRadius: 30,
+                            fontSize: "1.1rem",
+                            border: "none",
+                            cursor: "pointer",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                            transition: "all 0.2s"
+                        }}
+                        onMouseOver={e => e.target.style.transform = "translateY(-2px)"}
+                        onMouseOut={e => e.target.style.transform = "translateY(0)"}
+                    >
+                        🔄 Thử lại
+                    </button>
+                </div>
             )}
 
             <Footer />
