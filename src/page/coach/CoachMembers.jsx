@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from "../../AuthContext/AuthContext";
+import { useSelector } from "react-redux";
 import Footer from '../../components/Footer';
 
 export default function CoachMembers() {
@@ -8,26 +8,34 @@ export default function CoachMembers() {
     const [selectedMember, setSelectedMember] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
 
+    // Lấy token và role từ Redux (user object)
+    const token = useSelector(state => state.auth?.token);
+    const role = useSelector(state => state.auth?.role); // Sửa lại dòng này
+
     // Thêm state cho form và plan
     const [memberForm, setMemberForm] = useState(null);
     const [memberPlan, setMemberPlan] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
     const [planLoading, setPlanLoading] = useState(false);
 
-    const { token } = useAuth();
 
     useEffect(() => {
         setLoading(true);
-        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/members-with-package3", {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        })
-            .then(res => res.ok ? res.json() : [])
-            .then(data => Array.isArray(data) ? setMembers(data) : setMembers([]))
-            .catch(() => setMembers([]))
-            .finally(() => setLoading(false));
-    }, [token]);
+        if (token && role === "Coach") {
+            fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/members-with-package3", {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+                .then(res => res.ok ? res.json() : [])
+                .then(data => Array.isArray(data) ? setMembers(data) : setMembers([]))
+                .catch(() => setMembers([]))
+                .finally(() => setLoading(false));
+        } else {
+            setMembers([]);
+            setLoading(false);
+        }
+    }, [token, role]);
 
     // Function để fetch form data
     const fetchMemberForm = async (accountId) => {

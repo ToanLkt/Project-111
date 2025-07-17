@@ -524,7 +524,7 @@ function AdminReport() {
                     margin: 0,
                     textShadow: "0 2px 4px rgba(0,0,0,0.3)"
                 }}>
-                    📊 Dashboard Của TÒNNNNNNNN
+                    📊 Thống kê báo cáo
                 </h1>
                 <p style={{
                     fontSize: "1.2rem",

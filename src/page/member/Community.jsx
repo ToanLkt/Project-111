@@ -1144,38 +1144,6 @@ export default function Community() {
                                 )}
                             </div>
                         </div>
-
-                        {/* Statistics Card */}
-                        <div className="sidebar-card">
-                            <div className="sidebar-card-header">
-                                <h3 className="sidebar-card-title">📊 Thống kê</h3>
-                            </div>
-                            <div className="sidebar-card-body">
-                                <div className="stats-grid">
-                                    <div className="stat-item">
-                                        <span className="stat-number">{allPosts.length}</span>
-                                        <div className="stat-label">📝 Tổng bài viết</div>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span className="stat-number">
-                                            {Object.values(comments).reduce((total, postComments) => total + (postComments?.length || 0), 0)}
-                                        </span>
-                                        <div className="stat-label">💬 Tổng bình luận</div>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span className="stat-number">{posts.length}</span>
-                                        <div className="stat-label">🎯 Kết quả hiển thị</div>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span className="stat-number">
-                                            {new Set(allPosts.map((post) => post.fullName).filter(Boolean)).size}
-                                        </span>
-                                        <div className="stat-label">👥 Thành viên tham gia</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         {/* User Info Card */}
                         {fullName && token ? (
                             <div className="sidebar-card">
@@ -1223,6 +1191,39 @@ export default function Community() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Statistics Card
+                        <div className="sidebar-card">
+                            <div className="sidebar-card-header">
+                                <h3 className="sidebar-card-title">📊 Thống kê</h3>
+                            </div>
+                            <div className="sidebar-card-body">
+                                <div className="stats-grid">
+                                    <div className="stat-item">
+                                        <span className="stat-number">{allPosts.length}</span>
+                                        <div className="stat-label">📝 Tổng bài viết</div>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-number">
+                                            {Object.values(comments).reduce((total, postComments) => total + (postComments?.length || 0), 0)}
+                                        </span>
+                                        <div className="stat-label">💬 Tổng bình luận</div>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-number">{posts.length}</span>
+                                        <div className="stat-label">🎯 Kết quả hiển thị</div>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-number">
+                                            {new Set(allPosts.map((post) => post.fullName).filter(Boolean)).size}
+                                        </span>
+                                        <div className="stat-label">👥 Thành viên tham gia</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+ */}
+
 
                         {/* Rules Card */}
                         <div className="sidebar-card">
