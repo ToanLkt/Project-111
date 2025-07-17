@@ -490,7 +490,7 @@ export default function AdminSettings() {
                     margin: 0,
                     textShadow: "0 2px 4px rgba(0,0,0,0.3)"
                 }}>
-                    ⚙️ Cài Đặt Platform
+                    ⚙️ Cài Đặt Quản Trị
                 </h1>
                 <p style={{
                     fontSize: "1.2rem",

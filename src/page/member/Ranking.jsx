@@ -30,7 +30,7 @@ const pointsTable = [
     {
         icon: "📝",
         activity: "Đăng bài trong cộng đồng",
-        shortActivity: "Post Community",
+        shortActivity: "Bài đăng",
         points: "+10 điểm",
         color: COLORS.info,
         bgColor: "rgba(59, 130, 246, 0.1)"
@@ -38,7 +38,7 @@ const pointsTable = [
     {
         icon: "💬",
         activity: "Bình luận",
-        shortActivity: "Comment",
+        shortActivity: "Bình luận",
         points: "+5 điểm",
         color: COLORS.purple,
         bgColor: "rgba(139, 92, 246, 0.1)"
@@ -46,7 +46,7 @@ const pointsTable = [
     {
         icon: "🚭",
         activity: "Cập nhật tiến trình",
-        shortActivity: "Update Progress",
+        shortActivity: "Cập nhật tiến trình",
         points: "+10 điểm",
         color: COLORS.warning,
         bgColor: "rgba(245, 158, 11, 0.1)"
@@ -54,7 +54,7 @@ const pointsTable = [
     {
         icon: "⭐",
         activity: "Gửi phản hồi",
-        shortActivity: "Feedback",
+        shortActivity: "Phản hồi",
         points: "+50 điểm",
         color: COLORS.yellow,
         bgColor: "rgba(243, 212, 110, 0.2)"
@@ -62,7 +62,7 @@ const pointsTable = [
     {
         icon: "🎉",
         activity: "Hoàn thành giai đoạn",
-        shortActivity: "Complete Phase",
+        shortActivity: "Hoàn thành giai đoạn",
         points: "+50 điểm",
         color: COLORS.success,
         bgColor: "rgba(16, 185, 129, 0.1)"
@@ -70,7 +70,7 @@ const pointsTable = [
     {
         icon: "🏆",
         activity: "Hoàn thành kế hoạch",
-        shortActivity: "Complete Plan",
+        shortActivity: "Hoàn thành kế hoạch",
         points: "+150 điểm",
         color: COLORS.medal1,
         bgColor: "rgba(72, 166, 167, 0.15)"
