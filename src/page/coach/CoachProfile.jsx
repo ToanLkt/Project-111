@@ -383,6 +383,8 @@ export default function CoachProfile() {
                     </div>
                 )}
             </div>
+
         </div>
+
     );
 }

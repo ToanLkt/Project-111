@@ -103,6 +103,7 @@ export default function MembershipPackage() {
 
         const response = await fetch(
           `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/my-transactions?accountId=${userId}`,
+          "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/my-transactions",
           {
             method: "GET",
             headers: {

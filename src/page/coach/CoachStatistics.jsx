@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import Footer from '../../components/Footer';
 
 export default function CoachStatistics() {
     const [stats, setStats] = useState({
@@ -581,6 +582,7 @@ export default function CoachStatistics() {
                     </div>
                 </div>
             </div>
+            <Footer />
 
             {/* CSS Animations */}
             <style>
@@ -598,5 +600,7 @@ export default function CoachStatistics() {
                 `}
             </style>
         </>
+
     );
+
 }

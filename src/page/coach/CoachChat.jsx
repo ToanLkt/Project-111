@@ -1231,34 +1231,7 @@ export default function CoachChat() {
                   )}
                   <div ref={messagesEndRef} />
 
-                  {/* Auto refresh status indicator */}
-                  {isAutoRefreshEnabled && (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '0.5rem',
-                      fontSize: '0.75rem',
-                      color: COLORS.textLight,
-                      background: 'rgba(34, 197, 94, 0.05)',
-                      borderRadius: '8px',
-                      margin: '0.5rem',
-                      border: '1px solid rgba(34, 197, 94, 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem'
-                    }}>
-                      <span style={{
-                        display: 'inline-block',
-                        width: '8px',
-                        height: '8px',
-                        backgroundColor: '#22c55e',
-                        borderRadius: '50%',
-                        animation: isAutoFetching ? 'pulse 1s infinite' : 'none'
-                      }}></span>
-                      Tự động tải tin nhắn mới mỗi 3 giây
-                      {isAutoFetching && <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>}
-                    </div>
-                  )}
+
                 </div>
 
                 <div className="chat-input-container">
@@ -1297,7 +1270,10 @@ export default function CoachChat() {
             )}
           </div>
         </div>
+
       </div>
+
     </>
+
   )
 }
