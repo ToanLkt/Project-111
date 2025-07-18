@@ -7,35 +7,39 @@ export default function CoachMembers() {
     const [loading, setLoading] = useState(true);
     const [selectedMember, setSelectedMember] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
-
-    // Lấy token và role từ Redux (user object)
-    const token = useSelector(state => state.auth?.token);
-    const role = useSelector(state => state.auth?.role); // Sửa lại dòng này
-
-    // Thêm state cho form và plan
     const [memberForm, setMemberForm] = useState(null);
     const [memberPlan, setMemberPlan] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
     const [planLoading, setPlanLoading] = useState(false);
 
+    // Lấy token và role từ Redux
+    const { token, user } = useSelector(state => state.account || {});
+    const role = user?.role;
 
     useEffect(() => {
         setLoading(true);
-        if (token && role === "Coach") {
-            fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/members-with-package3", {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            })
-                .then(res => res.ok ? res.json() : [])
-                .then(data => Array.isArray(data) ? setMembers(data) : setMembers([]))
-                .catch(() => setMembers([]))
-                .finally(() => setLoading(false));
-        } else {
+        console.log("Token từ Redux:", token);
+        if (!token) {
             setMembers([]);
             setLoading(false);
+            return;
         }
-    }, [token, role]);
+        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/members-with-package3", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+            .then(res => res.ok ? res.json() : [])
+            .then(data => {
+                console.log("API DATA:", data);
+                setMembers(Array.isArray(data) ? data : []);
+            })
+            .catch((err) => {
+                console.error("Fetch error:", err);
+                setMembers([]);
+            })
+            .finally(() => setLoading(false));
+    }, [token]);
 
     // Function để fetch form data
     const fetchMemberForm = async (accountId) => {
@@ -654,12 +658,8 @@ export default function CoachMembers() {
                                         transition: "background-color 0.2s ease",
                                         cursor: "pointer"
                                     }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = "#F8FDFD";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = "transparent";
-                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#F8FDFD"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}
                                     onClick={() => handleMemberClick(member)}
                                 >
                                     <td style={{

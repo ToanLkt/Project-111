@@ -14,7 +14,7 @@ function* fetchUserTransactions(token) {
 
         const transactionsResponse = yield call(
             axios.get,
-            `${API_BASE_URL}/Member/my-transactions`,
+            `${API_BASE_URL}/User/profile`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -67,68 +67,6 @@ function* processUserPackage(transactionsData) {
             };
         }
 
-        // Sắp xếp transactions theo purchaseID (mới nhất trước - ID cao hơn)
-        const sortedTransactions = transactionsData.sort((a, b) => b.purchaseID - a.purchaseID);
-
-        const latestTransaction = sortedTransactions[0];
-        console.log("🔍 Latest transaction:", latestTransaction);
-
-        if (!latestTransaction) {
-            return {
-                currentPackage: null,
-                latestTransaction: null,
-                packageStatus: 'no_package'
-            };
-        }
-
-        // Lấy thông tin từ transaction response
-        const startDate = new Date(latestTransaction.startDate);
-        const endDate = new Date(latestTransaction.endDate);
-        const now = new Date();
-
-        // Kiểm tra trạng thái gói
-        const isExpired = endDate < now;
-        const isActive = latestTransaction.paymentStatus === "Success" && !isExpired;
-
-        // Tính số ngày còn lại
-        const daysLeft = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
-
-        // Tính duration (số ngày của gói)
-        const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-
-        const packageInfo = {
-            currentPackage: {
-                id: latestTransaction.purchaseID,
-                name: latestTransaction.packageCategory, // "Free" hoặc "Plus"
-                type: latestTransaction.packageCategory,
-                price: latestTransaction.totalPrice,
-                duration: duration, // Số ngày của gói
-                startDate: latestTransaction.startDate, // "2025-07-14T00:00:00"
-                endDate: latestTransaction.endDate, // "2025-08-14T00:00:00" 
-                expiryDate: latestTransaction.endDate, // Alias cho endDate
-                isExpired: isExpired,
-                isActive: isActive,
-                daysLeft: daysLeft,
-                transactionCode: latestTransaction.transactionCode,
-                memberName: latestTransaction.memberName,
-                paymentStatus: latestTransaction.paymentStatus,
-                timeBuy: latestTransaction.timeBuy
-            },
-            latestTransaction: latestTransaction,
-            packageStatus: isActive ? 'active' : (isExpired ? 'expired' : 'inactive')
-        };
-
-        console.log("✅ Processed package info:", packageInfo);
-        console.log("📦 Package Details:", {
-            name: packageInfo.currentPackage.name,
-            startDate: packageInfo.currentPackage.startDate,
-            endDate: packageInfo.currentPackage.endDate,
-            daysLeft: packageInfo.currentPackage.daysLeft,
-            isActive: packageInfo.currentPackage.isActive,
-            status: packageInfo.packageStatus
-        });
-
-        return packageInfo;
 
     } catch (error) {
         console.error("❌ Error processing user package:", error);
@@ -166,55 +104,41 @@ function* apiCall(url, options = {}) {
 // Login saga
 export function* fetchLoginSaga(action) {
     try {
-        console.log('🔐 Login saga started with:', action.payload);
-
         const { email, password } = action.payload;
 
         const loginData = yield call(apiCall, `${API_BASE_URL}/Auth/login`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
 
         const token = loginData.token || loginData.accessToken;
 
         if (token) {
-            // Decode JWT để lấy thông tin cơ bản
             const jwtUser = jwtDecode(token);
-            console.log("🔍 JWT User:", jwtUser);
-
-            // Fetch profile để lấy fullName và thông tin chi tiết
             const profileData = yield call(fetchUserProfile, token);
 
-            // Fetch transactions để lấy thông tin gói đã mua
-            const transactionsData = yield call(fetchUserTransactions, token);
+            // Lấy role từ JWT hoặc profile
+            const role = jwtUser["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || jwtUser.role || profileData?.role;
 
-            // Xử lý thông tin gói đang sử dụng
-            const packageInfo = yield call(processUserPackage, transactionsData);
-
-            // Kết hợp thông tin từ JWT, profile và package
-            const user = {
+            let user = {
                 ...jwtUser,
-                ...profileData, // Profile data sẽ override JWT data
-                // Đảm bảo role từ JWT được giữ lại
-                role: jwtUser["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || jwtUser.role,
-                // Thêm thông tin gói đang sử dụng
-                ...packageInfo
+                ...profileData,
+                role,
             };
 
-            console.log("🔥 Final user object:", user);
-            console.log("🔥 User Role:", user.role);
-            console.log("🔥 User FullName:", user.fullName);
-            console.log("🔥 User Current Package:", user.currentPackage);
-            console.log("🔥 Package Status:", user.packageStatus);
-            console.log("🔥 User Transactions:", transactionsData);
+            // Chỉ fetch transactions và package nếu là Member
+            if (role === "Member") {
+                const transactionsData = yield call(fetchUserTransactions, token);
+                const packageInfo = yield call(processUserPackage, transactionsData);
+                user = {
+                    ...user,
+                    ...packageInfo
+                };
+            }
 
-            // Dispatch success với user data và transactions data đầy đủ
-            yield put(fetchSuccess({ user, token, transactions: transactionsData }));
+            yield put(fetchSuccess({ user, token }));
             toast.success("Login successful!");
-
         } else {
             throw new Error("Invalid login credentials");
         }
@@ -225,8 +149,6 @@ export function* fetchLoginSaga(action) {
         } else if (error.message) {
             message = error.message;
         }
-
-        console.error("❌ Login error:", error);
         yield put(fetchFail(message));
         toast.error(message);
     }

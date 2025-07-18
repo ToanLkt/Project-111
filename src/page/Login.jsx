@@ -69,6 +69,7 @@ export default function Login() {
                 console.log("✅ Login success - Role:", userRole, "- Redirecting...");
                 console.log("✅ User Current Package:", user.currentPackage);
                 console.log("✅ Package Status:", user.packageStatus);
+                console.log("Current packageMembershipId:", user?.packageMembershipId);
 
                 // Hiển thị thông tin gói chi tiết nếu có
                 if (user.currentPackage) {
@@ -166,6 +167,13 @@ export default function Login() {
         e.preventDefault();
         navigate("/register");
     };
+
+    useEffect(() => {
+        if (token && user) {
+            login(token, user); // <-- Đảm bảo dòng này được gọi
+            navigate("/coachpage/members");
+        }
+    }, [token, user, login, navigate]);
 
     return (
         <div
