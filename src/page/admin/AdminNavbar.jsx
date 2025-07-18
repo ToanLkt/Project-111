@@ -126,6 +126,7 @@ export default function AdminNavbar() {
     { to: "/admin/feedback", label: "Đánh giá", icon: "💬" },
     { to: "/admin/payment", label: "Thanh toán", icon: "💳" },
     { to: "/admin/report", label: "Báo cáo", icon: "📊" },
+    { to: "/admin/ranking", label: "Xếp hạng", icon: "🏆" },
   ]
 
   return (

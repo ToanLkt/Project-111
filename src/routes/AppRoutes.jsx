@@ -42,6 +42,7 @@ import ConfirmRegister from "../components/ConfirmRegister";
 import ResetPassword from "../page/ResetPassword";
 import LoginGoogle from "../components/LoginGoogle";
 import AdminSettings from "../page/admin/AdminSettings";
+import AdminRanking from "../page/admin/AdminRanking";
 
 export default function AppRoutes() {
   console.log("🔥 AppRoutes rendering...");
@@ -61,6 +62,7 @@ export default function AppRoutes() {
         {/* Admin có thể truy cập các trang chung - KHÔNG dùng AppLayout */}
         <Route path="community" element={<AdminCommunity />} />
         <Route path="feedback" element={<AdminFeedback />} />
+        <Route path="ranking" element={<AdminRanking />} />
       </Route>
 
       {/* Coach Routes */}
