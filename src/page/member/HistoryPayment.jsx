@@ -321,7 +321,7 @@ export default function HistoryPayment() {
             <div className="history-container">
                 <div className="history-card">
                     <h2 className="history-title">
-                        💳 Lịch sử thanh toán
+                        Lịch sử thanh toán
                     </h2>
 
                     {/* Debug info - chỉ hiển thị trong development */}
@@ -423,8 +423,8 @@ export default function HistoryPayment() {
                                             </td>
                                             <td className="table-cell">
                                                 <span className={`status-badge ${item.paymentStatus === "Success" ? "status-success" :
-                                                        item.paymentStatus === "Pending" ? "status-pending" :
-                                                            "status-failed"
+                                                    item.paymentStatus === "Pending" ? "status-pending" :
+                                                        "status-failed"
                                                     }`}>
                                                     {item.paymentStatus === "Success" ? "✅ Thành công" :
                                                         item.paymentStatus === "Pending" ? "⏳ Chờ xử lý" :

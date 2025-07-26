@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react'
 import { useSelector } from 'react-redux'
 import AuthContext from '../../AuthContext/AuthContext'
+import Footer from '../../components/Footer';
 
 const COLORS = {
   background: "#F8FAFC",
@@ -56,79 +57,33 @@ export default function CoachChat() {
   const [isOnline, setIsOnline] = useState(true)
   const [lastActivity, setLastActivity] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(true)
-  const [isAutoFetching, setIsAutoFetching] = useState(false)
+  // Đã bỏ isAutoRefreshEnabled và isAutoFetching
   const messagesEndRef = useRef(null)
   const refreshIntervalRef = useRef(null)
   const timeUpdateIntervalRef = useRef(null)
 
-  // Early return if no user data
-  if (!user || !accountId) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: COLORS.background,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-      }}>
-        <div style={{
-          background: COLORS.cardBg,
-          borderRadius: '16px',
-          padding: '2rem',
-          textAlign: 'center',
-          boxShadow: COLORS.shadowLg,
-          border: `1px solid ${COLORS.border}`,
-          maxWidth: '400px'
-        }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            border: `3px solid ${COLORS.border}`,
-            borderTop: `3px solid ${COLORS.accent}`,
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 1rem'
-          }}></div>
-          <h3 style={{ color: COLORS.primary, marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: '600' }}>
-            Đang tải thông tin...
-          </h3>
-          <p style={{ color: COLORS.textLight, margin: 0 }}>Vui lòng đợi trong giây lát</p>
-        </div>
-      </div>
-    )
-  }
-
   // Auto refresh và update time
   useEffect(() => {
-    // Update time every second for realtime display
+    // Update time every second for realtime display (nếu cần)
     timeUpdateIntervalRef.current = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
     // Auto refresh conversations every 3 seconds when member selected
-    if (selectedMember && isAutoRefreshEnabled) {
+    if (selectedMember) {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
-
       refreshIntervalRef.current = setInterval(async () => {
-        setIsAutoFetching(true);
         await fetchConversation(selectedMember.accountId, true); // silent refresh
-        setIsAutoFetching(false);
       }, 3000);
-    } else if (isAutoRefreshEnabled) {
+    } else {
       // Auto refresh members list every 5 seconds when no member selected
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
-
       refreshIntervalRef.current = setInterval(async () => {
-        setIsAutoFetching(true);
         await fetchMembersWithPackage3(true); // silent refresh
-        setIsAutoFetching(false);
       }, 5000);
     }
 
@@ -140,7 +95,7 @@ export default function CoachChat() {
         clearInterval(timeUpdateIntervalRef.current);
       }
     };
-  }, [selectedMember, accountId, isAutoRefreshEnabled]);
+  }, [selectedMember, accountId]);
 
   // Fetch members with package 3
   useEffect(() => {
@@ -161,35 +116,6 @@ export default function CoachChat() {
     }
   }, [messages]);
 
-  // Realtime format time function
-  const formatTimeRealtime = (dateString) => {
-    if (!dateString) return '';
-
-    const date = new Date(dateString);
-    const now = currentTime; // Use current state time for realtime updates
-    const diffMs = now - date;
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMins = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    // Realtime updates
-    if (diffSeconds < 10) return 'Vừa xong';
-    if (diffSeconds < 60) return `${diffSeconds} giây trước`;
-    if (diffMins < 60) return `${diffMins} phút trước`;
-    if (diffHours < 24) return `${diffHours} giờ trước`;
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-
-    // Fallback to formatted date
-    return date.toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   // **SỬA LẠI: Fetch members with package 3 từ API**
   const fetchMembersWithPackage3 = async (silent = false) => {
     if (!token || !accountId) {
@@ -199,8 +125,6 @@ export default function CoachChat() {
 
     try {
       if (!silent) setLoadingMembers(true)
-
-      console.log("🚀 Fetching members with package 3...")
 
       // Fetch members using package 3 from API
       const response = await fetch(
@@ -218,7 +142,6 @@ export default function CoachChat() {
       }
 
       const membersData = await response.json()
-      console.log("✅ Members with package 3 fetched:", membersData)
 
       if (Array.isArray(membersData) && membersData.length > 0) {
         // Format members data for display
@@ -253,7 +176,7 @@ export default function CoachChat() {
                 }
               }
             } catch (error) {
-              console.warn(`Failed to fetch conversation for member ${member.accountId}:`, error)
+              // Không log debug
             }
 
             return {
@@ -270,13 +193,19 @@ export default function CoachChat() {
               timestamp: lastMessageTime,
               isOnline: Math.random() > 0.4, // Random online status, có thể cải thiện bằng realtime status
               hasActivePackage: true,
-              packageStatus: member.daysLeft > 0 ? "Đang hoạt động" : "Hết hạn"
             }
           })
         )
 
-        // Sắp xếp theo thời gian tin nhắn gần nhất
-        formattedMembers.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        // Sắp xếp: có tin nhắn sẽ lên trên, chưa có tin nhắn ("Bắt đầu cuộc trò chuyện") xuống dưới
+        formattedMembers.sort((a, b) => {
+          const aHasMsg = a.lastMessage !== "Bắt đầu cuộc trò chuyện";
+          const bHasMsg = b.lastMessage !== "Bắt đầu cuộc trò chuyện";
+          if (aHasMsg && !bHasMsg) return -1;
+          if (!aHasMsg && bHasMsg) return 1;
+          // Nếu cả hai đều có hoặc đều không có tin nhắn, sắp xếp theo thời gian
+          return new Date(b.timestamp) - new Date(a.timestamp);
+        });
 
         setMembers(formattedMembers)
         console.log("📋 Formatted members:", formattedMembers.length)
@@ -954,24 +883,6 @@ export default function CoachChat() {
           animation-delay: 1s;
         }
 
-        .realtime-indicator {
-          position: fixed;
-          top: 1rem;
-          right: 1rem;
-          background: rgba(16, 185, 129, 0.1);
-          color: ${COLORS.success};
-          padding: 0.5rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          border: 1px solid rgba(16, 185, 129, 0.2);
-          backdrop-filter: blur(10px);
-          z-index: 1000;
-        }
-
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -1037,16 +948,13 @@ export default function CoachChat() {
         .messages-container::-webkit-scrollbar-thumb:hover {
           background: ${COLORS.borderHover};
         }
+
+        .member-time, .message-time { display: none !important; }
         `}
       </style>
 
       <div className="coach-chat-container">
-        {/* Realtime Indicator */}
-        <div className="realtime-indicator">
-          <div className="status-dot"></div>
-          Package 3 Members • Cập nhật {formatTimeRealtime(lastActivity.toISOString())}
-        </div>
-
+        {/* Đã bỏ realtime-indicator */}
         <div className="chat-layout">
           {/* Members Panel */}
           <div className="members-panel">
@@ -1062,36 +970,7 @@ export default function CoachChat() {
               <div className="package-badge">
                 💎 {members.length} members với Package 3
               </div>
-
-              {/* Auto refresh toggle */}
-              <div style={{
-                marginTop: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <button
-                  onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
-                  style={{
-                    background: isAutoRefreshEnabled ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    border: `1px solid ${isAutoRefreshEnabled ? '#22c55e' : '#ef4444'}`,
-                    borderRadius: '8px',
-                    color: isAutoRefreshEnabled ? '#22c55e' : '#ef4444',
-                    padding: '0.5rem 0.75rem',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s ease'
-                  }}
-                  title={isAutoRefreshEnabled ? 'Tắt tự động tải danh sách' : 'Bật tự động tải danh sách'}
-                >
-                  {isAutoRefreshEnabled ? '🟢 Auto Refresh' : '🔴 Manual Refresh'}
-                  {isAutoFetching && !selectedMember && <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>}
-                </button>
-              </div>
+              {/* Đã bỏ nút auto/manual refresh */}
             </div>
 
             <div className="members-list">
@@ -1121,20 +1000,12 @@ export default function CoachChat() {
                       <p className="member-last-message">{member.lastMessage}</p>
                     </div>
                     <div className="member-meta">
-                      <span className="member-time">
-                        {formatTimeRealtime(member.timestamp)}
-                      </span>
+                      {/* Đã bỏ thời gian */}
                       <div className={`member-status ${member.isOnline ? '' : 'offline'}`}>
                         <div className="status-dot"></div>
                         {member.isOnline ? 'Online' : 'Offline'}
                       </div>
-                      <div style={{
-                        fontSize: '0.6rem',
-                        color: member.packageInfo.daysLeft > 0 ? COLORS.success : COLORS.danger,
-                        fontWeight: '600'
-                      }}>
-                        {member.packageInfo.daysLeft > 0 ? `${member.packageInfo.daysLeft} ngày` : 'Hết hạn'}
-                      </div>
+
                     </div>
                   </div>
                 ))
@@ -1156,37 +1027,11 @@ export default function CoachChat() {
                     </h3>
                     <p className="chat-member-status">
                       <div className={`status-dot ${selectedMember.isOnline ? '' : 'offline'}`}></div>
-                      {selectedMember.isOnline ? 'Đang online' : 'Offline'} •
-                      Package 3 • {selectedMember.packageInfo.daysLeft > 0 ?
-                        `${selectedMember.packageInfo.daysLeft} ngày còn lại` :
-                        'Hết hạn'
-                      }
+                      {selectedMember.isOnline ? 'Đang online' : 'Offline'}
+
                     </p>
                   </div>
-                  <div className="chat-actions">
-                    <button
-                      onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
-                      style={{
-                        background: isAutoRefreshEnabled ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                        border: `1px solid ${isAutoRefreshEnabled ? '#22c55e' : '#ef4444'}`,
-                        borderRadius: '10px',
-                        color: isAutoRefreshEnabled ? '#22c55e' : '#ef4444',
-                        padding: '0.5rem',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        width: '60px',
-                        height: '36px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s ease'
-                      }}
-                      title={isAutoRefreshEnabled ? 'Tắt tự động tải tin nhắn' : 'Bật tự động tải tin nhắn'}
-                    >
-                      {isAutoRefreshEnabled ? '🟢 Auto' : '� Manual'}
-                    </button>
-                  </div>
+                  {/* Đã bỏ chat-actions auto/manual refresh */}
                 </div>
 
                 <div className="messages-container">
@@ -1206,11 +1051,7 @@ export default function CoachChat() {
                         <div key={idx} className={`message message-${msg.from}`}>
                           <div className="message-bubble">
                             <p className="message-text">{msg.text}</p>
-                            {msg.timestamp && (
-                              <div className="message-time">
-                                {formatTimeRealtime(msg.timestamp)}
-                              </div>
-                            )}
+                            {/* Đã bỏ thời gian */}
                           </div>
                         </div>
                       ))}
@@ -1230,8 +1071,6 @@ export default function CoachChat() {
                     </>
                   )}
                   <div ref={messagesEndRef} />
-
-
                 </div>
 
                 <div className="chat-input-container">
@@ -1270,8 +1109,8 @@ export default function CoachChat() {
             )}
           </div>
         </div>
-
       </div>
+      <Footer />
 
     </>
 

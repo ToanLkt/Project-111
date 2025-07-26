@@ -1,23 +1,28 @@
-import React from "react";
-import { Provider } from "react-redux";               // Redux
-import store from "./redux/store";                   // Store
+import React, { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { fetchSuccess } from "./redux/login/loginSlice";
 
 import { AuthProvider } from "./AuthContext/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
 
 import './index.css';
-
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (token && user) {
+      dispatch(fetchSuccess({ user, token }));
+    }
+  }, [dispatch]);
+
   return (
-
-    <Provider store={store}> {/* Bọc Redux store ở ngoài cùng */}
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </Provider>
-
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 

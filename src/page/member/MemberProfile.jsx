@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useSelector } from "react-redux"
 import HistoryPayment from "./HistoryPayment"
 import "bootstrap/dist/css/bootstrap.min.css"
+import Footer from "../../components/Footer"
 
 const COLORS = {
   background: "#FAFAF9",
@@ -1061,8 +1062,8 @@ export default function MemberProfile() {
           </div>
         </div>
 
-        <HistoryPayment />
       </div>
+      <Footer />
     </>
   )
 }

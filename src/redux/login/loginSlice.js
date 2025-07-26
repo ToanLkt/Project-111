@@ -22,6 +22,12 @@ export const logout = () => ({
     type: LOG_OUT,
 });
 
+// Thêm action
+export const updateUserPackageMembershipId = (packageMembershipId) => ({
+    type: "UPDATE_USER_PACKAGE_MEMBERSHIP_ID",
+    payload: packageMembershipId,
+});
+
 const initialState = {
     user: null,
     token: null,
@@ -44,6 +50,17 @@ const accountReducers = (state = initialState, action) => {
             return { ...state, loading: false, error: action.payload };
         case LOG_OUT:
             return { ...initialState };
+        case "UPDATE_USER_PACKAGE_MEMBERSHIP_ID":
+            if (state.user) {
+                return {
+                    ...state,
+                    user: {
+                        ...state.user,
+                        packageMembershipId: action.payload,
+                    },
+                };
+            }
+            return state;
         default:
             return state;
     }

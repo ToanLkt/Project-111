@@ -52,6 +52,11 @@ export default function CoachNavbar() {
     return role ? role.toString().trim() : null
   }
 
+  const getUserFullName = () => {
+    if (!user) return "";
+    return user.fullName || userEmail?.split("@")[0] || "";
+  }
+
   // Logic authentication
   const userRole = getUserRole()
   const userEmail = getUserEmail()
@@ -530,7 +535,7 @@ export default function CoachNavbar() {
                             <i className="fas fa-chalkboard-teacher"></i>
                           </div>
                           <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
-                            {userEmail.split("@")[0]}
+                            {getUserFullName()}
                           </span>
                         </Link>
                         <button onClick={handleLogout} className="coach-logout-btn">

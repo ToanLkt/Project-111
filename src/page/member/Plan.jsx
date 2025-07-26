@@ -225,21 +225,12 @@ export default function Plan() {
     // BƯỚC 2: FETCH PLAN & PHASE DATA CHỈ KHI STATUS = "processing"
     useEffect(() => {
         const fetchPlanAndPhaseData = async () => {
-            // CHỈ FETCH KHI STATUS = "processing" (case-insensitive)
-            if (!statusProcess || statusProcess.statusProcess?.toLowerCase() !== "processing" || !token || !accountId) {
-                console.log("⏸️ Not fetching plan data - conditions:", {
-                    hasStatus: !!statusProcess,
-                    status: statusProcess?.statusProcess,
-                    statusLower: statusProcess?.statusProcess?.toLowerCase(),
-                    hasToken: !!token,
-                    accountId
-                });
+            // CHỈ cần có accountId và token là fetch
+            if (!token || !accountId) {
                 return;
             }
 
             try {
-                console.log("🔍 Fetching Plan and Phase data...");
-
                 // Fetch Plan data
                 const planResponse = await fetch(
                     `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan?accountId=${accountId}`,
@@ -254,11 +245,9 @@ export default function Plan() {
 
                 if (planResponse.ok) {
                     const planResult = await planResponse.json();
-                    console.log("✅ Plan data:", planResult);
                     setPlanData(planResult);
                 } else {
-                    console.error("❌ Failed to fetch plan data:", planResponse.status);
-                    console.error("❌ Plan API URL:", `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan?accountId=${accountId}`);
+                    setPlanData(null);
                 }
 
                 // Fetch Phase data
@@ -275,7 +264,6 @@ export default function Plan() {
 
                 if (phaseResponse.ok) {
                     const phaseResult = await phaseResponse.json();
-                    console.log("✅ Phase data:", phaseResult);
                     setPhaseData(phaseResult);
                 } else {
                     console.error("❌ Failed to fetch phase data:", phaseResponse.status);
@@ -397,8 +385,6 @@ export default function Plan() {
                 setError(null);
                 setSuccess(false);
 
-                console.log("🚬 Saving cigarettes count:", count);
-
                 const response = await fetch(
                     "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/today-cigarettes",
                     {
@@ -413,38 +399,12 @@ export default function Plan() {
                     }
                 );
 
-                console.log("📡 API Response status:", response.status);
-                console.log("📡 API Response headers:", response.headers);
-
                 if (response.ok) {
-                    // Kiểm tra content-type trước khi parse JSON
-                    const contentType = response.headers.get("content-type");
-                    console.log("📡 Content-Type:", contentType);
-
-                    let result;
-                    if (contentType && contentType.includes("application/json")) {
-                        try {
-                            result = await response.json();
-                            console.log("✅ Cigarettes saved successfully (JSON):", result);
-                        } catch (jsonError) {
-                            console.log("⚠️ JSON parse error, getting text instead:", jsonError);
-                            const textResult = await response.text();
-                            console.log("✅ Cigarettes saved successfully (Text):", textResult);
-                            result = { message: textResult };
-                        }
-                    } else {
-                        const textResult = await response.text();
-                        console.log("✅ Cigarettes saved successfully (Text):", textResult);
-                        result = { message: textResult };
-                    }
-
                     setSuccess(true);
                     setCigarettesToday("");
-
-                    // Auto clear success message after 3 seconds
-                    setTimeout(() => {
-                        setSuccess(false);
-                    }, 3000);
+                    // Gọi lại các API để cập nhật dữ liệu mới nhất
+                    fetchPlanAndPhaseData();
+                    fetchStatusProcess();
                 } else {
                     let errorText;
                     try {
@@ -459,11 +419,22 @@ export default function Plan() {
                         errorText = `Parse error: ${parseError.message}`;
                     }
 
-                    console.error("❌ Failed to save cigarettes:", response.status, errorText);
-                    setError(`Lỗi ${response.status}: ${errorText || "Không thể lưu dữ liệu"}`);
+                    if (
+                        response.status === 400 &&
+                        errorText &&
+                        (
+                            errorText.toLowerCase().includes("phase deatil is entered for today") ||
+                            errorText.toLowerCase().includes("already entered") ||
+                            errorText.toLowerCase().includes("đã nhập") ||
+                            errorText.toLowerCase().includes("exists for today")
+                        )
+                    ) {
+                        setError("Ngày hôm nay bạn đã nhập rồi, ngày mai bạn hãy nhập lại nhé");
+                    } else {
+                        setError(`Lỗi ${response.status}: ${errorText || "Không thể lưu dữ liệu"}`);
+                    }
                 }
             } catch (error) {
-                console.error("❌ Error saving cigarettes:", error);
                 setError("Lỗi kết nối: " + error.message);
             } finally {
                 setIsLoading(false);
@@ -719,44 +690,7 @@ export default function Plan() {
                         </div>
                     </div>
 
-                    {/* Tỷ lệ thành công */}
-                    <div style={{
-                        background: "#F0FDF4",
-                        borderRadius: 8,
-                        padding: "1rem",
-                        marginTop: "1rem"
-                    }}>
-                        <div style={{ fontWeight: 600, color: "#16A34A", marginBottom: "0.5rem" }}>
-                            📈 Tỷ lệ thành công tổng quan
-                        </div>
-                        <div style={{ color: "#6B7280", fontSize: "0.8rem", marginBottom: "1rem", fontStyle: "italic" }}>
-                            * Thất bại được tính khi số điếu hút {'>'} giới hạn ({planData?.maxCigarettes || 0} điếu/ngày)
-                        </div>
-                        <div style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "1rem"
-                        }}>
-                            <div style={{
-                                fontSize: "2rem",
-                                fontWeight: 700,
-                                color: successRate >= 80 ? "#16A34A" :
-                                    successRate >= 60 ? "#EAB308" : "#DC2626"
-                            }}>
-                                {successRate.toFixed(1)}%
-                            </div>
-                            <div style={{
-                                color: "#6B7280",
-                                fontSize: "0.9rem",
-                                textAlign: "left"
-                            }}>
-                                <div>Ngày thành công: {successDays}</div>
-                                <div>Ngày thất bại: {totalFailedDays}</div>
-                                <div>Tổng ngày cai thuốc: {totalDays}</div>
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
 
                 {/* Danh sách các phases từ Plan API */}
@@ -922,151 +856,155 @@ export default function Plan() {
                     🔄 Đang kiểm tra trạng thái...
                 </div>
             ) : statusProcess?.statusProcess?.toLowerCase() === "success" ? (
-                // STATUS = SUCCESS - HIỆN THÔNG BÁO CHÚC MỪNG
-                <div
-                    style={{
-                        maxWidth: 900,
-                        margin: "4rem auto",
-                        background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-                        borderRadius: 20,
-                        padding: "4rem 2rem",
-                        color: "#fff",
-                        textAlign: "center",
-                        boxShadow: "0 8px 32px rgba(16,185,129,0.3)"
-                    }}
-                >
-                    <div style={{ fontSize: "4rem", marginBottom: "1.5rem" }}>🎉</div>
-                    <h1 style={{
-                        fontSize: "2.5rem",
-                        fontWeight: 800,
-                        marginBottom: "1rem",
-                        textShadow: "0 2px 4px rgba(0,0,0,0.1)"
-                    }}>
-                        Chúc mừng!
-                    </h1>
-                    <p style={{
-                        fontSize: "1.3rem",
-                        marginBottom: "2rem",
-                        opacity: 0.95,
-                        lineHeight: 1.6
-                    }}>
-                        Bạn đã hoàn thành thành công chương trình cai thuốc lá! 🚭✨
-                        <br />
-                        Hành trình này không dễ dàng, nhưng bạn đã làm được!
-                    </p>
-                    <div style={{
-                        background: "rgba(255,255,255,0.2)",
-                        borderRadius: 12,
-                        padding: "1.5rem",
-                        marginBottom: "2rem",
-                        backdropFilter: "blur(10px)"
-                    }}>
-                        <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
-                            🏆 Bạn đã chiến thắng thói quen xấu và tạo ra một tương lai khỏe mạnh hơn!
+                <>
+                    <div
+                        style={{
+                            maxWidth: 900,
+                            margin: "4rem auto",
+                            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                            borderRadius: 20,
+                            padding: "4rem 2rem",
+                            color: "#fff",
+                            textAlign: "center",
+                            boxShadow: "0 8px 32px rgba(16,185,129,0.3)"
+                        }}
+                    >
+                        <div style={{ fontSize: "4rem", marginBottom: "1.5rem" }}>🎉</div>
+                        <h1 style={{
+                            fontSize: "2.5rem",
+                            fontWeight: 800,
+                            marginBottom: "1rem",
+                            textShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                        }}>
+                            Chúc mừng!
+                        </h1>
+                        <p style={{
+                            fontSize: "1.3rem",
+                            marginBottom: "2rem",
+                            opacity: 0.95,
+                            lineHeight: 1.6
+                        }}>
+                            Bạn đã hoàn thành thành công chương trình cai thuốc lá! 🚭✨
+                            <br />
+                            Hành trình này không dễ dàng, nhưng bạn đã làm được!
+                        </p>
+                        <div style={{
+                            background: "rgba(255,255,255,0.2)",
+                            borderRadius: 12,
+                            padding: "1.5rem",
+                            marginBottom: "2rem",
+                            backdropFilter: "blur(10px)"
+                        }}>
+                            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
+                                🏆 Bạn đã chiến thắng thói quen xấu và tạo ra một tương lai khỏe mạnh hơn!
+                            </div>
+                        </div>
+
+                        {/* Nút tiếp tục cai nghiện */}
+                        <div style={{ marginTop: "2rem" }}>
+                            <p style={{
+                                fontSize: "1.1rem",
+                                marginBottom: "1.5rem",
+                                opacity: 0.9
+                            }}>
+                                🤔 Bạn có muốn tiếp tục hành trình cai nghiện và thử thách bản thân ở mức độ cao hơn không?
+                            </p>
+                            <button
+                                onClick={() => navigate("/start-information")}
+                                style={{
+                                    background: "#fff",
+                                    color: "#059669",
+                                    fontWeight: 700,
+                                    padding: "1rem 3rem",
+                                    borderRadius: 30,
+                                    fontSize: "1.2rem",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                                    transition: "all 0.3s ease",
+                                    marginRight: "1rem"
+                                }}
+                                onMouseOver={e => {
+                                    e.target.style.transform = "translateY(-3px)";
+                                    e.target.style.boxShadow = "0 8px 25px rgba(0,0,0,0.2)";
+                                }}
+                                onMouseOut={e => {
+                                    e.target.style.transform = "translateY(0)";
+                                    e.target.style.boxShadow = "0 6px 20px rgba(0,0,0,0.15)";
+                                }}
+                            >
+                                🚀 Tiếp tục cai nghiện
+                            </button>
                         </div>
                     </div>
-
-                    {/* Nút tiếp tục cai nghiện */}
-                    <div style={{ marginTop: "2rem" }}>
-                        <p style={{
-                            fontSize: "1.1rem",
-                            marginBottom: "1.5rem",
-                            opacity: 0.9
+                    <ProgressPhasesSection />
+                </>
+            ) : statusProcess?.statusProcess?.toLowerCase() === "fail" ? (
+                <>
+                    <div
+                        style={{
+                            maxWidth: 900,
+                            margin: "4rem auto",
+                            background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
+                            borderRadius: 20,
+                            padding: "4rem 2rem",
+                            color: "#fff",
+                            textAlign: "center",
+                            boxShadow: "0 8px 32px rgba(239,68,68,0.3)"
+                        }}
+                    >
+                        <div style={{ fontSize: "3rem", marginBottom: "1.5rem" }}>😔</div>
+                        <h1 style={{
+                            fontSize: "2.2rem",
+                            fontWeight: 800,
+                            marginBottom: "1rem",
+                            textShadow: "0 2px 4px rgba(0,0,0,0.1)"
                         }}>
-                            🤔 Bạn có muốn tiếp tục hành trình cai nghiện và thử thách bản thân ở mức độ cao hơn không?
+                            Thất bại quá trình
+                        </h1>
+                        <p style={{
+                            fontSize: "1.2rem",
+                            marginBottom: "2rem",
+                            opacity: 0.95,
+                            lineHeight: 1.6
+                        }}>
+                            Rất tiếc, bạn chưa hoàn thành được chương trình cai thuốc lần này. 💪
+                            <br />
+                            Đừng nản lòng - mỗi lần thử đều là một bước tiến!
                         </p>
+                        <div style={{
+                            background: "rgba(255,255,255,0.2)",
+                            borderRadius: 12,
+                            padding: "1.5rem",
+                            marginBottom: "2rem",
+                            backdropFilter: "blur(10px)"
+                        }}>
+                            <div style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>
+                                💡 Đừng từ bỏ! Hãy thử lại và học hỏi từ kinh nghiệm này.
+                            </div>
+                        </div>
                         <button
                             onClick={() => navigate("/start-information")}
                             style={{
                                 background: "#fff",
-                                color: "#059669",
+                                color: "#DC2626",
                                 fontWeight: 700,
-                                padding: "1rem 3rem",
+                                padding: "0.8rem 2.5rem",
                                 borderRadius: 30,
-                                fontSize: "1.2rem",
+                                fontSize: "1.1rem",
                                 border: "none",
                                 cursor: "pointer",
-                                boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-                                transition: "all 0.3s ease",
-                                marginRight: "1rem"
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                                transition: "all 0.2s"
                             }}
-                            onMouseOver={e => {
-                                e.target.style.transform = "translateY(-3px)";
-                                e.target.style.boxShadow = "0 8px 25px rgba(0,0,0,0.2)";
-                            }}
-                            onMouseOut={e => {
-                                e.target.style.transform = "translateY(0)";
-                                e.target.style.boxShadow = "0 6px 20px rgba(0,0,0,0.15)";
-                            }}
+                            onMouseOver={e => e.target.style.transform = "translateY(-2px)"}
+                            onMouseOut={e => e.target.style.transform = "translateY(0)"}
                         >
-                            🚀 Tiếp tục cai nghiện
+                            🔄 Thử lại ngay
                         </button>
                     </div>
-                </div>
-            ) : statusProcess?.statusProcess?.toLowerCase() === "fail" ? (
-                // STATUS = FAIL - HIỆN THÔNG BÁO THẤT BẠI
-                <div
-                    style={{
-                        maxWidth: 900,
-                        margin: "4rem auto",
-                        background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
-                        borderRadius: 20,
-                        padding: "4rem 2rem",
-                        color: "#fff",
-                        textAlign: "center",
-                        boxShadow: "0 8px 32px rgba(239,68,68,0.3)"
-                    }}
-                >
-                    <div style={{ fontSize: "3rem", marginBottom: "1.5rem" }}>😔</div>
-                    <h1 style={{
-                        fontSize: "2.2rem",
-                        fontWeight: 800,
-                        marginBottom: "1rem",
-                        textShadow: "0 2px 4px rgba(0,0,0,0.1)"
-                    }}>
-                        Thất bại quá trình
-                    </h1>
-                    <p style={{
-                        fontSize: "1.2rem",
-                        marginBottom: "2rem",
-                        opacity: 0.95,
-                        lineHeight: 1.6
-                    }}>
-                        Rất tiếc, bạn chưa hoàn thành được chương trình cai thuốc lần này. 💪
-                        <br />
-                        Đừng nản lòng - mỗi lần thử đều là một bước tiến!
-                    </p>
-                    <div style={{
-                        background: "rgba(255,255,255,0.2)",
-                        borderRadius: 12,
-                        padding: "1.5rem",
-                        marginBottom: "2rem",
-                        backdropFilter: "blur(10px)"
-                    }}>
-                        <div style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "1rem" }}>
-                            💡 Đừng từ bỏ! Hãy thử lại và học hỏi từ kinh nghiệm này.
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => navigate("/start-information")}
-                        style={{
-                            background: "#fff",
-                            color: "#DC2626",
-                            fontWeight: 700,
-                            padding: "0.8rem 2.5rem",
-                            borderRadius: 30,
-                            fontSize: "1.1rem",
-                            border: "none",
-                            cursor: "pointer",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                            transition: "all 0.2s"
-                        }}
-                        onMouseOver={e => e.target.style.transform = "translateY(-2px)"}
-                        onMouseOut={e => e.target.style.transform = "translateY(0)"}
-                    >
-                        🔄 Thử lại ngay
-                    </button>
-                </div>
+                    <ProgressPhasesSection />
+                </>
             ) : statusProcess?.statusProcess?.toLowerCase() === "processing" ? (
                 // STATUS = PROCESSING - HIỆN PLAN CONTENT
                 <>
@@ -1115,6 +1053,9 @@ export default function Plan() {
                             padding: "2.5rem 2rem",
                         }}
                     >
+                        {/* Chuyển CigaretteInputSection lên trên */}
+                        <CigaretteInputSection />
+
                         {/* Timer section */}
                         {planData?.startDatePhase1 && (
                             <TimerSection startDate={planData.startDatePhase1} />
@@ -1122,9 +1063,6 @@ export default function Plan() {
 
                         {/* Progress Phases section - CHỨA THỐNG KÊ TỪ API */}
                         <ProgressPhasesSection />
-
-                        {/* Cigarette input section */}
-                        <CigaretteInputSection />
                     </div>
                 </>
             ) : !statusProcess ? (

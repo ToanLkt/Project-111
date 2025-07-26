@@ -13,12 +13,7 @@ const COLORS = {
 };
 
 function AdminProfile() {
-    // THAY ĐỔI: Sử dụng Redux thay vì AuthContext
-    const { user, token } = useSelector((state) => {
-        console.log('🔍 AdminProfile Redux state:', state.account);
-        return state.account || {};
-    });
-
+    const { user, token } = useSelector((state) => state.account || {});
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -27,7 +22,6 @@ function AdminProfile() {
     const [form, setForm] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Extract user role từ Redux user object
     const getUserRole = () => {
         if (!user) return null;
         const role = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
@@ -38,28 +32,20 @@ function AdminProfile() {
 
     const userRole = getUserRole();
 
-    // Check admin authorization
     useEffect(() => {
         if (!token) {
-            console.log('❌ No token found, redirecting to login...');
             navigate("/login");
             return;
         }
-
         if (userRole && userRole !== "Admin") {
-            console.log('❌ User is not admin, role:', userRole);
             navigate("/");
             return;
         }
     }, [token, userRole, navigate]);
 
-    // Lấy thông tin admin từ API khi load trang
     useEffect(() => {
         if (!token) return;
-
         setLoading(true);
-        console.log('🚀 Fetching admin profile with token...');
-
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -67,13 +53,10 @@ function AdminProfile() {
             }
         })
             .then(res => {
-                console.log('📡 Profile API response status:', res.status);
                 if (!res.ok) throw new Error("Không thể truy cập API. Lỗi: " + res.statusText);
                 return res.json();
             })
             .then(data => {
-                console.log('✅ Profile data received:', data);
-
                 const adminData = {
                     name: data.fullName || "",
                     email: data.email || "",
@@ -82,43 +65,30 @@ function AdminProfile() {
                     gender: data.sex === true ? "Nam" : data.sex === false ? "Nữ" : "Khác",
                     role: "Quản trị viên"
                 };
-
                 setAdmin(adminData);
                 setForm({ ...adminData });
-
-                console.log('✅ Admin profile set:', adminData);
             })
             .catch(error => {
-                console.error('❌ Profile fetch error:', error);
                 setAdmin(null);
             })
             .finally(() => {
                 setLoading(false);
-                console.log('🏁 Profile loading finished');
             });
     }, [token]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
-        console.log('📝 Form field changed:', name, value);
     };
 
-    // Lưu chỉnh sửa lên API
     const handleSave = async (e) => {
         e.preventDefault();
-
-        console.log('💾 Saving profile changes:', form);
-
         const body = {
             fullName: form.name,
             phoneNumber: form.phone,
             birthday: form.dob,
             sex: form.gender === "Nam" ? true : form.gender === "Nữ" ? false : null
         };
-
-        console.log('📤 Sending profile update:', body);
-
         try {
             const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
                 method: "PUT",
@@ -128,40 +98,17 @@ function AdminProfile() {
                 },
                 body: JSON.stringify(body)
             });
-
-            console.log('📡 Profile update response status:', res.status);
-
             if (!res.ok) {
                 const errorText = await res.text();
-                console.error('❌ Profile update failed:', errorText);
                 throw new Error("Cập nhật thất bại: " + errorText);
             }
-
-            // Cập nhật state local
             setAdmin({ ...form });
             setEdit(false);
-
-            console.log('✅ Profile updated successfully');
             alert("Cập nhật thành công!");
-
-            // TODO: Có thể dispatch action để update Redux store nếu cần
-            // dispatch(updateUserProfile(form));
-
         } catch (err) {
-            console.error('❌ Save error:', err);
             alert(err.message);
         }
     };
-
-    // Debug user info
-    useEffect(() => {
-        console.log('🔍 Admin user info debug:', {
-            hasToken: !!token,
-            hasUser: !!user,
-            userRole,
-            userKeys: user ? Object.keys(user) : []
-        });
-    }, [token, user, userRole]);
 
     if (loading) {
         return (
@@ -177,22 +124,6 @@ function AdminProfile() {
             }}>
                 <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>⏳</div>
                 <div>Đang tải thông tin...</div>
-
-                {/* Debug info - Development only */}
-                {process.env.NODE_ENV === 'development' && (
-                    <div style={{
-                        marginTop: "1rem",
-                        padding: "0.5rem",
-                        background: "rgba(0,0,0,0.1)",
-                        borderRadius: "4px",
-                        fontSize: "0.8rem",
-                        textAlign: "left"
-                    }}>
-                        <div>Token: {token ? "✅" : "❌"}</div>
-                        <div>User: {user ? "✅" : "❌"}</div>
-                        <div>Role: {userRole || "null"}</div>
-                    </div>
-                )}
             </div>
         );
     }
@@ -244,28 +175,6 @@ function AdminProfile() {
                 fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif"
             }}
         >
-            {/* Debug panel - Development only */}
-            {process.env.NODE_ENV === 'development' && (
-                <div style={{
-                    position: "fixed",
-                    top: 10,
-                    right: 10,
-                    background: "rgba(0,0,0,0.8)",
-                    color: "white",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    fontSize: "10px",
-                    fontFamily: "monospace",
-                    zIndex: 999
-                }}>
-                    <div>Token: {token ? "✅" : "❌"}</div>
-                    <div>User: {user ? "✅" : "❌"}</div>
-                    <div>Role: {userRole || "null"}</div>
-                    <div>Admin: {admin ? "✅" : "❌"}</div>
-                    <div>Edit Mode: {edit ? "✅" : "❌"}</div>
-                </div>
-            )}
-
             <h2 style={{
                 color: COLORS.accent,
                 fontWeight: 900,
@@ -412,7 +321,6 @@ function AdminProfile() {
                             onClick={() => {
                                 setEdit(false);
                                 setForm({ ...admin });
-                                console.log('❌ Edit cancelled, form reset to:', admin);
                             }}
                             style={{
                                 background: COLORS.secondary,

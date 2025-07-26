@@ -113,18 +113,21 @@ export function* fetchLoginSaga(action) {
         });
 
         const token = loginData.token || loginData.accessToken;
+        const role = loginData.role || jwtUser.role; // Lấy role từ API nếu có
 
         if (token) {
             const jwtUser = jwtDecode(token);
             const profileData = yield call(fetchUserProfile, token);
 
-            // Lấy role từ JWT hoặc profile
-            const role = jwtUser["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || jwtUser.role || profileData?.role;
+            const fullName = profileData?.fullName;
+            const packageMembershipId = profileData?.packageMembershipId;
 
             let user = {
                 ...jwtUser,
                 ...profileData,
-                role,
+                role, // lấy role từ API
+                fullName,
+                packageMembershipId,
             };
 
             // Chỉ fetch transactions và package nếu là Member
@@ -136,6 +139,9 @@ export function* fetchLoginSaga(action) {
                     ...packageInfo
                 };
             }
+
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
 
             yield put(fetchSuccess({ user, token }));
             toast.success("Login successful!");

@@ -11,6 +11,7 @@ import {
     checkTransactionFailure,
     setCurrentPackage
 } from './paymentSlice'
+import { updateUserPackageMembershipId } from '../../login/loginSlice'
 
 const BASE_URL = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net"
 
@@ -189,6 +190,7 @@ function* checkTransactionSaga(action) {
             // 1. Cập nhật current package trong Redux NGAY LẬP TỨC
             console.log("📦 Setting new current package in Redux...")
             yield put(setCurrentPackage(newCurrentPackage))
+            yield put(updateUserPackageMembershipId(packageData.package_membership_ID))
 
             // 2. Lưu transaction đã verify
             yield put(checkTransactionSuccess({

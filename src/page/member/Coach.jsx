@@ -34,65 +34,14 @@ export default function Coach() {
   const token = reduxToken || auth?.token;
   const user = reduxUser || auth?.user;
 
-  // Kiểm tra gói Plus
-  const hasActivePlusPackage = () => {
-    // Kiểm tra current package từ Redux (gói vừa mua)
-    if (currentPackage && currentPackage.isActive && !currentPackage.isExpired) {
-      const isPlus = currentPackage.name?.toLowerCase() === 'plus' ||
-        currentPackage.category?.toLowerCase() === 'plus' ||
-        currentPackage.package_membership_ID === 3; // ID của gói Plus
-
-      console.log('🔍 Checking Redux current package:', {
-        packageName: currentPackage.name,
-        category: currentPackage.category,
-        packageId: currentPackage.package_membership_ID,
-        isActive: currentPackage.isActive,
-        isExpired: currentPackage.isExpired,
-        isPlus
-      });
-
-      return isPlus;
-    }
-
-    // Fallback: Kiểm tra từ user object
-    if (user && user.currentPackage) {
-      const userPackage = user.currentPackage;
-      const isPlus = userPackage.name?.toLowerCase() === 'plus' ||
-        userPackage.category?.toLowerCase() === 'plus' ||
-        userPackage.package_membership_ID === 3;
-
-      const isActive = userPackage.isActive && !userPackage.isExpired;
-
-      console.log('🔍 Checking user current package:', {
-        packageName: userPackage.name,
-        category: userPackage.category,
-        packageId: userPackage.package_membership_ID,
-        isActive: userPackage.isActive,
-        isExpired: userPackage.isExpired,
-        isPlus,
-        finalResult: isPlus && isActive
-      });
-
-      return isPlus && isActive;
-    }
-
-    console.log('❌ No active Plus package found');
-    return false;
-  };
-
   // Extract accountId từ user object
   const getAccountId = (userObj) => {
     if (!userObj) return null;
-
-    // Try different possible properties
     if (userObj.accountId) return userObj.accountId;
     if (userObj.id) return userObj.id;
     if (userObj.userId) return userObj.userId;
-
-    // Extract from JWT claims
     const nameIdentifier = userObj["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
     if (nameIdentifier) return parseInt(nameIdentifier);
-
     return null;
   };
 
@@ -100,26 +49,13 @@ export default function Coach() {
 
   // Kiểm tra quyền truy cập
   const checkAccess = () => {
-    console.log('🔐 Checking Coach page access:', {
-      hasToken: !!token,
-      hasUser: !!user,
-      accountId,
-      hasActivePlusPackage: hasActivePlusPackage()
-    });
-
-    // Kiểm tra đăng nhập
     if (!token || !user) {
-      console.log('❌ Access denied: Not logged in');
       return { allowed: false, reason: 'login' };
     }
-
-    // Kiểm tra gói Plus
-    if (!hasActivePlusPackage()) {
-      console.log('❌ Access denied: No active Plus package');
+    // Chỉ cần packageMembershipId === 3 là được nhắn tin
+    if (user.packageMembershipId !== 3) {
       return { allowed: false, reason: 'package' };
     }
-
-    console.log('✅ Access granted: User has active Plus package');
     return { allowed: true };
   };
 
@@ -165,19 +101,14 @@ export default function Coach() {
   // Auto refresh messages khi có coach được chọn
   useEffect(() => {
     if (selectedCoach && accountId && accessCheck.allowed && isAutoRefreshEnabled) {
-      // Clear interval cũ nếu có
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
       }
-
-      // Set up polling để check tin nhắn mới mỗi 3 giây
       pollIntervalRef.current = setInterval(async () => {
         setIsAutoFetching(true)
-        await fetchConversationWithCoach(selectedCoach.accountId, true) // true = silent fetch
+        await fetchConversationWithCoach(selectedCoach.accountId, true)
         setIsAutoFetching(false)
       }, 3000)
-
-      // Cleanup khi component unmount hoặc thay đổi coach
       return () => {
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current)
@@ -186,7 +117,6 @@ export default function Coach() {
     }
   }, [selectedCoach, accountId, accessCheck.allowed, isAutoRefreshEnabled])
 
-  // Cleanup polling khi component unmount
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) {
@@ -343,31 +273,6 @@ export default function Coach() {
               border: 1px solid ${COLORS.color1};
               max-width: 500px;
             }
-            .access-button {
-              background: ${COLORS.gradient};
-              color: ${COLORS.white};
-              border: none;
-              border-radius: 12px;
-              padding: 1rem 2rem;
-              font-weight: 600;
-              font-size: 1rem;
-              cursor: pointer;
-              transition: all 0.3s ease;
-              margin: 0.5rem;
-            }
-            .access-button:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 8px 24px rgba(106, 183, 197, 0.4);
-            }
-            .secondary-button {
-              background: transparent;
-              color: ${COLORS.color3};
-              border: 2px solid ${COLORS.color1};
-            }
-            .secondary-button:hover {
-              background: ${COLORS.color1};
-              border-color: ${COLORS.color2};
-            }
             .feature-list {
               text-align: left;
               margin: 2rem 0;
@@ -417,23 +322,6 @@ export default function Coach() {
                   <span style={{ fontSize: '1.2rem' }}>🎯</span>
                   <span>Kế hoạch cai nghiện chuyên sâu</span>
                 </div>
-              </div>
-
-              <div style={{ marginTop: '2rem' }}>
-                <button
-                  className="access-button"
-                  onClick={() => navigate('/payment')}
-                >
-                  <i className="fas fa-crown" style={{ marginRight: '0.5rem' }}></i>
-                  Nâng cấp lên Plus
-                </button>
-                <button
-                  className="access-button secondary-button"
-                  onClick={() => navigate('/')}
-                >
-                  <i className="fas fa-home" style={{ marginRight: '0.5rem' }}></i>
-                  Về trang chủ
-                </button>
               </div>
 
               <p style={{
@@ -489,7 +377,6 @@ export default function Coach() {
           ]
         }
 
-        // Chỉ cập nhật messages nếu có thay đổi (để tránh scroll không cần thiết)
         setMessages(prevMessages => {
           const hasChanges = JSON.stringify(prevMessages) !== JSON.stringify(formattedMessages)
           return hasChanges ? formattedMessages : prevMessages
@@ -514,7 +401,6 @@ export default function Coach() {
 
   const handleSend = async (e) => {
     e.preventDefault()
-
     if (!input.trim() || !selectedCoach || !accountId || !token) return
 
     const userMsg = {
@@ -576,11 +462,9 @@ export default function Coach() {
   // Lấy danh sách coaches từ API
   const fetchCoaches = async () => {
     if (!token) {
-      console.log("No token available")
       setLoadingCoaches(false)
       return
     }
-
     try {
       setLoadingCoaches(true)
       const response = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/all-coaches", {
@@ -589,7 +473,6 @@ export default function Coach() {
           'Content-Type': 'application/json'
         }
       })
-
       if (response.ok) {
         const data = await response.json()
         setCoaches(data || [])
@@ -603,28 +486,8 @@ export default function Coach() {
     }
   }
 
-  // Format time helper function
-  const formatTime = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return 'Vừa xong';
-    if (diffMins < 60) return `${diffMins} phút trước`;
-    if (diffHours < 24) return `${diffHours} giờ trước`;
-    if (diffDays < 7) return `${diffDays} ngày trước`;
 
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   // Chọn coach để chat
   const selectCoach = (coach) => {
@@ -1168,41 +1031,7 @@ export default function Coach() {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <button
-                  onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
-                  style={{
-                    background: isAutoRefreshEnabled ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                    border: `1px solid ${isAutoRefreshEnabled ? '#22c55e' : '#ef4444'}`,
-                    borderRadius: '8px',
-                    color: isAutoRefreshEnabled ? '#22c55e' : '#ef4444',
-                    padding: '0.25rem 0.5rem',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    fontWeight: '500'
-                  }}
-                  title={isAutoRefreshEnabled ? 'Tắt tự động tải tin nhắn' : 'Bật tự động tải tin nhắn'}
-                >
-                  {isAutoRefreshEnabled ? '🟢 Auto' : '🔴 Manual'}
-                </button>
-                <div style={{
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  color: '#10B981',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '12px',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}>
-                  <div style={{
-                    width: '6px',
-                    height: '6px',
-                    background: '#10B981',
-                    borderRadius: '50%',
-                    animation: 'pulse 2s infinite'
-                  }}></div>
-                  Plus Member
-                </div>
+
               </div>
             </div>
 
@@ -1217,11 +1046,6 @@ export default function Coach() {
                   {messages.map((msg, idx) => (
                     <div key={idx} className={`message ${msg.from === "user" ? "message-user" : "message-coach"}`}>
                       {msg.text}
-                      {msg.timestamp && (
-                        <div className="message-time">
-                          {formatTime(msg.timestamp)}
-                        </div>
-                      )}
                     </div>
                   ))}
 

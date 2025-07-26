@@ -38,8 +38,8 @@ export default function Login() {
     // Handle Redux error
     useEffect(() => {
         if (error) {
-            console.log("❌ Login error:", error);
-            setErrorMessage(error.message || error || "Đăng nhập thất bại");
+            setSuccess(""); // Clear success
+            setErrorMessage("Đăng nhập thất bại");
             setShowToast(true);
 
             setTimeout(() => {
@@ -50,78 +50,31 @@ export default function Login() {
 
     // Handle successful login
     useEffect(() => {
-        console.log("🔍 Login useEffect:", {
-            user: !!user,
-            token: !!token,
-            loading,
-            error,
-            userObject: user
-        });
-
         if (user && token && !loading && !error) {
-            try {
-                // Lấy role từ user object (sử dụng cả JWT claims và fallback)
+            setErrorMessage(""); // Clear error
+            setSuccess("Đăng nhập thành công");
+            setShowToast(true);
+
+            setTimeout(() => {
+                setShowToast(false);
+                // Redirect sau delay
                 const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
                     user.role ||
                     null;
-
-                console.log("✅ Login success - User:", user);
-                console.log("✅ Login success - Role:", userRole, "- Redirecting...");
-                console.log("✅ User Current Package:", user.currentPackage);
-                console.log("✅ Package Status:", user.packageStatus);
-                console.log("Current packageMembershipId:", user?.packageMembershipId);
-
-                // Hiển thị thông tin gói chi tiết nếu có
-                if (user.currentPackage) {
-                    const pkg = user.currentPackage;
-                    console.log(`📦 Gói hiện tại: ${pkg.name}`);
-                    console.log(`💰 Giá: ${pkg.price} VND`);
-                    console.log(`📅 Ngày bắt đầu: ${new Date(pkg.startDate).toLocaleDateString('vi-VN')}`);
-                    console.log(`📅 Ngày hết hạn: ${new Date(pkg.endDate).toLocaleDateString('vi-VN')}`);
-                    console.log(`⏰ Trạng thái: ${pkg.isActive ? 'Đang hoạt động' : 'Không hoạt động'}`);
-
-                    if (pkg.isExpired) {
-                        console.log(`⚠️ Gói đã hết hạn`);
-                    } else if (pkg.isActive) {
-                        console.log(`✅ Gói còn lại: ${pkg.daysLeft} ngày`);
-                    }
-
-                    console.log(`🔄 Mã giao dịch: ${pkg.transactionCode}`);
-                } else {
-                    console.log("📦 Chưa có gói nào được kích hoạt");
+                switch (userRole?.toString().trim()) {
+                    case "Admin":
+                        navigate("/admin", { replace: true });
+                        break;
+                    case "Coach":
+                        navigate("/coachpage", { replace: true });
+                        break;
+                    case "Member":
+                        navigate("/", { replace: true });
+                        break;
+                    default:
+                        navigate("/", { replace: true });
                 }
-
-                setSuccess("Đăng nhập thành công!");
-                setShowToast(true);
-                setErrorMessage(""); // Clear any previous errors
-
-                // Redirect sau delay
-                setTimeout(() => {
-                    setShowToast(false);
-
-                    switch (userRole?.toString().trim()) {
-                        case "Admin":
-                            console.log("🚀 Navigating to /admin");
-                            navigate("/admin", { replace: true });
-                            break;
-                        case "Coach":
-                            console.log("🚀 Navigating to /coachpage");
-                            navigate("/coachpage", { replace: true });
-                            break;
-                        case "Member":
-                            console.log("🚀 Navigating to /");
-                            navigate("/", { replace: true });
-                            break;
-                        default:
-                            console.log("🚀 Unknown role, navigating to /");
-                            navigate("/", { replace: true });
-                    }
-                }, 1200);
-            } catch (err) {
-                console.error("Error during login redirect:", err);
-                setErrorMessage("Có lỗi xảy ra khi đăng nhập");
-                setShowToast(true);
-            }
+            }, 1000);
         }
     }, [user, token, loading, error, navigate]);
 
@@ -171,9 +124,8 @@ export default function Login() {
     useEffect(() => {
         if (token && user) {
             login(token, user); // <-- Đảm bảo dòng này được gọi
-            navigate("/coachpage/members");
         }
-    }, [token, user, login, navigate]);
+    }, [token, user, login]);
 
     return (
         <div

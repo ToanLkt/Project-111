@@ -43,6 +43,7 @@ import ResetPassword from "../page/ResetPassword";
 import LoginGoogle from "../components/LoginGoogle";
 import AdminSettings from "../page/admin/AdminSettings";
 import AdminRanking from "../page/admin/AdminRanking";
+import HistoryPayment from "../page/member/HistoryPayment";
 
 export default function AppRoutes() {
   console.log("🔥 AppRoutes rendering...");
@@ -90,6 +91,7 @@ export default function AppRoutes() {
         <Route path="confirm-register" element={<ConfirmRegister />} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="start-information" element={<StartInformation />} />
+        <Route path="payment" element={<Payment />} />
 
         {/* Member-only routes */}
         <Route
@@ -149,10 +151,10 @@ export default function AppRoutes() {
           }
         />
         <Route
-          path="payment"
+          path="member/historyPayment"
           element={
             <ProtectedRoute allowedRoles={["Member"]}>
-              <Payment />
+              <HistoryPayment />
             </ProtectedRoute>
           }
         />

@@ -11,6 +11,8 @@ export default function Register() {
     const [sex, setSex] = useState(true);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [toastMsg, setToastMsg] = useState("");
     const navigate = useNavigate();
 
     // Palette
@@ -38,7 +40,7 @@ export default function Register() {
                     fullName: name,
                     phoneNumber: phone,
                     birthday,
-                    sex // boolean true/false
+                    sex
                 })
             });
             let apiMsg = "";
@@ -61,9 +63,16 @@ export default function Register() {
                 setLoading(false);
                 return;
             }
-            setError("Đăng ký thành công!\n" + apiMsg);
+
+            // Hiện toast popup thành công
+            setToastMsg("Vui lòng kiểm tra mail để xác nhận tài khoản");
+            setShowToast(true);
+            setError("");
             setLoading(false);
-            setTimeout(() => navigate("/login"), 1500);
+            setTimeout(() => {
+                setShowToast(false);
+                navigate("/login");
+            }, 5000);
         } catch (err) {
             setError("Đăng ký thất bại: " + err.message);
             setLoading(false);
@@ -289,6 +298,28 @@ export default function Register() {
                     </a>
                 </div>
             </form>
+
+            {showToast && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 32,
+                        right: 32,
+                        zIndex: 9999,
+                        background: "#27ae60",
+                        color: "#fff",
+                        padding: "16px 32px",
+                        borderRadius: 10,
+                        fontWeight: 600,
+                        fontSize: 17,
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                        transition: "all 0.3s",
+                        animation: "fadeIn 0.5s",
+                    }}
+                >
+                    {toastMsg}
+                </div>
+            )}
         </div>
     );
 }

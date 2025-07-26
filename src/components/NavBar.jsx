@@ -5,7 +5,7 @@ import { useAuth } from "../AuthContext/AuthContext"
 import "bootstrap/dist/css/bootstrap.min.css"
 import { useSelector, useDispatch } from "react-redux"
 import { logout as logoutAction } from "../redux/login/loginSlice"
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { safeNavigate, clearUserData, handleLogoutError } from '../utils/navigationUtils'
 
@@ -54,11 +54,9 @@ export default function NavBar() {
   }
 
   const getUserName = () => {
-    const email = getUserEmail()
-    if (email) {
-      return email.split("@")[0] // Lấy phần trước @ của email
-    }
-    return "User"
+    if (!user) return "User";
+    // Ưu tiên fullName, fallback về email nếu không có
+    return user.fullName || getUserEmail() || "User";
   }
 
   const getUserInitial = () => {
@@ -93,8 +91,7 @@ export default function NavBar() {
       navigate(`/login?returnUrl=${encodeURIComponent(item.to)}`)
       return
     }
-    // Đối với ranking và feedback: Cho phép truy cập nhưng sẽ có giới hạn chức năng
-    // Logic giới hạn sẽ được xử lý trong từng component tương ứng
+
   }
 
   // Xử lý click cho mobile menu
@@ -164,6 +161,12 @@ export default function NavBar() {
       }
     }, 300)
   }
+  // Thêm state cho toast thông báo
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastColor, setToastColor] = useState("#27ae60");
+
+  // Sửa hàm handleLogout để hiện thông báo màu đỏ
   const handleLogout = async () => {
     try {
       console.log("🚪 Starting logout process...")
@@ -183,12 +186,16 @@ export default function NavBar() {
         }
       }
 
-      console.log("✅ Logout completed, redirecting to home...")
+      // Hiện toast thông báo thành công với màu đỏ
+      setToastMessage("Đã đăng xuất");
+      setToastColor("#CC0000");
+      setShowToast(true);
 
       // Safe navigation với delay nhỏ
       setTimeout(() => {
-        safeNavigate(navigate, "/")
-      }, 100)
+        setShowToast(false);
+
+      }, 1000)
 
     } catch (error) {
       console.error("❌ Logout error:", error)
@@ -219,6 +226,29 @@ export default function NavBar() {
 
   return (
     <>
+      {/* Toast notification */}
+      {showToast && (
+        <div
+          style={{
+            position: "fixed",
+            top: 32,
+            right: 32,
+            zIndex: 9999,
+            background: toastColor,
+            color: "#fff",
+            padding: "16px 32px",
+            borderRadius: 10,
+            fontWeight: 600,
+            fontSize: 17,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+            transition: "all 0.3s",
+            animation: "fadeIn 0.5s",
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
       <style jsx>{`
         .navbar-container {
           position: relative;
@@ -787,7 +817,7 @@ export default function NavBar() {
                         disabled={loading}
                       >
                         <div className="navbar-user-avatar">{getUserInitial()}</div>
-                        <span className="d-none d-sm-inline text-truncate" style={{ maxWidth: "120px" }}>
+                        <span className="d-none d-sm-inline">
                           {getUserName()}
                         </span>
                         <i className="fas fa-chevron-down" style={{ fontSize: "0.8rem" }}></i>
@@ -808,6 +838,15 @@ export default function NavBar() {
                           >
                             <i className="fas fa-user"></i>
                             Thông tin cá nhân
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            to="/member/historyPayment"
+                            className="dropdown-item navbar-dropdown-item"
+                          >
+                            <i className="fas fa-history"></i>
+                            Lịch sử giao dịch
                           </Link>
                         </li>
 

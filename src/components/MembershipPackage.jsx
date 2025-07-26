@@ -120,9 +120,17 @@ export default function MembershipPackage() {
     if (!token) return false
     if (userRole !== "Member") return false
     if (pkg.status !== "Active") return false
-    // Nếu đã có gói hiện tại, không cho mua gói khác
-    if (currentPackageMembershipId && currentPackageMembershipId !== pkg.package_membership_ID) return false;
-    return true
+
+    // Nếu chưa có gói nào hoặc gói đã hết hạn thì được mua tất cả các gói
+    if (!currentPackageMembershipId || currentPackageMembershipId === 0) return true
+
+    // FREE: cho phép mua BASIC hoặc PLUS
+    if (currentPackageMembershipId === 1) return pkg.package_membership_ID !== 1
+    // BASIC: chỉ cho phép mua PLUS
+    if (currentPackageMembershipId === 2) return pkg.package_membership_ID === 3
+    // PLUS: không cho phép mua gì nữa
+    if (currentPackageMembershipId === 3) return false
+    return false
   }
 
   // Hàm lấy nhãn button phù hợp
@@ -158,12 +166,27 @@ export default function MembershipPackage() {
       showToast("Chỉ tài khoản thành viên mới được mua gói!", "warning")
       return
     }
-    if (currentPackageMembershipId && currentPackageMembershipId !== 1) {
-      showToast("Bạn đang sử dụng một gói khác, không thể mua thêm!", "warning")
-      return
-    }
-    if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
-      showToast("Bạn đã có gói Free!", "warning")
+    if (!canRegisterPackage(pkg)) {
+      if (!currentPackageMembershipId) {
+        showToast("Không xác định gói hiện tại!", "warning")
+        return
+      }
+      // FREE: không cho mua lại FREE
+      if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
+        showToast("Bạn đã có gói Free!", "warning")
+        return
+      }
+      // BASIC: chỉ cho phép nâng cấp lên PLUS
+      if (currentPackageMembershipId === 2) {
+        showToast("Chỉ có thể nâng cấp lên gói Plus!", "warning")
+        return
+      }
+      // PLUS: không cho phép mua gì nữa
+      if (currentPackageMembershipId === 3) {
+        showToast("Bạn đang sử dụng gói cao nhất!", "warning")
+        return
+      }
+      showToast("Không thể đăng ký gói này!", "warning")
       return
     }
     navigate("/payment", {

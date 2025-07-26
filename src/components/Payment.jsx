@@ -21,6 +21,8 @@ import {
   clearCurrentPackage,
   createPaymentSuccess,
 } from "../redux/components/payment/paymentSlice"
+import { updateUserPackageMembershipId } from "../redux/login/loginSlice"; // Thêm import này
+import { fetchSuccess } from "../redux/login/loginSlice"; // Đã có action này
 
 // Thông tin ngân hàng
 const BANK_ID = "970422" // MB Bank
@@ -168,6 +170,10 @@ export default function Payment() {
   const [transactionCode, setTransactionCode] = useState("")
   const [selectedPackageId, setSelectedPackageId] = useState(null)
 
+  // Thêm state cho popup xác nhận Free
+  const [showFreeConfirm, setShowFreeConfirm] = useState(false)
+  const [freePkg, setFreePkg] = useState(null)
+
   // Debug log để theo dõi payment state
   useEffect(() => {
     if (showQR && buyingPkg && transactionCode) {
@@ -290,8 +296,26 @@ export default function Payment() {
         ...paymentSuccess,
         packageInfo: newCurrentPackage
       }))
+      dispatch(updateUserPackageMembershipId(buyingPkg.package_membership_ID)); // Cập nhật packageMembershipId trong Redux user
 
       showToast(`✅ Thanh toán thành công! Gói ${buyingPkg.category} đã được kích hoạt.`, "success")
+
+      // Fetch lại profile từ backend để cập nhật user mới nhất vào Redux và localStorage
+      const fetchProfile = async () => {
+        try {
+          const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const userData = await res.json();
+            dispatch(fetchSuccess({ user: userData, token }));
+            localStorage.setItem('user', JSON.stringify(userData)); // Cập nhật user mới vào localStorage
+          }
+        } catch (e) {
+          // ignore
+        }
+      };
+      fetchProfile();
 
       // Stop checking và đóng QR
       setShowQR(false)
@@ -299,18 +323,15 @@ export default function Payment() {
       dispatch(stopTransactionCheck())
 
       // Refresh user transactions để đồng bộ với server
-      console.log("🔄 Refreshing user transactions...")
       dispatch(fetchUserTransactionsRequest())
 
-      // Navigate về home sau 3 giây
+      // Chỉ duy nhất 1 nơi reload lại web để cập nhật user/package mới
       const navTimer = setTimeout(() => {
-        console.log("🏠 Navigating to home...")
-        navigate("/")
-      }, 3000)
+        window.location.reload();
+      }, 2000); // reload sau 2 giây (hoặc 3000ms tuỳ ý)
 
       // Clear payment state sau 5 giây (nhưng giữ current package)
       const clearTimer = setTimeout(() => {
-        console.log("🧹 Clearing payment state...")
         dispatch(clearPaymentState())
         dispatch(clearTransactionCheck())
       }, 5000)
@@ -320,7 +341,7 @@ export default function Payment() {
         clearTimeout(clearTimer)
       }
     }
-  }, [paymentSuccess, navigate, dispatch, buyingPkg, transactionCode])
+  }, [paymentSuccess, buyingPkg, token, dispatch])
 
   // Handle verified transaction từ saga
   useEffect(() => {
@@ -338,12 +359,6 @@ export default function Payment() {
       setShowQR(false)
       setBuyingPkg(null)
       showToast("✅ Giao dịch đã được xác thực! Đang lưu vào hệ thống...", "success")
-
-      // Navigate về home sau 3 giây
-      setTimeout(() => {
-        console.log("🏠 Navigating to home...")
-        navigate("/")
-      }, 3000)
     }
   }, [verifiedTransactions, buyingPkg, transactionCode, navigate])
 
@@ -403,6 +418,31 @@ export default function Payment() {
     }
   }, [showQR, buyingPkg, transactionCode, dispatch])
 
+  // Lấy packageMembershipId từ Redux user
+  const getCurrentPackageMembershipId = () => {
+    return user?.packageMembershipId || null
+  }
+
+  // Hàm kiểm tra gói hiện tại
+  const isCurrentPackage = (pkg) => {
+    return getCurrentPackageMembershipId() === pkg.package_membership_ID
+  }
+
+  // Lọc packages theo quyền nâng cấp
+  const getFilteredPackages = () => {
+    const currentId = getCurrentPackageMembershipId()
+    if (currentId === 2) {
+      return packages.filter(pkg => pkg.package_membership_ID === 3)
+    }
+    if (currentId === 1) {
+      return packages.filter(pkg => pkg.package_membership_ID === 2 || pkg.package_membership_ID === 3)
+    }
+    if (currentId === 3) {
+      return []
+    }
+    return packages
+  }
+
   // Cập nhật logic lấy current package - ưu tiên từ Redux state
   const getCurrentPackage = () => {
     // Ưu tiên current package từ payment state (vừa mua)
@@ -414,109 +454,6 @@ export default function Payment() {
     // Fallback về current package từ user object
     console.log('🔍 getCurrentPackage from user object:', currentPackageFromUser)
     return currentPackageFromUser
-  }
-
-  // Cập nhật logic kiểm tra gói hiện tại
-  const isCurrentPackage = (pkg) => {
-    const activePackage = getCurrentPackage()
-
-    if (!activePackage) return false
-
-    // So sánh theo package_membership_ID nếu có
-    if (activePackage.package_membership_ID && pkg.package_membership_ID) {
-      const isMatchingId = activePackage.package_membership_ID === pkg.package_membership_ID
-      const isActivePackage = activePackage.isActive && !activePackage.isExpired
-
-      console.log('🔍 Checking current package by ID:', {
-        packageId: pkg.package_membership_ID,
-        currentPackageId: activePackage.package_membership_ID,
-        isMatchingId,
-        isActivePackage
-      })
-
-      return isMatchingId && isActivePackage
-    }
-
-    // Fallback: So sánh theo category (tên gói)
-    const isMatchingCategory = activePackage.name?.toLowerCase() === pkg.category?.toLowerCase()
-    const isActivePackage = activePackage.isActive && !activePackage.isExpired
-
-    console.log('🔍 Checking current package by category:', {
-      packageCategory: pkg.category,
-      currentPackageName: activePackage.name,
-      isMatchingCategory,
-      isActivePackage
-    })
-
-    return isMatchingCategory && isActivePackage
-  }
-
-  // Cập nhật logic kiểm tra có thể đăng ký gói không
-  const canRegisterPackage = (pkg) => {
-    // Không thể đăng ký nếu chưa đăng nhập
-    if (!token) return false
-
-    // Không thể đăng ký nếu không phải Member
-    if (userRole !== "Member") return false
-
-    // Không thể đăng ký nếu gói không active
-    if (pkg.status !== "Active") return false
-
-    // Nếu đang sử dụng gói này
-    if (isCurrentPackage(pkg)) return false
-
-    // Kiểm tra gói hiện tại
-    const activePackage = getCurrentPackage()
-
-    if (activePackage && activePackage.isActive && !activePackage.isExpired) {
-      const currentPackageMembershipId = activePackage.package_membership_ID
-      const targetPackageId = pkg.package_membership_ID
-
-      console.log('🔍 Payment upgrade logic check:', {
-        currentPackageName: activePackage.name,
-        currentPackageMembershipId,
-        targetPackageId,
-        upgradeRules: 'ID1->ID2,3 | ID2->ID3 | ID3->none'
-      })
-
-      // ✅ QUYỀN NÂNG CẤP THEO YÊU CẦU:
-      // Gói 1 (FREE): Có thể mua gói 2 và 3
-      if (currentPackageMembershipId === 1) {
-        if (targetPackageId === 1) {
-          console.log('🚫 Cannot register same free package')
-          return false
-        }
-        if (targetPackageId === 2 || targetPackageId === 3) {
-          console.log('✅ Can upgrade from FREE to BASIC/PLUS')
-          return true
-        }
-      }
-
-      // Gói 2 (BASIC): Chỉ có thể mua gói 3
-      if (currentPackageMembershipId === 2) {
-        if (targetPackageId === 1 || targetPackageId === 2) {
-          console.log('🚫 Cannot downgrade from BASIC or buy same package')
-          return false
-        }
-        if (targetPackageId === 3) {
-          console.log('✅ Can upgrade from BASIC to PLUS')
-          return true
-        }
-      }
-
-      // Gói 3 (PLUS): Không thể mua gói khác khi chưa hết hạn
-      if (currentPackageMembershipId === 3) {
-        console.log('🚫 Cannot upgrade from PLUS - highest package')
-        return false
-      }
-
-      // Nếu có package ID khác không nằm trong quy tắc
-      console.log('🚫 Unknown package upgrade rule')
-      return false
-    }
-
-    // Nếu không có gói hiện tại hoặc đã hết hạn, cho phép mua bất kỳ gói nào
-    return true
   }
 
   // Cập nhật logic lấy button label
@@ -570,18 +507,15 @@ export default function Payment() {
         }
       }
 
-      // Gói 3 (PLUS): Không thể mua gói khác
+      // Gói 3 (PLUS): Không thể mua gói khác khi chưa hết hạn
       if (currentPackageMembershipId === 3) {
-        if (targetPackageId === 1 || targetPackageId === 2) {
-          return "Không thể hạ cấp"
-        }
-        if (targetPackageId === 3) {
-          return `Đã có gói ${activePackage.name}`
-        }
+        console.log('🚫 Cannot upgrade from PLUS - highest package')
+        return false
       }
 
-      console.log('⚠️ Fallback button label case')
-      return `Đã có gói ${activePackage.name}`
+      // Nếu có package ID khác không nằm trong quy tắc
+      console.log('🚫 Unknown package upgrade rule')
+      return false
     }
 
     return "Mua gói ngay"
@@ -686,12 +620,8 @@ export default function Payment() {
 
   // LOGIC GIỐNG MEMBERSHIPPACKAGE: Handle register với validation
   const handleRegister = async (pkg) => {
-    console.log("🎯 Payment register attempt:", {
-      hasToken: !!token,
-      userRole,
-      packageId: pkg.package_membership_ID,
-      currentPackage: currentPackageFromUser
-    })
+    const activePackage = getCurrentPackage()
+    const currentPackageMembershipId = activePackage?.package_membership_ID
 
     if (!token) {
       showToast("Vui lòng đăng nhập để mua gói", "warning")
@@ -704,59 +634,99 @@ export default function Payment() {
       return
     }
 
-    // Kiểm tra gói hiện tại từ user object
-    if (currentPackageFromUser && currentPackageFromUser.isActive && !currentPackageFromUser.isExpired) {
-      // Tìm package hiện tại từ danh sách packages để lấy package_membership_ID
-      const currentPackageInfo = packages.find(p =>
-        p.category?.toLowerCase() === currentPackageFromUser.name?.toLowerCase()
-      )
-
-      const currentPackageMembershipId = currentPackageInfo?.package_membership_ID
-
-      console.log("🔍 Payment current package check:", {
-        currentPackageMembershipId,
-        currentPackageName: currentPackageFromUser.name,
-        targetPackageId: pkg.package_membership_ID,
-        canUpgrade: currentPackageMembershipId === 1
-      })
-
-      // Nếu gói hiện tại không phải ID = 1, không cho phép mua gói khác
-      if (currentPackageMembershipId !== 1) {
-        const daysLeft = currentPackageFromUser.daysLeft || 0
-        showToast(`Bạn đang có gói ${currentPackageFromUser.name} còn ${daysLeft} ngày! Chỉ gói Free mới có thể nâng cấp.`, "warning")
+    if (!canRegisterPackage(pkg)) {
+      if (!currentPackageMembershipId) {
+        showToast("Không xác định gói hiện tại!", "warning")
         return
       }
-
-      // Nếu là gói Free (ID = 1), kiểm tra không được mua lại chính gói Free
       if (currentPackageMembershipId === 1 && pkg.package_membership_ID === 1) {
-        const daysLeft = currentPackageFromUser.daysLeft || 0
-        showToast(`Bạn đã có gói ${currentPackageFromUser.name} còn ${daysLeft} ngày!`, "warning")
+        showToast("Bạn đã có gói Free!", "warning")
         return
       }
-
-      // Gói Free có thể upgrade lên gói khác
-      if (currentPackageMembershipId === 1 && pkg.package_membership_ID !== 1) {
-        console.log("✅ Upgrading from Free package to:", pkg.category)
-        showToast(`Nâng cấp từ gói ${currentPackageFromUser.name} lên ${pkg.category}`, "success")
+      if (currentPackageMembershipId === 2) {
+        showToast("Chỉ có thể nâng cấp lên gói Plus!", "warning")
+        return
       }
+      if (currentPackageMembershipId === 3) {
+        showToast("Bạn đang sử dụng gói cao nhất!", "warning")
+        return
+      }
+      showToast("Không thể đăng ký gói này!", "warning")
+      return
     }
 
-    try {
-      console.log("✅ Opening QR for package:", pkg);
+    // Nếu là gói Free thì hiện popup xác nhận
+    if (pkg.price === 0) {
+      setFreePkg(pkg)
+      setShowFreeConfirm(true)
+      return
+    }
 
-      // Clear any previous payment errors before starting new payment
-      if (paymentError) {
-        console.log("🧹 Clearing previous payment error before new attempt")
-        dispatch(clearPaymentState())
+    // Các gói khác (trả phí) phải mở QR để thanh toán
+    setBuyingPkg(pkg)
+    setShowQR(true)
+  }
+
+  // Hàm xác nhận dùng gói Free
+  const handleConfirmFree = async () => {
+    if (!freePkg) return
+    try {
+      // Tạo payload giống như thanh toán thành công
+      const now = new Date()
+      const endDate = new Date(now.getTime() + (freePkg.duration * 24 * 60 * 60 * 1000))
+      const newCurrentPackage = {
+        name: freePkg.category,
+        category: freePkg.category,
+        package_membership_ID: freePkg.package_membership_ID,
+        duration: freePkg.duration,
+        price: freePkg.price,
+        startDate: now.toISOString(),
+        endDate: endDate.toISOString(),
+        daysLeft: freePkg.duration,
+        isActive: true,
+        isExpired: false,
+        paymentDate: now.toISOString(),
+        transactionCode: "FREE"
       }
 
-      // Hiển thị QR - transactionCode sẽ được tạo trong useEffect
-      setBuyingPkg(pkg);
-      setShowQR(true);
+      // Gọi API cập nhật gói (giống như savePaymentTransaction)
+      const paymentPayload = {
+        packageMembershipId: freePkg.package_membership_ID,
+        timeBuy: now.toISOString(),
+        totalPrice: 0,
+        startDate: now.toISOString(),
+        endDate: endDate.toISOString(),
+        paymentStatus: "Success",
+        transactionCode: "FREE"
+      }
 
+      const response = await fetch(
+        "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Payment/create",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(paymentPayload)
+        }
+      )
+
+      if (response.ok) {
+        dispatch(updateCurrentPackage(newCurrentPackage))
+        dispatch(createPaymentSuccess(await response.json()))
+        showToast("✅ Đã đăng ký gói Free thành công!", "success")
+        setShowFreeConfirm(false)
+        setFreePkg(null)
+        // Optionally chuyển về trang chủ hoặc reload
+        setTimeout(() => {
+          navigate("/")
+        }, 1500)
+      } else {
+        showToast("❌ Đăng ký gói Free thất bại!", "error")
+      }
     } catch (error) {
-      console.error("❌ Failed to create payment:", error);
-      showToast("❌ Không thể tạo thanh toán. Vui lòng thử lại.", "warning");
+      showToast("❌ Đăng ký gói Free thất bại!", "error")
     }
   }
 
@@ -768,20 +738,32 @@ export default function Payment() {
     }
 
     try {
-      console.log("🔧 Manual payment confirmation:", {
-        package: buyingPkg.category,
-        transactionCode,
-        price: buyingPkg.price
+      // Gọi API Google Sheet để lấy danh sách giao dịch
+      const res = await fetch(TRANSACTION_API)
+      const text = await res.text()
+      // Xử lý dữ liệu JSONP trả về từ Google Sheets
+      const json = JSON.parse(text.substring(47, text.length - 2))
+      const rows = json.table.rows
+
+      // Tìm giao dịch phù hợp: đúng số tiền và đúng nội dung chuyển khoản
+      const expectedContent = `THANHTOAN${buyingPkg.category.toUpperCase()}${buyingPkg.package_membership_ID}${transactionCode}`
+      const expectedAmount = buyingPkg.price
+
+      const found = rows.find(row => {
+        // Ghép nội dung các cột lại để kiểm tra
+        const content =
+          (row.c[1]?.v?.toString().toUpperCase() || "") +
+          (row.c[2]?.v?.toString().toUpperCase() || "") +
+          (row.c[3]?.v?.toString().toUpperCase() || "");
+        const amount = parseInt(row.c[2]?.v || row.c[3]?.v || "0", 10);
+        return content.includes(expectedContent) && amount === expectedAmount;
       })
 
-      // Lưu giao dịch vào database
-      const result = await savePaymentTransaction(buyingPkg, { transactionCode })
-
-      if (result) {
-        // Cập nhật current package
+      if (found) {
+        // Nếu tìm thấy, lưu giao dịch và cập nhật gói như thanh toán thành công
+        await savePaymentTransaction(buyingPkg, { transactionCode })
         const now = new Date()
         const endDate = new Date(now.getTime() + (buyingPkg.duration * 24 * 60 * 60 * 1000))
-
         const newCurrentPackage = {
           name: buyingPkg.category,
           category: buyingPkg.category,
@@ -796,24 +778,21 @@ export default function Payment() {
           paymentDate: now.toISOString(),
           transactionCode: transactionCode
         }
-
         dispatch(updateCurrentPackage(newCurrentPackage))
-        dispatch(createPaymentSuccess(result))
-
-        showToast("✅ Xác nhận thanh toán thành công!", "success")
-
-        // Đóng QR modal
+        showToast("✅ Đã xác nhận thanh toán thành công!", "success")
         setShowQR(false)
         setBuyingPkg(null)
-
-        // Navigate về home sau 2 giây
+        // Thay vì navigate("/"), hãy reload lại trang
         setTimeout(() => {
-          navigate("/")
-        }, 2000)
+          window.location.href = "/"
+        }, 1500)
+      } else {
+        // Nếu chưa có giao dịch
+        showToast("❌ Chưa có giao dịch phù hợp!", "warning")
+        // KHÔNG đóng QR, giữ nguyên modal
       }
     } catch (error) {
-      console.error("❌ Manual confirmation failed:", error)
-      showToast("❌ Xác nhận thanh toán thất bại. Vui lòng thử lại.", "error")
+      showToast("❌ Lỗi kiểm tra giao dịch!", "error")
     }
   }
 
@@ -940,6 +919,28 @@ export default function Payment() {
         <Footer />
       </>
     )
+  }
+
+  // Hàm kiểm tra có thể đăng ký/mua gói này không (đồng bộ với MembershipPackage)
+  const canRegisterPackage = (pkg) => {
+    if (!token) return false
+    if (userRole !== "Member") return false
+    if (pkg.status !== "Active") return false
+
+    // Lấy packageMembershipId hiện tại từ Redux user
+    const currentPackageMembershipId = getCurrentPackageMembershipId()
+
+    // Nếu chưa có gói nào hoặc gói đã hết hạn thì được mua tất cả các gói
+    // (Bạn có thể bổ sung điều kiện hết hạn nếu có biến isExpired)
+    if (!currentPackageMembershipId || currentPackageMembershipId === 0) return true
+
+    // FREE: cho phép mua BASIC hoặc PLUS
+    if (currentPackageMembershipId === 1) return pkg.package_membership_ID !== 1
+    // BASIC: chỉ cho phép mua PLUS
+    if (currentPackageMembershipId === 2) return pkg.package_membership_ID === 3
+    // PLUS: không cho phép mua gì nữa
+    if (currentPackageMembershipId === 3) return false
+    return false
   }
 
   return (
@@ -1657,9 +1658,9 @@ export default function Payment() {
                       🔄 Thử lại
                     </button>
                   </div>
-                ) : packages && packages.length > 0 ? (
+                ) : getFilteredPackages().length > 0 ? (
                   <div className="packages-grid">
-                    {packages.map((pkg, index) => {
+                    {getFilteredPackages().map((pkg, index) => {
                       // Logic giống MembershipPackage
                       const isCurrent = isCurrentPackage(pkg)
                       const isActive = pkg.status === "Active"
@@ -1736,7 +1737,7 @@ export default function Payment() {
                               ) : (
                                 <>
                                   <i className={getButtonIcon(pkg)}></i>
-                                  {isSelectedFromMembership ? "Mua gói này" : getButtonLabel(pkg)}
+                                  {getButtonLabel(pkg)}
                                 </>
                               )}
                             </button>
@@ -1753,10 +1754,7 @@ export default function Payment() {
                 ) : (
                   <div className="empty-state">
                     <div className="empty-state-icon">📦</div>
-                    <div className="empty-state-text">Chưa có gói thành viên nào</div>
-                    <p style={{ color: COLORS.textLight, marginTop: "0.5rem" }}>
-                      Các gói thành viên sẽ sớm được cập nhật
-                    </p>
+                    <div className="empty-state-text">Không có gói nào để nâng cấp</div>
                   </div>
                 )}
 
@@ -1915,6 +1913,54 @@ export default function Payment() {
                 Thoát thanh toán
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup xác nhận gói Free */}
+      {showFreeConfirm && freePkg && (
+        <div className="qr-overlay">
+          <div className="qr-modal">
+            <h3 className="qr-title">
+              <i className="fas fa-gift me-2"></i>
+              Xác nhận đăng ký gói Free
+            </h3>
+            <div style={{ margin: "1rem 0", fontSize: "1.1rem" }}>
+              Bạn có chắc chắn muốn sử dụng <b>gói {freePkg.category}</b> miễn phí không?
+            </div>
+            <button
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                background: '#10B981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginBottom: '0.8rem'
+              }}
+              onClick={handleConfirmFree}
+            >
+              <i className="fas fa-check-circle me-2"></i>
+              Xác nhận sử dụng gói Free
+            </button>
+            <button
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                background: '#DC2626',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+              onClick={() => { setShowFreeConfirm(false); setFreePkg(null); }}
+            >
+              <i className="fas fa-times me-2"></i>
+              Hủy
+            </button>
           </div>
         </div>
       )}

@@ -7,8 +7,10 @@ export default function AdminRanking() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [showPopup, setShowPopup] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false); // Thêm state xác nhận
     const rankingRef = useRef();
 
+    // Hàm thực hiện reset
     const handleResetRank = async () => {
         if (!token) {
             setMessage("Bạn chưa đăng nhập!");
@@ -55,7 +57,7 @@ export default function AdminRanking() {
     return (
         <div>
             <button
-                onClick={handleResetRank}
+                onClick={() => setShowConfirm(true)}
                 disabled={loading}
                 style={{
                     marginBottom: 20,
@@ -71,6 +73,74 @@ export default function AdminRanking() {
             >
                 {loading ? "Đang reset..." : "Reset bảng xếp hạng"}
             </button>
+
+            {/* Popup xác nhận */}
+            {showConfirm && (
+                <div style={{
+                    position: "fixed",
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: "rgba(0,0,0,0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 9999
+                }}>
+                    <div style={{
+                        background: "#fff",
+                        padding: "32px 40px",
+                        borderRadius: "16px",
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                        minWidth: "320px",
+                        maxWidth: "90vw",
+                        textAlign: "center",
+                        position: "relative"
+                    }}>
+                        <div style={{
+                            fontSize: "1.15rem",
+                            color: "#D32F2F",
+                            fontWeight: 700,
+                            marginBottom: 16
+                        }}>
+                            Bạn có chắc muốn reset bảng xếp hạng không?
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
+                            <button
+                                onClick={() => {
+                                    setShowConfirm(false);
+                                    handleResetRank();
+                                }}
+                                style={{
+                                    padding: "8px 24px",
+                                    background: "#006A71",
+                                    color: "#fff",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    fontWeight: "700",
+                                    fontSize: "1rem",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Đồng ý
+                            </button>
+                            <button
+                                onClick={() => setShowConfirm(false)}
+                                style={{
+                                    padding: "8px 24px",
+                                    background: "#eee",
+                                    color: "#333",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    fontWeight: "700",
+                                    fontSize: "1rem",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Hủy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Popup thông báo */}
             {showPopup && (
