@@ -439,7 +439,7 @@ export default function StartInformation() {
                     {/* Số điếu hút/ngày và thời gian hút */}
                     <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
                         <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
                                 📊 Số điếu hút/ngày
                             </label>
                             <input
@@ -465,7 +465,7 @@ export default function StartInformation() {
                             />
                         </div>
                         <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
                                 ⏰ Thời gian hút thuốc
                             </label>
                             <select
@@ -500,7 +500,7 @@ export default function StartInformation() {
                     {/* Thời gian muốn cai và chi phí */}
                     <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
                         <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
                                 🎯 Thời gian muốn cai (ngày)
                             </label>
                             <select
@@ -527,7 +527,7 @@ export default function StartInformation() {
                             </select>
                         </div>
                         <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
                                 💰 Chi phí (VND/điếu)
                             </label>
                             <select
@@ -558,7 +558,7 @@ export default function StartInformation() {
 
                     {/* Lý do muốn cai thuốc */}
                     <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
                             💪 Lý do bạn muốn cai thuốc lá
                         </label>
                         <select
@@ -612,7 +612,7 @@ export default function StartInformation() {
 
                     {/* Tiền sử bệnh án */}
                     <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
                             🏥 Tiền sử bệnh án
                         </label>
                         <select
@@ -666,7 +666,7 @@ export default function StartInformation() {
 
                     {/* Thời điểm thèm thuốc nhất */}
                     <div style={{ marginBottom: 28 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.gold }}>
+                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
                             🕐 Thời điểm bạn thèm thuốc nhất trong ngày
                         </label>
                         <select

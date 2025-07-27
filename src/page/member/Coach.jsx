@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import AuthContext from '../../AuthContext/AuthContext'
 import "bootstrap/dist/css/bootstrap.min.css"
+import Footer from "../../components/Footer"
 
 const COLORS = {
   background: "#FAFAF9",
@@ -93,10 +94,7 @@ export default function Coach() {
     }
   }, [selectedCoach, accountId, accessCheck.allowed])
 
-  // Auto scroll when messages change
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+
 
   // Auto refresh messages khi có coach được chọn
   useEffect(() => {
@@ -1133,6 +1131,7 @@ export default function Coach() {
           </div>
         )}
       </div>
+      <Footer />
     </>
   )
 }

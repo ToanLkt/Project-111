@@ -624,7 +624,9 @@ export default function Plan() {
                 background: "#FAFAFA",
                 borderRadius: 12,
                 padding: "2rem",
-                marginBottom: 24
+                marginBottom: 24,
+                maxWidth: 900,
+                margin: "2rem auto"
             }}>
                 {/* Kế hoạch cai thuốc cá nhân */}
                 <h3 style={{
@@ -698,26 +700,70 @@ export default function Plan() {
                     <h4 style={{ color: "#374151", marginBottom: "1rem", textAlign: "center" }}>
                         📅 Chi tiết 5 giai đoạn cai thuốc
                     </h4>
-
                     {[1, 2, 3, 4, 5].map((phaseNum) => {
                         const startDate = planData?.[`startDatePhase${phaseNum}`];
                         const endDate = planData?.[`endDatePhase${phaseNum}`];
-                        const status = planData?.[`statusPhase${phaseNum}`] || "Chưa bắt đầu";
+                        const statusApi = planData?.[`statusPhase${phaseNum}`] || "Chưa bắt đầu";
+                        const phaseStats = Array.isArray(phaseData)
+                            ? phaseData.find(p => p.phaseId === (15 + phaseNum))
+                            : null;
 
-                        // Tìm thống kê cho phase này từ Phase API
-                        const phaseStats = Array.isArray(phaseData) ?
-                            phaseData.find(p => p.phaseId === (15 + phaseNum)) : null;
+                        // Xác định trạng thái theo ngày
+                        const now = new Date();
+                        const start = startDate ? new Date(startDate) : null;
+                        const end = endDate ? new Date(endDate) : null;
 
-                        const isActive = currentPhase?.phase === phaseNum;
-                        const isCompleted = status === "Hoàn thành";
-                        const isUpcoming = status === "Chưa bắt đầu";
+                        let phaseStatus = "Sắp tới";
+                        let badgeColor = "#6B7280"; // xám
+                        let bgColor = "#F9FAFB";
+                        let borderColor = "#E5E7EB";
+                        let progressColor = "#9CA3AF";
+
+                        if (start && end) {
+                            if (now < start) {
+                                phaseStatus = "Sắp tới";
+                                badgeColor = "#6B7280";
+                                bgColor = "#F9FAFB";
+                                borderColor = "#E5E7EB";
+                                progressColor = "#9CA3AF";
+                            } else if (now >= start && now <= end) {
+                                phaseStatus = "Đang tiến hành";
+                                badgeColor = "#F59E0B"; // vàng
+                                bgColor = "#FEF9C3";
+                                borderColor = "#FDE68A";
+                                progressColor = "#F59E0B";
+                            } else if (now > end) {
+                                if (statusApi.toLowerCase().includes("thành công")) {
+                                    phaseStatus = "Đã xong";
+                                    badgeColor = "#10B981"; // xanh lá
+                                    bgColor = "#ECFDF5";
+                                    borderColor = "#6EE7B7";
+                                    progressColor = "#10B981";
+                                } else if (statusApi.toLowerCase().includes("thất bại")) {
+                                    phaseStatus = "Thất bại";
+                                    badgeColor = "#EF4444"; // đỏ
+                                    bgColor = "#FEE2E2";
+                                    borderColor = "#FCA5A5";
+                                    progressColor = "#EF4444";
+                                } else {
+                                    phaseStatus = "Đã xong";
+                                    badgeColor = "#3B82F6"; // xanh dương nhạt
+                                    bgColor = "#DBEAFE";
+                                    borderColor = "#93C5FD";
+                                    progressColor = "#3B82F6";
+                                }
+                            }
+                        }
+
+                        // Nếu là phase hiện tại (đang tiến hành)
+                        const isActive = phaseStatus === "Đang tiến hành";
 
                         return (
                             <div
                                 key={phaseNum}
                                 style={{
-                                    background: isActive ? "#FEF3F2" : isCompleted ? "#F0F9FF" : "#F9FAFB",
-                                    border: `2px solid ${isActive ? "#FECACA" : isCompleted ? "#BFDBFE" : "#E5E7EB"}`,
+                                    background: bgColor,
+                                    border: `2px solid ${borderColor}`,
                                     borderRadius: 12,
                                     padding: "1.5rem",
                                     marginBottom: "1rem",
@@ -730,7 +776,7 @@ export default function Plan() {
                                             width: 40,
                                             height: 40,
                                             borderRadius: "50%",
-                                            background: isActive ? "#DC2626" : isCompleted ? "#2563EB" : "#9CA3AF",
+                                            background: badgeColor,
                                             color: "white",
                                             display: "flex",
                                             alignItems: "center",
@@ -744,19 +790,21 @@ export default function Plan() {
                                                 Giai đoạn {phaseNum}
                                             </h4>
                                             <p style={{ margin: "4px 0 0 0", color: "#6B7280", fontSize: "0.9rem" }}>
-                                                {status}
+                                                {statusApi}
                                             </p>
                                         </div>
                                     </div>
                                     <div style={{
-                                        background: isActive ? "#DC2626" : isCompleted ? "#059669" : "#6B7280",
+                                        background: badgeColor,
                                         color: "white",
                                         padding: "0.3rem 0.8rem",
                                         borderRadius: 20,
                                         fontSize: "0.8rem",
-                                        fontWeight: 600
+                                        fontWeight: 600,
+                                        minWidth: 100,
+                                        textAlign: "center"
                                     }}>
-                                        {isActive ? "ĐANG TIẾN HÀNH" : isCompleted ? "HOÀN THÀNH" : "SẮP TỚI"}
+                                        {phaseStatus}
                                     </div>
                                 </div>
 
@@ -764,7 +812,6 @@ export default function Plan() {
                                     <div style={{ color: "#374151", fontSize: "0.9rem", marginBottom: "0.5rem" }}>
                                         📅 {startDate ? new Date(startDate).toLocaleDateString("vi-VN") : "N/A"} - {endDate ? new Date(endDate).toLocaleDateString("vi-VN") : "N/A"}
                                     </div>
-
                                     {phaseStats && (
                                         <div style={{ display: "flex", gap: "1rem", fontSize: "0.85rem", color: "#6B7280" }}>
                                             <span>❌ Ngày thất bại: {phaseStats.failedDays || 0}</span>
@@ -782,9 +829,9 @@ export default function Plan() {
                                     overflow: "hidden"
                                 }}>
                                     <div style={{
-                                        background: isActive ? "#DC2626" : isCompleted ? "#059669" : "#9CA3AF",
+                                        background: progressColor,
                                         height: "100%",
-                                        width: isCompleted ? "100%" : isActive ? "50%" : "0%",
+                                        width: phaseStatus === "Đã xong" || phaseStatus === "Thất bại" ? "100%" : isActive ? "50%" : "0%",
                                         transition: "width 0.3s ease"
                                     }} />
                                 </div>

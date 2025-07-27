@@ -339,6 +339,9 @@ export default function CoachNavbar() {
           box-shadow: 0 8px 24px rgba(0, 106, 113, 0.2);
           position: relative;
           overflow: hidden;
+          display: flex;
+          align-items: center;
+          white-space: nowrap; 
         }
 
         .coach-logout-btn::before {

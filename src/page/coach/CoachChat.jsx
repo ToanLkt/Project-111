@@ -109,12 +109,6 @@ export default function CoachChat() {
     }
   }, [selectedMember, accountId])
 
-  // Auto scroll to bottom
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
 
   // **SỬA LẠI: Fetch members with package 3 từ API**
   const fetchMembersWithPackage3 = async (silent = false) => {
