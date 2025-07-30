@@ -30,7 +30,7 @@ export default function NavBar() {
   const navigate = useNavigate();
 
   // Lấy thông tin từ Redux thay vì AuthContext
-  const { user, token, loading } = useSelector((state) => state.account || {})
+  const { user, token, loading } = useSelector((state) => state.account || {});
   const { logout: authLogout } = useAuth()
 
   // Extract thông tin từ user object
@@ -169,41 +169,30 @@ export default function NavBar() {
   // Sửa hàm handleLogout để hiện thông báo màu đỏ
   const handleLogout = async () => {
     try {
-      console.log("🚪 Starting logout process...")
+      // Chỉ cần dispatch logout từ Redux
+      dispatch(logoutAction());
 
-      // Clear data first
-      clearUserData()
-
-      // Logout từ Redux
-      dispatch(logoutAction())
-
-      // Logout từ AuthContext nếu có
+      // Nếu dùng AuthContext thì gọi logout context (nếu có)
       if (authLogout) {
         try {
-          await authLogout()
+          await authLogout();
         } catch (authError) {
-          console.warn("⚠️ AuthContext logout warning:", authError)
+          console.warn("⚠️ AuthContext logout warning:", authError);
         }
       }
-
-      // Xóa token và user khỏi localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
 
       // Hiện toast thông báo thành công với màu đỏ
       setToastMessage("Đã đăng xuất");
       setToastColor("#CC0000");
       setShowToast(true);
 
-      // Safe navigation với delay nhỏ
       setTimeout(() => {
         setShowToast(false);
-
-      }, 1000)
+      }, 1000);
 
     } catch (error) {
-      console.error("❌ Logout error:", error)
-      handleLogoutError(error, navigate)
+      console.error("❌ Logout error:", error);
+      handleLogoutError(error, navigate);
     }
   }
 

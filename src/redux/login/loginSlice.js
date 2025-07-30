@@ -20,11 +20,11 @@ export const fetchFail = (error) => ({
     payload: error,
 });
 
-export const logout = createAsyncThunk('login/logout', async () => {
+export const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-
-});
+    return { type: LOG_OUT };
+};
 
 // Thêm action
 export const updateUserPackageMembershipId = (packageMembershipId) => ({
