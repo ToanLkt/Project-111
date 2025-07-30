@@ -169,12 +169,9 @@ export default function NavBar() {
   // Sửa hàm handleLogout để hiện thông báo màu đỏ
   const handleLogout = async () => {
     try {
-      // Đăng xuất ở Redux
+      // Chỉ cần dispatch logout của Redux
       dispatch(logoutAction());
-      // Đăng xuất ở AuthContext (xóa user trong localStorage)
-      authLogout();
 
-      // Hiện toast thông báo thành công với màu đỏ
       setToastMessage("Đã đăng xuất");
       setToastColor("#CC0000");
       setShowToast(true);
