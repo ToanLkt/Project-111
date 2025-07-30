@@ -782,6 +782,7 @@ export default function Payment() {
         showToast("✅ Đã xác nhận thanh toán thành công!", "success")
         setShowQR(false)
         setBuyingPkg(null)
+        dispatch(updateUserPackageMembershipId("Plus"));
         // Thay vì navigate("/"), hãy reload lại trang
         setTimeout(() => {
           window.location.href = "/"

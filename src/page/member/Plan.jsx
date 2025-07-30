@@ -16,8 +16,7 @@ export default function Plan() {
     const token = reduxToken || auth?.token;
     const user = reduxUser || auth?.user;
 
-    // Debug Redux state
-    // ... (giữ nguyên các log nếu cần)
+
 
     const getUserId = () => {
         if (!user) return null;
@@ -740,21 +739,22 @@ export default function Plan() {
             return;
         }
 
-        // Kiểm tra membership hợp lệ
+
         if (!hasValidMembership) {
             alert("Bạn cần mua gói thành viên còn hạn sử dụng để tham gia chương trình!");
             navigate("/payment");
             return;
         }
 
-        // Nếu có gói hợp lệ, cho phép tham gia
+
         navigate("/start-information");
     };
 
-    // RETURN CHÍNH CỦA COMPONENT
+
     return (
         <div
             style={{
+
                 minHeight: "100vh",
                 color: "#006A71",
                 fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
@@ -762,24 +762,52 @@ export default function Plan() {
             }}
         >
             {/* Nút bấm hiện/ẩn hướng dẫn */}
-            <div style={{ maxWidth: 900, margin: "32px auto 0 auto", textAlign: "right" }}>
+            <div style={{ maxWidth: 900, margin: "32px auto 0 auto", textAlign: "center", }}>
                 <button
                     onClick={() => setShowGuide(v => !v)}
                     style={{
-                        background: showGuide ? "#0284C7" : "#38BDF8",
+                        background: showGuide
+                            ? "linear-gradient(90deg, #0284C7 0%, #38BDF8 100%)"
+                            : "linear-gradient(90deg, #38BDF8 0%, #0EA5E9 100%)",
                         color: "#fff",
                         border: "none",
-                        borderRadius: 8,
-                        padding: "0.7rem 1.5rem",
-                        fontWeight: 700,
-                        fontSize: "1rem",
+                        borderRadius: 12,
+                        padding: "0.85rem 2.2rem",
+                        fontWeight: 800,
+                        fontSize: "1.08rem",
                         cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(56,189,248,0.10)",
+                        boxShadow: showGuide
+                            ? "0 4px 18px rgba(2,132,199,0.15)"
+                            : "0 2px 10px rgba(56,189,248,0.13)",
                         marginBottom: showGuide ? 0 : 24,
-                        transition: "all 0.2s"
+                        transition: "all 0.25s cubic-bezier(.4,2,.6,1)",
+                        letterSpacing: 0.5,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 10,
+                        outline: "none",
+                        position: "relative",
+                        overflow: "hidden"
+                    }}
+                    onMouseOver={e => {
+                        e.target.style.transform = "translateY(-2px) scale(1.04)";
+                        e.target.style.boxShadow = "0 8px 28px rgba(2,132,199,0.18)";
+                    }}
+                    onMouseOut={e => {
+                        e.target.style.transform = "none";
+                        e.target.style.boxShadow = showGuide
+                            ? "0 4px 18px rgba(2,132,199,0.15)"
+                            : "0 2px 10px rgba(56,189,248,0.13)";
                     }}
                 >
-                    {showGuide ? "Ẩn hướng dẫn" : "📖 Xem hướng dẫn sử dụng"}
+                    <span style={{
+                        fontSize: "1.3rem",
+                        display: "inline-block",
+                        animation: showGuide ? "spin 0.7s linear" : "none"
+                    }}>
+                        📖
+                    </span>
+                    {showGuide ? "Ẩn hướng dẫn" : "Xem hướng dẫn sử dụng"}
                 </button>
             </div>
 
