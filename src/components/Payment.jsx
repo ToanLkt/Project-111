@@ -298,7 +298,7 @@ export default function Payment() {
       }))
       dispatch(updateUserPackageMembershipId(buyingPkg.package_membership_ID)); // Cập nhật packageMembershipId trong Redux user
 
-      showToast(`✅ Thanh toán thành công! Gói ${buyingPkg.category} đã được kích hoạt.`, "success")
+      showToast(` Thanh toán thành công! Gói ${buyingPkg.category} đã được kích hoạt.`, "success")
 
       // Fetch lại profile từ backend để cập nhật user mới nhất vào Redux và localStorage
       const fetchProfile = async () => {
@@ -953,18 +953,21 @@ export default function Payment() {
           background: ${COLORS.background};
           padding: 3rem 0;
           position: relative;
+          justify-content: center;
+          align-items: center;
         }
 
         .payment-container {
           background: ${COLORS.white};
-          border-radius: 24px;
+          border-radius: 10px;
           box-shadow: 
             0 20px 40px rgba(51, 107, 115, 0.08),
             0 8px 16px rgba(51, 107, 115, 0.04);
           border: 1px solid ${COLORS.color1};
           padding: 3rem;
           max-width: 1000px;
-          width: 100%;
+          align-items: center;
+          justify-content: center;
           position: relative;
           overflow: hidden;
           margin: 0 auto;
@@ -1025,7 +1028,7 @@ export default function Payment() {
 
         .packages-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          grid-template-columns:  repeat(3, 1fr);
           gap: 2rem;
           margin-bottom: 3rem;
         }
@@ -1580,7 +1583,7 @@ export default function Payment() {
           <div className="row justify-content-center">
             <div className="col-12 col-md-10 col-lg-8">
               <div className="payment-container">
-                <h2 className="payment-title">💳 Thanh toán & Đăng ký</h2>
+                <h2 className="payment-title"> Thanh toán & Đăng ký</h2>
                 <p className="payment-subtitle">
                   {selectedPackageFromNav && fromMembership ? (
                     <>

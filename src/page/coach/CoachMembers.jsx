@@ -641,12 +641,7 @@ export default function CoachMembers() {
                                     fontWeight: "700",
                                     fontSize: "1rem"
                                 }}>Email</th>
-                                <th style={{
-                                    padding: "15px 10px",
-                                    border: "1px solid #9ACBD0",
-                                    fontWeight: "700",
-                                    fontSize: "1rem"
-                                }}>Ngày tham gia</th>
+
                             </tr>
                         </thead>
                         <tbody>

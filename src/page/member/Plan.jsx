@@ -61,10 +61,13 @@ export default function Plan() {
     const [planData, setPlanData] = useState(null);
     const [phaseData, setPhaseData] = useState(null);
 
-    // State cho việc kiểm tra membership transactions
-    const [membershipData, setMembershipData] = useState(null);
-    const [membershipLoading, setMembershipLoading] = useState(true);
-    const [hasValidMembership, setHasValidMembership] = useState(false);
+    // State cho goalTime
+    const [goalTime, setGoalTime] = useState(null);
+
+    // Lấy packageMembershipId từ user
+    const packageMembershipId = user?.packageMembershipId;
+    // Kiểm tra membership hợp lệ
+    const hasValidMembership = packageMembershipId === 1 || packageMembershipId === 2 || packageMembershipId === 3;
 
     // BƯỚC 1: FETCH STATUS PROCESS TỪ API
     useEffect(() => {
@@ -73,26 +76,13 @@ export default function Plan() {
 
             if (!accountId || !token) {
                 console.log("⏸️ No accountId or token, skipping status check");
-                console.log("⏸️ Details:", {
-                    accountId,
-                    token: token ? "exists" : "null",
-                    user,
-                    authUser: auth?.user,
-                    authToken: auth?.token,
-                    authAccountId: auth?.accountId
-                });
                 setStatusLoading(false);
                 return;
             }
 
             try {
                 setStatusLoading(true);
-                console.log("🔍 Fetching status-process for accountId:", accountId);
-                console.log("🔍 Using token:", token ? "exists" : "null");
-
                 const statusUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/status-process?accountId=${accountId}`;
-                console.log("🔍 Status API URL:", statusUrl);
-
                 const response = await fetch(statusUrl, {
                     method: "GET",
                     headers: {
@@ -101,23 +91,13 @@ export default function Plan() {
                     }
                 });
 
-                console.log("🔍 Status response status:", response.status);
-
                 if (response.ok) {
                     const data = await response.json();
-                    console.log("✅ Status process data:", data);
-                    console.log("✅ statusProcess field:", data?.statusProcess);
-                    console.log("✅ statusProcess toLowerCase:", data?.statusProcess?.toLowerCase());
-                    console.log("✅ Is success?", data?.statusProcess?.toLowerCase() === "success");
                     setStatusProcess(data);
                 } else {
-                    const errorText = await response.text();
-                    console.error("❌ Failed to fetch status process:", response.status);
-                    console.error("❌ Error response:", errorText);
                     setStatusProcess(null);
                 }
             } catch (error) {
-                console.error("❌ Error fetching status process:", error);
                 setStatusProcess(null);
             } finally {
                 setStatusLoading(false);
@@ -127,105 +107,9 @@ export default function Plan() {
         fetchStatusProcess();
     }, [accountId, token]);
 
-    // BƯỚC 1.5: FETCH MEMBERSHIP TRANSACTIONS ĐỂ KIỂM TRA GÓI CÒN HẠN
-    useEffect(() => {
-        const fetchMembershipTransactions = async () => {
-            if (!accountId || !token) {
-                console.log("⏸️ No accountId or token, skipping membership check");
-                setMembershipLoading(false);
-                setHasValidMembership(false);
-                return;
-            }
-
-            try {
-                setMembershipLoading(true);
-                console.log("🔍 Fetching membership transactions for accountId:", accountId);
-
-                const response = await fetch(
-                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/my-transactions?accountId=${accountId}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Authorization": `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
-
-                if (response.ok) {
-                    const transactions = await response.json();
-                    console.log("✅ Membership transactions data:", transactions);
-                    setMembershipData(transactions);
-
-                    // Kiểm tra giao dịch gần nhất có còn hạn không
-                    const validMembership = checkValidMembership(transactions);
-                    setHasValidMembership(validMembership);
-
-                } else {
-                    console.error("❌ Failed to fetch membership transactions:", response.status);
-                    setMembershipData(null);
-                    setHasValidMembership(false);
-                }
-            } catch (error) {
-                console.error("❌ Error fetching membership transactions:", error);
-                setMembershipData(null);
-                setHasValidMembership(false);
-            } finally {
-                setMembershipLoading(false);
-            }
-        };
-
-        fetchMembershipTransactions();
-    }, [accountId, token]);
-
-    // Hàm kiểm tra membership còn hạn
-    const checkValidMembership = (transactions) => {
-        if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
-            console.log("❌ No transactions found");
-            return false;
-        }
-
-        // Sắp xếp giao dịch theo ngày gần nhất
-        const sortedTransactions = transactions.sort((a, b) =>
-            new Date(b.transactionDate || b.paymentDate || b.createdDate) -
-            new Date(a.transactionDate || a.paymentDate || a.createdDate)
-        );
-
-        const latestTransaction = sortedTransactions[0];
-        console.log("🔍 Latest transaction:", latestTransaction);
-
-        if (!latestTransaction) {
-            console.log("❌ No latest transaction found");
-            return false;
-        }
-
-        // Kiểm tra endDate hoặc expiryDate
-        const endDate = latestTransaction.endDate || latestTransaction.expiryDate || latestTransaction.packageEndDate;
-
-        if (!endDate) {
-            console.log("❌ No end date found in transaction");
-            return false;
-        }
-
-        const now = new Date();
-        const expiry = new Date(endDate);
-        const isValid = expiry > now;
-
-        console.log("🔍 Membership validity check:", {
-            endDate,
-            expiryDate: expiry.toISOString(),
-            currentDate: now.toISOString(),
-            isValid,
-            daysLeft: Math.ceil((expiry - now) / (1000 * 60 * 60 * 24))
-        });
-
-        return isValid;
-    };
-
     // BƯỚC 2: FETCH PLAN & PHASE DATA CHỈ KHI STATUS = "processing"
     useEffect(() => {
         const fetchPlanAndPhaseData = async () => {
-            // CHỈ cần có accountId và token là fetch
             if (!token || !accountId) {
                 return;
             }
@@ -265,18 +149,48 @@ export default function Plan() {
                 if (phaseResponse.ok) {
                     const phaseResult = await phaseResponse.json();
                     setPhaseData(phaseResult);
-                } else {
-                    console.error("❌ Failed to fetch phase data:", phaseResponse.status);
-                    console.error("❌ Phase API URL:", `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat?accountId=${accountId}`);
                 }
-
             } catch (error) {
-                console.error("❌ Error fetching plan/phase data:", error);
+                // ignore
             }
         };
 
         fetchPlanAndPhaseData();
     }, [statusProcess, token, accountId]);
+
+    // Fetch goalTime từ API khi có accountId và token
+    useEffect(() => {
+        const fetchGoalTime = async () => {
+            if (!accountId || !token) return;
+            try {
+                const res = await fetch(
+                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/myForm?accountId=${accountId}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        }
+                    }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    setGoalTime(data.goalTime);
+                }
+            } catch (e) {
+                setGoalTime(null);
+            }
+        };
+        fetchGoalTime();
+    }, [accountId, token]);
+
+    // Hàm chuyển goalTime sang số ngày thất bại
+    function getAllowedFailDays(goalTime) {
+        if (goalTime === 180) return 8;
+        if (goalTime === 270) return 11;
+        if (goalTime === 365) return 15;
+        return "-";
+    }
 
     // Hàm chuyển đổi sang giờ Việt Nam (Asia/Ho_Chi_Minh)
     function toVietnamTime(date) {
@@ -690,6 +604,14 @@ export default function Plan() {
                             </div>
                             <div style={{ fontSize: "0.9rem", color: "#DC2626" }}>Tổng ngày thất bại</div>
                         </div>
+                        <div>
+                            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#DC2626" }}>
+                                {getAllowedFailDays(goalTime)}
+                            </div>
+                            <div style={{ fontSize: "0.9rem", color: "#DC2626" }}>
+                                Số ngày bạn được thất bại của giai đoạn
+                            </div>
+                        </div>
                     </div>
 
 
@@ -708,55 +630,44 @@ export default function Plan() {
                             ? phaseData.find(p => p.phaseId === (15 + phaseNum))
                             : null;
 
-                        // Xác định trạng thái theo ngày
-                        const now = new Date();
-                        const start = startDate ? new Date(startDate) : null;
-                        const end = endDate ? new Date(endDate) : null;
-
-                        let phaseStatus = "Sắp tới";
+                        // Xác định màu sắc dựa vào statusApi
                         let badgeColor = "#6B7280"; // xám
                         let bgColor = "#F9FAFB";
                         let borderColor = "#E5E7EB";
                         let progressColor = "#9CA3AF";
+                        let progressWidth = "0%";
 
-                        if (start && end) {
-                            if (now < start) {
-                                phaseStatus = "Sắp tới";
-                                badgeColor = "#6B7280";
-                                bgColor = "#F9FAFB";
-                                borderColor = "#E5E7EB";
-                                progressColor = "#9CA3AF";
-                            } else if (now >= start && now <= end) {
-                                phaseStatus = "Đang tiến hành";
-                                badgeColor = "#F59E0B"; // vàng
-                                bgColor = "#FEF9C3";
-                                borderColor = "#FDE68A";
-                                progressColor = "#F59E0B";
-                            } else if (now > end) {
-                                if (statusApi.toLowerCase().includes("thành công")) {
-                                    phaseStatus = "Đã xong";
-                                    badgeColor = "#10B981"; // xanh lá
-                                    bgColor = "#ECFDF5";
-                                    borderColor = "#6EE7B7";
-                                    progressColor = "#10B981";
-                                } else if (statusApi.toLowerCase().includes("thất bại")) {
-                                    phaseStatus = "Thất bại";
-                                    badgeColor = "#EF4444"; // đỏ
-                                    bgColor = "#FEE2E2";
-                                    borderColor = "#FCA5A5";
-                                    progressColor = "#EF4444";
-                                } else {
-                                    phaseStatus = "Đã xong";
-                                    badgeColor = "#3B82F6"; // xanh dương nhạt
-                                    bgColor = "#DBEAFE";
-                                    borderColor = "#93C5FD";
-                                    progressColor = "#3B82F6";
-                                }
-                            }
+                        if (statusApi.toLowerCase().includes("thành công") || statusApi.toLowerCase().includes("hoàn thành")) {
+                            badgeColor = "#10B981"; // xanh lá
+                            bgColor = "#ECFDF5";
+                            borderColor = "#6EE7B7";
+                            progressColor = "#10B981";
+                            progressWidth = "100%";
+                        } else if (statusApi.toLowerCase().includes("thất bại")) {
+                            badgeColor = "#EF4444"; // đỏ
+                            bgColor = "#FEE2E2";
+                            borderColor = "#FCA5A5";
+                            progressColor = "#EF4444";
+                            progressWidth = "100%";
+                        } else if (statusApi.toLowerCase().includes("đang tiến hành") || statusApi.toLowerCase().includes("đang thực hiện")) {
+                            badgeColor = "#F59E0B"; // vàng
+                            bgColor = "#FEF9C3";
+                            borderColor = "#FDE68A";
+                            progressColor = "#F59E0B";
+                            progressWidth = "50%";
+                        } else if (statusApi.toLowerCase().includes("chưa bắt đầu") || statusApi.toLowerCase().includes("sắp tới")) {
+                            badgeColor = "#6B7280"; // xám
+                            bgColor = "#F9FAFB";
+                            borderColor = "#E5E7EB";
+                            progressColor = "#9CA3AF";
+                            progressWidth = "0%";
+                        } else {
+                            badgeColor = "#3B82F6";
+                            bgColor = "#DBEAFE";
+                            borderColor = "#93C5FD";
+                            progressColor = "#3B82F6";
+                            progressWidth = "0%";
                         }
-
-                        // Nếu là phase hiện tại (đang tiến hành)
-                        const isActive = phaseStatus === "Đang tiến hành";
 
                         return (
                             <div
@@ -804,7 +715,7 @@ export default function Plan() {
                                         minWidth: 100,
                                         textAlign: "center"
                                     }}>
-                                        {phaseStatus}
+                                        {statusApi}
                                     </div>
                                 </div>
 
@@ -831,7 +742,7 @@ export default function Plan() {
                                     <div style={{
                                         background: progressColor,
                                         height: "100%",
-                                        width: phaseStatus === "Đã xong" || phaseStatus === "Thất bại" ? "100%" : isActive ? "50%" : "0%",
+                                        width: progressWidth,
                                         transition: "width 0.3s ease"
                                     }} />
                                 </div>
@@ -852,13 +763,7 @@ export default function Plan() {
             return;
         }
 
-        // Kiểm tra membership loading
-        if (membershipLoading) {
-            alert("Đang kiểm tra gói thành viên, vui lòng đợi...");
-            return;
-        }
-
-        // Kiểm tra có gói membership hợp lệ không
+        // Kiểm tra membership hợp lệ
         if (!hasValidMembership) {
             alert("Bạn cần mua gói thành viên còn hạn sử dụng để tham gia chương trình!");
             navigate("/payment");
@@ -872,13 +777,14 @@ export default function Plan() {
     // RETURN CHÍNH CỦA COMPONENT
     console.log("🔍 Render decision:", {
         statusLoading,
-        membershipLoading,
         statusProcess,
         statusProcessValue: statusProcess?.statusProcess,
         statusProcessLower: statusProcess?.statusProcess?.toLowerCase(),
         isSuccess: statusProcess?.statusProcess?.toLowerCase() === "success",
         isFail: statusProcess?.statusProcess?.toLowerCase() === "fail",
-        isProcessing: statusProcess?.statusProcess?.toLowerCase() === "processing"
+        isProcessing: statusProcess?.statusProcess?.toLowerCase() === "processing",
+        hasValidMembership,
+        packageMembershipId
     });
 
     return (
@@ -902,6 +808,103 @@ export default function Plan() {
                 }}>
                     🔄 Đang kiểm tra trạng thái...
                 </div>
+            ) : !hasValidMembership ? (
+                <>
+                    <div
+                        style={{
+                            margin: "20px auto",
+                            maxWidth: 900,
+                            background: "linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)",
+                            border: "2px solid #EF4444",
+                            borderRadius: 12,
+                            padding: "1rem 1.5rem",
+                            textAlign: "center"
+                        }}
+                    >
+                        <div style={{
+                            color: "#991B1B",
+                            fontWeight: 600,
+                            fontSize: "1rem"
+                        }}>
+                            ❌ Bạn chưa có gói thành viên hoặc đã hết hạn
+                        </div>
+                        <button
+                            onClick={() => navigate("/payment")}
+                            style={{
+                                background: "#EF4444",
+                                color: "white",
+                                border: "none",
+                                borderRadius: 8,
+                                padding: "0.5rem 1rem",
+                                marginTop: "0.5rem",
+                                cursor: "pointer",
+                                fontWeight: 600
+                            }}
+                        >
+                            💳 Mua gói ngay
+                        </button>
+                    </div>
+                    <div
+                        style={{
+                            margin: "40px auto 36px auto",
+                            background: "linear-gradient(90deg, #9ACBD0 60%, #48A6A7 100%)",
+                            borderRadius: 14,
+                            padding: "2rem",
+                            color: "#006A71",
+                            textAlign: "center",
+                            boxShadow: "0 2px 12px rgba(72,166,167,0.13)",
+                            maxWidth: 900,
+                        }}
+                    >
+                        <h2 style={{ fontWeight: 800, marginBottom: 10 }}>Bạn đã sẵn sàng bắt đầu?</h2>
+                        <p style={{ fontSize: "1.15rem", marginBottom: 18 }}>
+                            Hãy cho chúng tớ xin vài thông tin để bắt đầu quá trình bạn nhé!
+                        </p>
+                        <button
+                            onClick={handleJoinNow}
+                            disabled={true}
+                            style={{
+                                background: "#EF4444",
+                                color: "#fff",
+                                fontWeight: 700,
+                                padding: "0.7rem 2.2rem",
+                                borderRadius: 30,
+                                textDecoration: "none",
+                                fontSize: "1.1rem",
+                                boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
+                                transition: "background 0.2s, color 0.2s",
+                                border: "none",
+                                cursor: "not-allowed",
+                                opacity: 0.7
+                            }}
+                        >
+                            ❌ Cần mua gói thành viên
+                        </button>
+                    </div>
+                    <div
+                        style={{
+                            maxWidth: 900,
+                            margin: "2rem auto",
+                            background: "#fff",
+                            borderRadius: 16,
+                            boxShadow: "0 4px 24px rgba(72,166,167,0.13)",
+                            padding: "2.5rem 2rem",
+                            textAlign: "center"
+                        }}
+                    >
+                        <div style={{
+                            color: "#48A6A7",
+                            fontSize: "1.3rem",
+                            fontWeight: 600,
+                            marginBottom: "1rem"
+                        }}>
+                            ❌ Cần mua gói thành viên để tham gia
+                        </div>
+                        <div style={{ color: "#718096", fontSize: "1.1rem" }}>
+                            Bạn cần mua gói thành viên còn hạn sử dụng để có thể bắt đầu chương trình cai thuốc.
+                        </div>
+                    </div>
+                </>
             ) : statusProcess?.statusProcess?.toLowerCase() === "success" ? (
                 <>
                     <div
@@ -1111,143 +1114,6 @@ export default function Plan() {
                         {/* Progress Phases section - CHỨA THỐNG KÊ TỪ API */}
                         <ProgressPhasesSection />
                     </div>
-                </>
-            ) : !statusProcess ? (
-                // KHÔNG CÓ STATUS - HIỆN CALL TO ACTION VỚI KIỂM TRA MEMBERSHIP
-                <>
-                    {/* HIỂN THỊ LOADING CHO MEMBERSHIP */}
-                    {membershipLoading ? (
-                        <div style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            minHeight: "50vh",
-                            fontSize: "1.2rem",
-                            color: "#48A6A7"
-                        }}>
-                            🔄 Đang kiểm tra gói thành viên...
-                        </div>
-                    ) : (
-                        <>
-                            {/* Thông báo trạng thái membership */}
-                            <div
-                                style={{
-                                    margin: "20px auto",
-                                    maxWidth: 900,
-                                    background: hasValidMembership ?
-                                        "linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)" :
-                                        "linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)",
-                                    border: `2px solid ${hasValidMembership ? "#10B981" : "#EF4444"}`,
-                                    borderRadius: 12,
-                                    padding: "1rem 1.5rem",
-                                    textAlign: "center"
-                                }}
-                            >
-                                <div style={{
-                                    color: hasValidMembership ? "#065F46" : "#991B1B",
-                                    fontWeight: 600,
-                                    fontSize: "1rem"
-                                }}>
-                                    {hasValidMembership ? (
-                                        "✅ Bạn có gói thành viên hợp lệ"
-                                    ) : (
-                                        "❌ Bạn chưa có gói thành viên hoặc đã hết hạn"
-                                    )}
-                                </div>
-                                {!hasValidMembership && (
-                                    <button
-                                        onClick={() => navigate("/payment")}
-                                        style={{
-                                            background: "#EF4444",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: 8,
-                                            padding: "0.5rem 1rem",
-                                            marginTop: "0.5rem",
-                                            cursor: "pointer",
-                                            fontWeight: 600
-                                        }}
-                                    >
-                                        💳 Mua gói ngay
-                                    </button>
-                                )}
-                            </div>
-
-                            <div
-                                style={{
-                                    margin: "40px auto 36px auto",
-                                    background: "linear-gradient(90deg, #9ACBD0 60%, #48A6A7 100%)",
-                                    borderRadius: 14,
-                                    padding: "2rem",
-                                    color: "#006A71",
-                                    textAlign: "center",
-                                    boxShadow: "0 2px 12px rgba(72,166,167,0.13)",
-                                    maxWidth: 900,
-                                }}
-                            >
-                                <h2 style={{ fontWeight: 800, marginBottom: 10 }}>Bạn đã sẵn sàng bắt đầu?</h2>
-                                <p style={{ fontSize: "1.15rem", marginBottom: 18 }}>
-                                    Hãy cho chúng tớ xin vài thông tin để bắt đầu quá trình bạn nhé!
-                                </p>
-                                <button
-                                    onClick={handleJoinNow}
-                                    disabled={!hasValidMembership}
-                                    style={{
-                                        background: !hasValidMembership ? "#EF4444" : "#006A71",
-                                        color: "#fff",
-                                        fontWeight: 700,
-                                        padding: "0.7rem 2.2rem",
-                                        borderRadius: 30,
-                                        textDecoration: "none",
-                                        fontSize: "1.1rem",
-                                        boxShadow: "0 2px 8px rgba(72,166,167,0.10)",
-                                        transition: "background 0.2s, color 0.2s",
-                                        border: "none",
-                                        cursor: !hasValidMembership ? "not-allowed" : "pointer",
-                                        opacity: !hasValidMembership ? 0.7 : 1
-                                    }}
-                                >
-                                    {!hasValidMembership ? (
-                                        "❌ Cần mua gói thành viên"
-                                    ) : (
-                                        "🚀 Tham gia ngay"
-                                    )}
-                                </button>
-                            </div>
-
-                            <div
-                                style={{
-                                    maxWidth: 900,
-                                    margin: "2rem auto",
-                                    background: "#fff",
-                                    borderRadius: 16,
-                                    boxShadow: "0 4px 24px rgba(72,166,167,0.13)",
-                                    padding: "2.5rem 2rem",
-                                    textAlign: "center"
-                                }}
-                            >
-                                <div style={{
-                                    color: "#48A6A7",
-                                    fontSize: "1.3rem",
-                                    fontWeight: 600,
-                                    marginBottom: "1rem"
-                                }}>
-                                    {!hasValidMembership ? (
-                                        "❌ Cần mua gói thành viên để tham gia"
-                                    ) : (
-                                        "🎯 Chưa tham gia chương trình cai thuốc"
-                                    )}
-                                </div>
-                                <div style={{ color: "#718096", fontSize: "1.1rem" }}>
-                                    {!hasValidMembership ? (
-                                        "Bạn cần mua gói thành viên còn hạn sử dụng để có thể bắt đầu chương trình cai thuốc."
-                                    ) : (
-                                        'Vui lòng nhấn "Tham gia ngay" để bắt đầu hành trình cai thuốc của bạn.'
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    )}
                 </>
             ) : (
                 // DEFAULT CASE - Trạng thái không xác định

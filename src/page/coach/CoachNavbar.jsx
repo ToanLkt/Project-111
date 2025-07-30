@@ -107,7 +107,7 @@ export default function CoachNavbar() {
     { to: "/coachpage", label: "Trang chủ", icon: "🏠" },
     { to: "/coachpage/community", label: "Cộng đồng", icon: "👥" },
     { to: "/coachpage/members", label: "Quản lý học viên", icon: "👨‍🎓" },
-    { to: "/coachpage/chat", label: "Tin nhắn", icon: "�" },
+    { to: "/coachpage/chat", label: "Tin nhắn", icon: "💌" },
     { to: "/coachpage/statistics", label: "Thống kê", icon: "📊" },
   ]
 
@@ -426,19 +426,7 @@ export default function CoachNavbar() {
           text-decoration: none;
         }
 
-        .coach-badge {
-          position: absolute;
-          top: -8px;
-          right: -8px;
-          background: ${COLORS.warning};
-          color: ${COLORS.white};
-          font-size: 0.7rem;
-          font-weight: 700;
-          padding: 0.2rem 0.5rem;
-          border-radius: 10px;
-          min-width: 20px;
-          text-align: center;
-        }
+       
 
         @media (max-width: 768px) {
           .coach-search-input {
@@ -582,8 +570,8 @@ export default function CoachNavbar() {
                     >
                       <span style={{ fontSize: "1.1rem" }}>{item.icon}</span>
                       {item.label}
-                      {item.to === "/coachpage/members" && <span className="coach-badge">12</span>}
-                      {item.to === "/coachpage/chat" && <span className="coach-badge">!</span>}
+                      {item.to === "/coachpage/members"}
+                      {item.to === "/coachpage/chat"}
                     </Link>
                   </li>
                 )

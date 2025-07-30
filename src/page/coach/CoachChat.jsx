@@ -54,7 +54,6 @@ export default function CoachChat() {
   const [loading, setLoading] = useState(false)
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
-  const [isOnline, setIsOnline] = useState(true)
   const [lastActivity, setLastActivity] = useState(new Date())
   const [currentTime, setCurrentTime] = useState(new Date())
   // Đã bỏ isAutoRefreshEnabled và isAutoFetching
@@ -185,7 +184,6 @@ export default function CoachChat() {
               },
               lastMessage: lastMessage,
               timestamp: lastMessageTime,
-              isOnline: Math.random() > 0.4, // Random online status, có thể cải thiện bằng realtime status
               hasActivePackage: true,
             }
           })
@@ -994,11 +992,7 @@ export default function CoachChat() {
                       <p className="member-last-message">{member.lastMessage}</p>
                     </div>
                     <div className="member-meta">
-                      {/* Đã bỏ thời gian */}
-                      <div className={`member-status ${member.isOnline ? '' : 'offline'}`}>
-                        <div className="status-dot"></div>
-                        {member.isOnline ? 'Online' : 'Offline'}
-                      </div>
+
 
                     </div>
                   </div>
@@ -1019,11 +1013,7 @@ export default function CoachChat() {
                     <h3 className="chat-member-name">
                       👑 {selectedMember.name}
                     </h3>
-                    <p className="chat-member-status">
-                      <div className={`status-dot ${selectedMember.isOnline ? '' : 'offline'}`}></div>
-                      {selectedMember.isOnline ? 'Đang online' : 'Offline'}
 
-                    </p>
                   </div>
                   {/* Đã bỏ chat-actions auto/manual refresh */}
                 </div>

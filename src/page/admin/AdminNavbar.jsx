@@ -195,13 +195,8 @@ export default function AdminNavbar() {
             {/* Các icon giả lập */}
             <span style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }}>🌙</span>
             <span style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }}>🛒<span style={{ color: "#F87171", fontWeight: 700, fontSize: 13, marginLeft: 2 }}>1</span></span>
-            <span style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }}>🔔</span>
-            <span
-              style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }}
+            <span style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }} onClick={() => navigate("/admin/settings")}>⚙️</span>
 
-            >
-              🔲
-            </span>
             {/* Avatar + info */}
             <img
               src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
