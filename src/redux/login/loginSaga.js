@@ -140,9 +140,6 @@ export function* fetchLoginSaga(action) {
                 };
             }
 
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-
             yield put(fetchSuccess({ user, token }));
             toast.success("Login successful!");
         } else {

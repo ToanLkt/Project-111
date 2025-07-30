@@ -33,8 +33,8 @@ export const updateUserPackageMembershipId = (packageMembershipId) => ({
 });
 
 const initialState = {
-    user: JSON.parse(localStorage.getItem('user')) || null,
-    token: localStorage.getItem('token') || null,
+    user: null,
+    token: null,
     loading: false,
     error: null,
 };

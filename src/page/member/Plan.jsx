@@ -8,6 +8,7 @@ export default function Plan() {
     const navigate = useNavigate();
     const auth = useContext(AuthContext);
     const dispatch = useDispatch();
+    const [showGuide, setShowGuide] = useState(false);
 
     // Lấy user info từ Redux hoặc AuthContext với debug
     const reduxState = useSelector((state) => state.account || {});
@@ -760,6 +761,136 @@ export default function Plan() {
                 padding: "0 0 2rem 0"
             }}
         >
+            {/* Nút bấm hiện/ẩn hướng dẫn */}
+            <div style={{ maxWidth: 900, margin: "32px auto 0 auto", textAlign: "right" }}>
+                <button
+                    onClick={() => setShowGuide(v => !v)}
+                    style={{
+                        background: showGuide ? "#0284C7" : "#38BDF8",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "0.7rem 1.5rem",
+                        fontWeight: 700,
+                        fontSize: "1rem",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 8px rgba(56,189,248,0.10)",
+                        marginBottom: showGuide ? 0 : 24,
+                        transition: "all 0.2s"
+                    }}
+                >
+                    {showGuide ? "Ẩn hướng dẫn" : "📖 Xem hướng dẫn sử dụng"}
+                </button>
+            </div>
+
+            {/* HƯỚNG DẪN SỬ DỤNG KẾ HOẠCH CAI THUỐC */}
+            {showGuide && (
+                <div
+                    style={{
+                        maxWidth: 900,
+                        margin: "16px auto 24px auto",
+                        background: "linear-gradient(135deg, #E0F2FE 0%, #F1F5F9 100%)",
+                        border: "2px solid #38BDF8",
+                        borderRadius: 16,
+                        padding: "2rem 2rem 1.5rem 2rem",
+                        boxShadow: "0 4px 24px rgba(56,189,248,0.08)",
+                        color: "#0F172A"
+                    }}
+                >
+                    <h2 style={{ color: "#0284C7", fontWeight: 800, marginBottom: 12, fontSize: "1.5rem" }}>
+                        📖 Nguyên tắc hoạt động của Kế hoạch cai thuốc
+                    </h2>
+                    <ul style={{ paddingLeft: 20, marginBottom: 18 }}>
+                        <li style={{ marginBottom: 8 }}>
+                            <b>✅ Chia nhỏ hành trình thành 5 giai đoạn (phase)</b>
+                            <ul style={{ marginTop: 6, marginBottom: 6 }}>
+                                <li>
+                                    Tổng thời gian bạn đặt ra để cai thuốc sẽ được chia thành 5 giai đoạn.
+                                </li>
+                                <li>
+                                    4 giai đoạn đầu là chính thức, giai đoạn thứ 5 là <b>dự phòng (backup phase)</b>.
+                                </li>
+                                <li>
+                                    Mỗi giai đoạn có số ngày bằng nhau và mục tiêu giảm dần số điếu thuốc được phép hút.
+                                </li>
+                            </ul>
+                        </li>
+                        <li style={{ marginBottom: 8 }}>
+                            <b>🛡️ Giai đoạn dự phòng là gì?</b>
+                            <ul style={{ marginTop: 6, marginBottom: 6 }}>
+                                <li>
+                                    Giai đoạn dự phòng sẽ không được sử dụng nếu bạn hoàn thành 4 giai đoạn đầu thành công.
+                                </li>
+                                <li>
+                                    Nếu bạn thất bại 1 trong 4 giai đoạn chính, hệ thống sẽ kích hoạt giai đoạn dự phòng để thay thế cho giai đoạn bị thất bại đó.
+                                </li>
+                                <li>
+                                    Như vậy, bạn vẫn có thể hoàn thành quá trình cai thuốc trong 4 giai đoạn, nếu bạn làm tốt.
+                                </li>
+                            </ul>
+                        </li>
+                        <li style={{ marginBottom: 8 }}>
+                            <b>🚬 Giới hạn số điếu hút mỗi ngày</b>
+                            <ul style={{ marginTop: 6, marginBottom: 6 }}>
+                                <li>
+                                    Mỗi ngày, hệ thống sẽ tự động tính toán và hiển thị số điếu tối đa bạn được phép hút.
+                                </li>
+                                <li>
+                                    Mức độ giảm sẽ được điều chỉnh đều theo từng giai đoạn.
+                                </li>
+                            </ul>
+                        </li>
+                        <li style={{ marginBottom: 8 }}>
+                            <b>📝 Báo cáo số điếu đã hút</b>
+                            <ul style={{ marginTop: 6, marginBottom: 6 }}>
+                                <li>
+                                    Cuối mỗi ngày, bạn cần nhập số điếu thuốc thực tế bạn đã hút hôm nay.
+                                </li>
+                            </ul>
+                        </li>
+                        <li style={{ marginBottom: 8 }}>
+                            <b>⚠️ Quy tắc đánh giá thất bại</b>
+                            <ul style={{ marginTop: 6, marginBottom: 6 }}>
+                                <li>
+                                    <b>❌ Thất bại trong một ngày:</b> Nếu bạn hút vượt quá số điếu cho phép hoặc không nhập số liệu, ngày đó sẽ bị đánh là thất bại.
+                                </li>
+                                <li>
+                                    <b>❌ Thất bại cả giai đoạn:</b> Nếu số ngày thất bại &gt; 20% tổng số ngày của một giai đoạn, giai đoạn đó bị đánh dấu là thất bại.
+                                </li>
+                                <li>
+                                    <b>🔁 Kích hoạt giai đoạn dự phòng:</b> Khi một giai đoạn thất bại, các giai đoạn tiếp theo sẽ được tự động cập nhật lại, bắt đầu từ ngày kế tiếp. Mức độ cai thuốc sẽ được giữ nguyên như giai đoạn thất bại, và quá trình tiếp tục từ đó.
+                                </li>
+                                <li>
+                                    <b>❌ Thất bại toàn bộ kế hoạch:</b> Nếu bạn thất bại từ 2 giai đoạn trở lên (kể cả giai đoạn dự phòng), bạn sẽ bị đánh giá là thất bại toàn bộ kế hoạch. Khi đó, bạn cần khởi tạo lại một kế hoạch cai thuốc mới từ đầu.
+                                </li>
+                            </ul>
+                        </li>
+                        <li style={{ marginBottom: 8 }}>
+                            <b>📌 Lưu ý quan trọng</b>
+                            <ul style={{ marginTop: 6, marginBottom: 6 }}>
+                                <li>
+                                    Hãy đăng nhập mỗi ngày và cập nhật số điếu thuốc bạn hút chính xác để hệ thống ghi nhận kết quả đúng.
+                                </li>
+                                <li>
+                                    Chúng tôi khuyến khích bạn kiên trì và thành thật với chính mình để đạt được kết quả tốt nhất.
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            <b>🎯 Lợi ích nếu bạn làm tốt</b>
+                            <ul style={{ marginTop: 6 }}>
+                                <li>
+                                    Nếu bạn hoàn thành tốt cả 4 giai đoạn chính, bạn không cần dùng đến giai đoạn dự phòng, và có thể kết thúc quá trình cai thuốc sớm hơn.
+                                </li>
+                                <li>
+                                    Điều này giúp bạn rút ngắn thời gian, tiết kiệm chi phí và tăng sự tự tin vào bản thân!
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            )}
+
             {/* 1. Nếu chưa có gói thành viên */}
             {!hasValidMembership ? (
                 <div
