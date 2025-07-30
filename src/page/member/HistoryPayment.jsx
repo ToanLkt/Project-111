@@ -22,20 +22,14 @@ export default function HistoryPayment() {
     const accountId = getUserId();
 
     useEffect(() => {
-        console.log('🔐 Redux Token:', token ? 'Có token' : 'Không có token');
-        console.log('👤 Redux User:', user);
-        console.log('🆔 Account ID:', accountId);
-
+        // XÓA debug log ở đây
         if (!token) {
-            console.log('❌ No token found, skipping API call');
             setLoading(false);
             return;
         }
 
         setLoading(true);
         setApiError(null);
-
-        console.log('📡 Fetching payment history...');
 
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/my-transactions", {
             headers: {
@@ -44,12 +38,9 @@ export default function HistoryPayment() {
             }
         })
             .then(async res => {
-                console.log('📡 API Response status:', res.status);
-
                 if (!res.ok) {
                     let errMsg = "Không thể tải lịch sử thanh toán";
                     let dataText = await res.text();
-                    console.error('❌ API Error Response:', dataText);
 
                     let data;
                     try {
@@ -70,11 +61,9 @@ export default function HistoryPayment() {
                 return res.json();
             })
             .then(data => {
-                console.log('✅ Payment history loaded:', data);
                 setTransactions(Array.isArray(data) ? data : []);
             })
             .catch(err => {
-                console.error('❌ Error loading payment history:', err);
                 setApiError(err.message);
             })
             .finally(() => {
@@ -323,25 +312,6 @@ export default function HistoryPayment() {
                     <h2 className="history-title">
                         Lịch sử thanh toán
                     </h2>
-
-                    {/* Debug info - chỉ hiển thị trong development */}
-                    {process.env.NODE_ENV === 'development' && (
-                        <div style={{
-                            background: '#f3f4f6',
-                            padding: '1rem',
-                            borderRadius: '8px',
-                            marginBottom: '1rem',
-                            fontSize: '0.8rem',
-                            fontFamily: 'monospace'
-                        }}>
-                            <div><strong>🔍 Debug Info:</strong></div>
-                            <div>Token: {token ? "✅ Có" : "❌ Không có"}</div>
-                            <div>User: {user ? "✅ Có" : "❌ Không có"}</div>
-                            <div>Account ID: {accountId || "Không xác định"}</div>
-                            <div>Loading: {loading ? "⏳" : "✅"}</div>
-                            <div>Transactions: {transactions.length}</div>
-                        </div>
-                    )}
 
                     {!token ? (
                         <div className="auth-warning">

@@ -1,3 +1,5 @@
+import { createAsyncThunk } from '@reduxjs/toolkit';
+
 export const FETCH_API_LOGIN = "FETCH_API_LOGIN";
 export const FETCH_API_SUCCESS = "FETCH_API_SUCCESS";
 export const FETCH_API_FAIL = "FETCH_API_FAIL";
@@ -18,8 +20,10 @@ export const fetchFail = (error) => ({
     payload: error,
 });
 
-export const logout = () => ({
-    type: LOG_OUT,
+export const logout = createAsyncThunk('login/logout', async () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
 });
 
 // Thêm action
@@ -29,8 +33,8 @@ export const updateUserPackageMembershipId = (packageMembershipId) => ({
 });
 
 const initialState = {
-    user: null,
-    token: null,
+    user: JSON.parse(localStorage.getItem('user')) || null,
+    token: localStorage.getItem('token') || null,
     loading: false,
     error: null,
 };

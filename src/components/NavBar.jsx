@@ -186,6 +186,10 @@ export default function NavBar() {
         }
       }
 
+      // Xóa token và user khỏi localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
       // Hiện toast thông báo thành công với màu đỏ
       setToastMessage("Đã đăng xuất");
       setToastColor("#CC0000");

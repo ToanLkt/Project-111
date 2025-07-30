@@ -32,19 +32,13 @@ export default function Feedback() {
 
     // Lấy danh sách feedback từ API
     useEffect(() => {
-        console.log("🚀 Fetching feedbacks...");
         setLoading(true);
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Feedback")
-            .then(res => {
-                console.log("📡 Feedback API response status:", res.status);
-                return res.ok ? res.json() : [];
-            })
+            .then(res => res.ok ? res.json() : [])
             .then(data => {
-                console.log("✅ Feedbacks data received:", data);
                 Array.isArray(data) ? setFeedbacks(data.reverse()) : setFeedbacks([]);
             })
-            .catch(err => {
-                console.error("❌ Error fetching feedbacks:", err);
+            .catch(() => {
                 setFeedbacks([]);
             })
             .finally(() => setLoading(false));
@@ -61,12 +55,6 @@ export default function Feedback() {
         setSubmitting(true);
 
         try {
-            console.log("🚀 Submitting feedback:", {
-                content: comment,
-                rating: rating,
-                user: userInfo.fullName
-            });
-
             const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Feedback", {
                 method: "POST",
                 headers: {
@@ -80,29 +68,21 @@ export default function Feedback() {
                 }),
             });
 
-            console.log("📡 Submit response status:", res.status);
-
             if (!res.ok) {
                 const errorText = await res.text();
-                console.error("❌ Submit failed:", errorText);
                 alert("Gửi feedback thất bại!\n" + errorText);
                 return;
             }
 
-            // Nếu trả về text chứ không phải JSON
             const resultText = await res.text();
-            console.log("✅ Submit response:", resultText);
 
             if (resultText && !resultText.startsWith("{")) {
-                // Thành công - reset form
                 setSuccess(true);
                 setComment("");
                 setRating(5);
                 setTimeout(() => setSuccess(false), 2500);
 
-                // Reload feedbacks để hiển thị feedback mới
                 setTimeout(() => {
-                    console.log("🔄 Reloading feedbacks...");
                     fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Feedback")
                         .then(res => res.ok ? res.json() : [])
                         .then(data => Array.isArray(data) ? setFeedbacks(data.reverse()) : setFeedbacks([]))
@@ -111,7 +91,6 @@ export default function Feedback() {
                 return;
             }
 
-            // Nếu trả về JSON (hiếm khi xảy ra)
             const newFeedback = JSON.parse(resultText);
             setFeedbacks(prev => [newFeedback, ...prev]);
             setComment("");
@@ -120,7 +99,6 @@ export default function Feedback() {
             setTimeout(() => setSuccess(false), 2500);
 
         } catch (err) {
-            console.error("❌ Submit error:", err);
             alert("Gửi feedback thất bại!\n" + (err?.message || err));
         } finally {
             setSubmitting(false);
@@ -501,7 +479,7 @@ export default function Feedback() {
                 <Footer />
 
                 {/* Debug Panel - Development Only */}
-                {process.env.NODE_ENV === 'development' && (
+                {/*
                     <div style={{
                         position: "fixed",
                         bottom: 20,
@@ -524,7 +502,7 @@ export default function Feedback() {
                         <div>Submitting: {submitting ? "⏳" : "✅"}</div>
                         <div>Filter: {starFilter || "All"}</div>
                     </div>
-                )}
+                */}
             </div>
         </>
     );

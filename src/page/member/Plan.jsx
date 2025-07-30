@@ -40,82 +40,89 @@ export default function Plan() {
     const packageMembershipId = user?.packageMembershipId ?? 0;
     const hasValidMembership = packageMembershipId !== 0 && packageMembershipId !== null && packageMembershipId !== undefined;
 
-    // BƯỚC 1: FETCH STATUS PROCESS TỪ API
-    useEffect(() => {
-        const fetchStatusProcess = async () => {
-            if (!accountId || !token) {
-                setStatusLoading(false);
-                return;
+    // Định nghĩa các hàm fetch ở ngoài
+    const fetchStatusProcess = async () => {
+        if (!accountId || !token) {
+            setStatusLoading(false);
+            return;
+        }
+        try {
+            setStatusLoading(true);
+            const statusUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/status-process?accountId=${accountId}`;
+            const response = await fetch(statusUrl, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setStatusProcess(data);
+            } else {
+                const text = await response.text();
+                setStatusProcess({ statusProcess: text });
             }
-            try {
-                setStatusLoading(true);
-                const statusUrl = `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/status-process?accountId=${accountId}`;
-                const response = await fetch(statusUrl, {
+        } catch (error) {
+            setStatusProcess(null);
+        } finally {
+            setStatusLoading(false);
+        }
+    };
+
+    const fetchPlanAndPhaseData = async () => {
+        if (!token || !accountId) return;
+        try {
+            // Fetch Plan data
+            const planResponse = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan?accountId=${accountId}`,
+                {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json"
                     }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setStatusProcess(data);
-                } else {
-                    // Đọc text khi lỗi (ví dụ 404 trả về "Không tìm thấy StatusProcess.")
-                    const text = await response.text();
-                    setStatusProcess({ statusProcess: text });
                 }
-            } catch (error) {
-                setStatusProcess(null);
-            } finally {
-                setStatusLoading(false);
+            );
+            if (planResponse.ok) {
+                const planResult = await planResponse.json();
+                setPlanData(planResult);
+            } else {
+                setPlanData(null);
             }
-        };
+            // Fetch Phase data
+            const phaseResponse = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat?accountId=${accountId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+            if (phaseResponse.ok) {
+                const phaseResult = await phaseResponse.json();
+                setPhaseData(phaseResult);
+            }
+        } catch (error) {
+            // ignore
+        }
+    };
+
+    // BƯỚC 1: FETCH STATUS PROCESS TỪ API
+    useEffect(() => {
         fetchStatusProcess();
     }, [accountId, token]);
 
     // BƯỚC 2: FETCH PLAN & PHASE DATA CHỈ KHI STATUS = "processing"
     useEffect(() => {
-        const fetchPlanAndPhaseData = async () => {
-            if (!token || !accountId) return;
-            try {
-                // Fetch Plan data
-                const planResponse = await fetch(
-                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Plan?accountId=${accountId}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Authorization": `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
-                if (planResponse.ok) {
-                    const planResult = await planResponse.json();
-                    setPlanData(planResult);
-                } else {
-                    setPlanData(null);
-                }
-                // Fetch Phase data
-                const phaseResponse = await fetch(
-                    `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Phase/fail-stat?accountId=${accountId}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Authorization": `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        }
-                    }
-                );
-                if (phaseResponse.ok) {
-                    const phaseResult = await phaseResponse.json();
-                    setPhaseData(phaseResult);
-                }
-            } catch (error) {
-                // ignore
+        const fetchData = async () => {
+            if (statusProcess?.statusProcess?.toLowerCase() === "processing") {
+                await fetchPlanAndPhaseData();
             }
         };
-        fetchPlanAndPhaseData();
+        fetchData();
     }, [statusProcess, token, accountId]);
 
     // Fetch goalTime từ API khi có accountId và token
@@ -231,7 +238,7 @@ export default function Plan() {
     }
 
     // Component nhập điếu thuốc riêng
-    function CigaretteInputSection() {
+    function CigaretteInputSection({ fetchPlanAndPhaseData, fetchStatusProcess }) {
         const [cigarettesToday, setCigarettesToday] = useState("");
         const [isLoading, setIsLoading] = useState(false);
         const [success, setSuccess] = useState(false);
@@ -276,9 +283,11 @@ export default function Plan() {
                 if (response.ok) {
                     setSuccess(true);
                     setCigarettesToday("");
-                    // Gọi lại các API để cập nhật dữ liệu mới nhất
-                    fetchPlanAndPhaseData();
-                    fetchStatusProcess();
+                    // Hiển thị thông báo thành công trước, sau đó mới cập nhật dữ liệu
+                    setTimeout(() => {
+                        if (fetchPlanAndPhaseData) fetchPlanAndPhaseData();
+                        if (fetchStatusProcess) fetchStatusProcess();
+                    }, 1000);
                 } else {
                     let errorText;
                     try {
@@ -551,6 +560,13 @@ export default function Plan() {
                                 })()}
                             </div>
                             <div style={{ fontSize: "0.9rem", color: "#059669" }}>Tiền đã tiết kiệm</div>
+                        </div>
+                        {/* Thêm mục số điếu đã bỏ */}
+                        <div>
+                            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#3B82F6" }}>
+                                {planData?.totalCigarettesQuit ?? 0}
+                            </div>
+                            <div style={{ fontSize: "0.9rem", color: "#3B82F6" }}>Số điếu đã bỏ</div>
                         </div>
                         <div>
                             <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#DC2626" }}>
@@ -1042,7 +1058,10 @@ export default function Plan() {
                                         }}
                                     >
                                         {/* Chuyển CigaretteInputSection lên trên */}
-                                        <CigaretteInputSection />
+                                        <CigaretteInputSection
+                                            fetchPlanAndPhaseData={fetchPlanAndPhaseData}
+                                            fetchStatusProcess={fetchStatusProcess}
+                                        />
 
                                         {/* Timer section */}
                                         {planData?.startDatePhase1 && (
