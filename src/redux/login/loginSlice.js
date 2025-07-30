@@ -1,5 +1,4 @@
-import { createAsyncThunk } from '@reduxjs/toolkit';
-
+// redux/login/loginSlice.js
 export const FETCH_API_LOGIN = "FETCH_API_LOGIN";
 export const FETCH_API_SUCCESS = "FETCH_API_SUCCESS";
 export const FETCH_API_FAIL = "FETCH_API_FAIL";
@@ -21,21 +20,19 @@ export const fetchFail = (error) => ({
 });
 
 export const logout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
     return { type: LOG_OUT };
 };
 
-// Thêm action
 export const updateUserPackageMembershipId = (packageMembershipId) => ({
     type: "UPDATE_USER_PACKAGE_MEMBERSHIP_ID",
     payload: packageMembershipId,
 });
 
-const userFromStorage = localStorage.getItem("user");
-const tokenFromStorage = localStorage.getItem("token");
-
 const initialState = {
-    user: userFromStorage ? JSON.parse(userFromStorage) : null,
-    token: tokenFromStorage || null,
+    user: null,
+    token: null,
     loading: false,
     error: null,
 };
@@ -45,6 +42,9 @@ const accountReducers = (state = initialState, action) => {
         case FETCH_API_LOGIN:
             return { ...state, loading: true, error: null };
         case FETCH_API_SUCCESS:
+            // Lưu vào localStorage nếu muốn (dự phòng)
+            localStorage.setItem("user", JSON.stringify(action.payload.user));
+            localStorage.setItem("token", action.payload.token);
             return {
                 ...state,
                 loading: false,

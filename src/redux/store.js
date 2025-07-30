@@ -1,29 +1,34 @@
 // redux/store.js
-import { configureStore } from '@reduxjs/toolkit'
-import createSagaMiddleware from 'redux-saga'
-import rootSaga from './rootSaga'
+import { configureStore } from '@reduxjs/toolkit';
+import createSagaMiddleware from 'redux-saga';
+import rootSaga from './rootSaga';
+import storage from 'redux-persist/lib/storage';
+import { persistReducer, persistStore } from 'redux-persist';
+import loginReducer from './login/loginSlice';
+import paymentReducer from './components/payment/paymentSlice';
 
-// Import reducers
-import loginReducer from './login/loginSlice' // Make sure this path is correct
-import paymentReducer from './components/payment/paymentSlice'
+const sagaMiddleware = createSagaMiddleware();
 
-// khởi tạo middleware saga
-const sagaMiddleware = createSagaMiddleware()
+const persistConfig = {
+    key: 'account',
+    storage,
+    whitelist: ['user', 'token']
+};
+
+const persistedLoginReducer = persistReducer(persistConfig, loginReducer);
 
 const store = configureStore({
     reducer: {
-        account: loginReducer, // Map login reducer to account state
+        account: persistedLoginReducer,
         payment: paymentReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
-            serializableCheck: {
-                ignoredActions: ['persist/PERSIST'],
-            },
+            serializableCheck: false,
         }).concat(sagaMiddleware),
-})
+});
 
-// chạy saga
-sagaMiddleware.run(rootSaga)
+sagaMiddleware.run(rootSaga);
 
-export default store
+export const persistor = persistStore(store);
+export default store;
