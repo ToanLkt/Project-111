@@ -21,8 +21,6 @@ export const fetchFail = (error) => ({
 });
 
 export const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
     return { type: LOG_OUT };
 };
 
@@ -32,9 +30,12 @@ export const updateUserPackageMembershipId = (packageMembershipId) => ({
     payload: packageMembershipId,
 });
 
+const userFromStorage = localStorage.getItem("user");
+const tokenFromStorage = localStorage.getItem("token");
+
 const initialState = {
-    user: null,
-    token: null,
+    user: userFromStorage ? JSON.parse(userFromStorage) : null,
+    token: tokenFromStorage || null,
     loading: false,
     error: null,
 };
