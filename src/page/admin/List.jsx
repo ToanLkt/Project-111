@@ -97,15 +97,17 @@ export default function List() {
     const [updatingMemberStatus, setUpdatingMemberStatus] = useState({});
     const [statusUpdateError, setStatusUpdateError] = useState("");
 
+    // State cho chức năng khóa/mở khóa coach
+    const [updatingCoachStatus, setUpdatingCoachStatus] = useState({});
+    const [statusUpdateCoachError, setStatusUpdateCoachError] = useState("");
+
     // Lấy danh sách member
     useEffect(() => {
         if (!token || !isAdmin) {
-            console.log("❌ No token or not admin:", { token: !!token, isAdmin });
             setLoadingMember(false);
             return;
         }
 
-        console.log("🚀 Fetching members with token:", token.substring(0, 20) + "...");
         setLoadingMember(true);
 
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member", {
@@ -114,17 +116,14 @@ export default function List() {
             }
         })
             .then(res => {
-                console.log("📡 Members API response status:", res.status);
                 if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
                 return res.json();
             })
             .then(data => {
-                console.log("✅ Members data received:", data);
                 setMembers(Array.isArray(data) ? data : []);
                 setLoadingMember(false);
             })
-            .catch(error => {
-                console.error("❌ Error fetching members:", error);
+            .catch(() => {
                 setMembers([]);
                 setLoadingMember(false);
             });
@@ -133,12 +132,10 @@ export default function List() {
     // Lấy danh sách coach
     useEffect(() => {
         if (!token || !isAdmin) {
-            console.log("❌ No token or not admin for coaches:", { token: !!token, isAdmin });
             setLoadingCoach(false);
             return;
         }
 
-        console.log("🚀 Fetching coaches with token");
         setLoadingCoach(true);
 
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach", {
@@ -147,17 +144,14 @@ export default function List() {
             }
         })
             .then(res => {
-                console.log("📡 Coaches API response status:", res.status);
                 if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
                 return res.json();
             })
             .then(data => {
-                console.log("✅ Coaches data received:", data);
                 setCoaches(Array.isArray(data) ? data : []);
                 setLoadingCoach(false);
             })
-            .catch(error => {
-                console.error("❌ Error fetching coaches:", error);
+            .catch(() => {
                 setCoaches([]);
                 setLoadingCoach(false);
             });
@@ -205,8 +199,6 @@ export default function List() {
         setAddCoachError("");
 
         try {
-            console.log("🚀 Adding new coach:", coachForm);
-
             const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach", {
                 method: "POST",
                 headers: {
@@ -223,14 +215,11 @@ export default function List() {
                 })
             });
 
-            console.log("📡 Add coach response status:", res.status);
-
             if (!res.ok) {
                 const err = await res.text();
                 throw new Error(err);
             }
 
-            console.log("✅ Coach added successfully");
             setShowAddCoach(false);
             setCoachForm({
                 email: "",
@@ -242,7 +231,6 @@ export default function List() {
             });
             setAddingCoach(false);
         } catch (err) {
-            console.error("❌ Add coach error:", err);
             setAddCoachError("Thêm coach thất bại: " + err.message);
             setAddingCoach(false);
         }
@@ -262,8 +250,6 @@ export default function List() {
         setStatusUpdateError("");
 
         try {
-            console.log(`🔄 Updating member ${memberId} status to:`, newStatus);
-
             const response = await fetch(
                 `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/status/${memberId}?status=${newStatus}`,
                 {
@@ -275,16 +261,11 @@ export default function List() {
                 }
             );
 
-            console.log("📡 Update member status response:", response.status);
-
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
-            console.log(`✅ Member ${memberId} status updated successfully`);
-
-            // Cập nhật state local
             setMembers(prevMembers =>
                 prevMembers.map(m =>
                     m.accountId === memberId
@@ -293,12 +274,10 @@ export default function List() {
                 )
             );
 
-            // Hiển thị thông báo thành công
             const action = newStatus ? "mở khóa" : "khóa";
             alert(`✅ ${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản ${member.fullName || member.email} thành công!`);
 
         } catch (error) {
-            console.error("❌ Error updating member status:", error);
             setStatusUpdateError(`Lỗi khi cập nhật trạng thái: ${error.message}`);
         } finally {
             setUpdatingMemberStatus(prev => ({ ...prev, [memberId]: false }));
@@ -312,6 +291,64 @@ export default function List() {
 
         if (window.confirm(confirmMessage)) {
             handleToggleMemberStatus(member);
+        }
+    };
+
+    // Xử lý khóa/mở khóa coach
+    const handleToggleCoachStatus = async (coach) => {
+        if (!isAdmin) {
+            setStatusUpdateCoachError("Chỉ Admin mới có thể thay đổi trạng thái coach!");
+            return;
+        }
+
+        const newStatus = !coach.status;
+        const coachId = coach.accountId || coach.coachId;
+
+        setUpdatingCoachStatus(prev => ({ ...prev, [coachId]: true }));
+        setStatusUpdateCoachError("");
+
+        try {
+            const response = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach/status/${coachId}?status=${newStatus}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            setCoaches(prevCoaches =>
+                prevCoaches.map(c =>
+                    (c.accountId || c.coachId) === coachId
+                        ? { ...c, status: newStatus }
+                        : c
+                )
+            );
+
+            const action = newStatus ? "mở khóa" : "khóa";
+            alert(`✅ ${action.charAt(0).toUpperCase() + action.slice(1)} tài khoản ${coach.fullName || coach.email} thành công!`);
+
+        } catch (error) {
+            setStatusUpdateCoachError(`Lỗi khi cập nhật trạng thái: ${error.message}`);
+        } finally {
+            setUpdatingCoachStatus(prev => ({ ...prev, [coachId]: false }));
+        }
+    };
+
+    // Confirmation dialog cho việc khóa/mở khóa coach
+    const confirmToggleCoachStatus = (coach) => {
+        const action = coach.status ? "khóa" : "mở khóa";
+        const confirmMessage = `Bạn có chắc chắn muốn ${action} tài khoản của ${coach.fullName || coach.email}?`;
+
+        if (window.confirm(confirmMessage)) {
+            handleToggleCoachStatus(coach);
         }
     };
 
@@ -437,6 +474,37 @@ export default function List() {
                         ❌ {statusUpdateError}
                         <button
                             onClick={() => setStatusUpdateError("")}
+                            style={{
+                                marginLeft: "auto",
+                                background: "none",
+                                border: "none",
+                                color: COLORS.danger,
+                                cursor: "pointer",
+                                fontSize: "16px"
+                            }}
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
+
+                {/* Coach Status Update Error Alert */}
+                {statusUpdateCoachError && (
+                    <div style={{
+                        background: COLORS.danger + "20",
+                        border: `2px solid ${COLORS.danger}`,
+                        color: COLORS.danger,
+                        padding: "12px 16px",
+                        borderRadius: 10,
+                        marginBottom: 20,
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                    }}>
+                        ❌ {statusUpdateCoachError}
+                        <button
+                            onClick={() => setStatusUpdateCoachError("")}
                             style={{
                                 marginLeft: "auto",
                                 background: "none",
@@ -651,7 +719,7 @@ export default function List() {
                     </div>
                 </div>
 
-                {/* Coach Table - giữ nguyên vì coach không cần chức năng khóa */}
+                {/* Coach Table - thêm cột Thao tác */}
                 <div style={{ overflowX: "auto" }}>
                     <table style={tableStyle}>
                         <thead>
@@ -663,12 +731,13 @@ export default function List() {
                                 <th style={thStyle}>Ngày sinh</th>
                                 <th style={thStyle}>Giới tính</th>
                                 <th style={thStyle}>Trạng thái</th>
+                                <th style={thStyle}>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loadingCoach ? (
                                 <tr>
-                                    <td colSpan={7} style={{
+                                    <td colSpan={8} style={{
                                         textAlign: "center",
                                         color: COLORS.primary,
                                         padding: "30px",
@@ -680,7 +749,7 @@ export default function List() {
                                 </tr>
                             ) : filteredCoaches.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} style={{
+                                    <td colSpan={8} style={{
                                         textAlign: "center",
                                         color: "#888",
                                         padding: "30px",
@@ -691,7 +760,7 @@ export default function List() {
                                 </tr>
                             ) : filteredCoaches.map((c, idx) => (
                                 <tr
-                                    key={c.coachId || idx}
+                                    key={c.accountId || c.coachId || idx}
                                     style={{
                                         background: idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt,
                                         transition: "background 0.3s ease"
@@ -699,7 +768,7 @@ export default function List() {
                                     onMouseEnter={e => e.currentTarget.style.background = COLORS.primary + "20"}
                                     onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? COLORS.tableRow : COLORS.tableRowAlt}
                                 >
-                                    <td style={tdStyle}>{c.coachId}</td>
+                                    <td style={tdStyle}>{c.coachId || c.accountId}</td>
                                     <td style={tdStyle}>{c.email}</td>
                                     <td style={tdStyle}>{c.fullName || "Chưa cập nhật"}</td>
                                     <td style={tdStyle}>{c.phoneNumber || "Chưa cập nhật"}</td>
@@ -716,6 +785,33 @@ export default function List() {
                                         }}>
                                             {renderStatus(c.status) === "Hoạt động" ? "✅ Hoạt động" : "🔒 Tạm khóa"}
                                         </span>
+                                    </td>
+                                    <td style={tdStyle}>
+                                        <button
+                                            className="status-button"
+                                            onClick={() => confirmToggleCoachStatus(c)}
+                                            disabled={updatingCoachStatus[c.accountId || c.coachId]}
+                                            style={{
+                                                background: c.status ? COLORS.danger : COLORS.success,
+                                                color: COLORS.white,
+                                            }}
+                                        >
+                                            {updatingCoachStatus[c.accountId || c.coachId] ? (
+                                                <>
+                                                    <div className="loading-spinner" style={{
+                                                        width: "12px",
+                                                        height: "12px",
+                                                        border: "2px solid rgba(255,255,255,0.3)",
+                                                        borderTopColor: "white"
+                                                    }}></div>
+                                                    Đang xử lý...
+                                                </>
+                                            ) : c.status ? (
+                                                <>🔒 Khóa</>
+                                            ) : (
+                                                <>🔓 Mở khóa</>
+                                            )}
+                                        </button>
                                     </td>
                                 </tr>
                             ))}

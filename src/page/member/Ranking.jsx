@@ -106,22 +106,14 @@ export default function Ranking() {
         const fetchRankingData = async () => {
             setLoading(true);
             try {
-                console.log("🚀 Fetching ranking data...");
-
                 const response = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Ranking");
-
-                console.log("📡 Ranking API response status:", response.status);
-
                 if (response.ok) {
                     const data = await response.json();
-                    console.log("✅ Ranking data received:", data);
                     setRankingData(Array.isArray(data) ? data : []);
                 } else {
-                    console.warn("⚠️ Ranking API failed");
                     setRankingData([]);
                 }
             } catch (error) {
-                console.error("❌ Error fetching ranking data:", error);
                 setRankingData([]);
             } finally {
                 setLoading(false);
@@ -135,15 +127,12 @@ export default function Ranking() {
     useEffect(() => {
         const fetchCurrentUserRank = async () => {
             if (!token) {
-                console.log("❌ No token, skipping user rank fetch");
                 setCurrentUser(null);
                 return;
             }
 
             setUserLoading(true);
             try {
-                console.log("🚀 Fetching current user rank...");
-
                 const response = await fetch(
                     "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Ranking/me",
                     {
@@ -154,18 +143,13 @@ export default function Ranking() {
                     }
                 );
 
-                console.log("📡 User rank API response status:", response.status);
-
                 if (response.ok) {
                     const data = await response.json();
-                    console.log("✅ User rank data received:", data);
                     setCurrentUser(data);
                 } else {
-                    console.warn("⚠️ User rank API failed");
                     setCurrentUser(null);
                 }
             } catch (error) {
-                console.error("❌ Error fetching user rank:", error);
                 setCurrentUser(null);
             } finally {
                 setUserLoading(false);
@@ -673,31 +657,6 @@ export default function Ranking() {
                 </main>
                 <Footer />
 
-                {/* Debug Panel - Development Only */}
-                {process.env.NODE_ENV === 'development' && (
-                    <div style={{
-                        position: "fixed",
-                        bottom: 20,
-                        right: 20,
-                        background: "rgba(0, 0, 0, 0.8)",
-                        color: "white",
-                        padding: 15,
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontFamily: "monospace",
-                        zIndex: 9998,
-                        maxWidth: 300
-                    }}>
-                        <div><strong>🔍 Ranking Debug:</strong></div>
-                        <div>Token: {token ? "✅" : "❌"}</div>
-                        <div>User: {user ? "✅" : "❌"}</div>
-                        <div>FullName: {userInfo.fullName}</div>
-                        <div>Ranking Data: {rankingData.length}</div>
-                        <div>Current User: {currentUser ? "✅" : "❌"}</div>
-                        <div>Loading: {loading ? "⏳" : "✅"}</div>
-                        <div>User Loading: {userLoading ? "⏳" : "✅"}</div>
-                    </div>
-                )}
 
                 <style jsx>{`
                     @keyframes spin {

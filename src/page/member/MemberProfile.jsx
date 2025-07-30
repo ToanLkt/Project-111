@@ -450,80 +450,8 @@ export default function MemberProfile() {
           )}
         </div>
 
-        {/* Summary Info */}
-        <div style={{
-          marginTop: '2rem',
-          padding: '1.5rem',
-          background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)',
-          borderRadius: '12px',
-          border: '1px solid #CBD5E1'
-        }}>
-          <h5 style={{
-            color: COLORS.color3,
-            marginBottom: '1rem',
-            fontSize: '1.1rem',
-            fontWeight: '700'
-          }}>
-            <i className="fas fa-chart-line me-2"></i>
-            Tóm tắt thông tin
-          </h5>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1rem'
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: '800',
-                color: COLORS.warning
-              }}>
-                {memberForm.cigarettesPerDay * 30 || 0}
-              </div>
-              <div style={{
-                fontSize: '0.85rem',
-                color: COLORS.textLight,
-                fontWeight: '600'
-              }}>
-                Điếu/tháng hiện tại
-              </div>
-            </div>
 
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: '800',
-                color: COLORS.success
-              }}>
-                {formatMoney((memberForm.costPerCigarette || 0) * (memberForm.cigarettesPerDay || 0) * 30)}
-              </div>
-              <div style={{
-                fontSize: '0.85rem',
-                color: COLORS.textLight,
-                fontWeight: '600'
-              }}>
-                Chi phí/tháng hiện tại
-              </div>
-            </div>
 
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: '800',
-                color: COLORS.color2
-              }}>
-                {formatMoney((memberForm.costPerCigarette || 0) * (memberForm.cigarettesPerDay || 0) * (memberForm.goalTime || 0))}
-              </div>
-              <div style={{
-                fontSize: '0.85rem',
-                color: COLORS.textLight,
-                fontWeight: '600'
-              }}>
-                Tiết kiệm sau {memberForm.goalTime} ngày
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     )
   }
@@ -1012,18 +940,7 @@ export default function MemberProfile() {
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">
-                      <i className="fas fa-info-circle me-2"></i>
-                      Trạng thái tài khoản
-                    </label>
-                    <div>
-                      <span className={`status-badge ${user.status === "Khóa" ? "inactive" : ""}`}>
-                        <i className={`fas ${user.status === "Hoạt động" ? "fa-check-circle" : "fa-lock"}`}></i>
-                        {user.status}
-                      </span>
-                    </div>
-                  </div>
+
                 </form>
 
                 <div className="button-group">
