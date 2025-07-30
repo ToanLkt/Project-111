@@ -114,6 +114,7 @@ export function* fetchLoginSaga(action) {
             role,
             fullName,
             packageMembershipId,
+            accountId: profileData?.accountId || jwtUser?.accountId || jwtUser?.id || null,
         };
 
         // Nếu role là Member thì fetch thêm dữ liệu gói

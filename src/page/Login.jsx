@@ -123,7 +123,7 @@ export default function Login() {
 
     useEffect(() => {
         if (token && user) {
-            login(token, user); // <-- Đảm bảo dòng này được gọi
+            login(token, user);
         }
     }, [token, user, login]);
 

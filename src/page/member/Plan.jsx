@@ -118,7 +118,8 @@ export default function Plan() {
     // BƯỚC 2: FETCH PLAN & PHASE DATA CHỈ KHI STATUS = "processing"
     useEffect(() => {
         const fetchData = async () => {
-            if (statusProcess?.statusProcess?.toLowerCase() === "processing") {
+            const status = statusProcess?.statusProcess?.toLowerCase();
+            if (status === "processing" || status === "success" || status === "fail") {
                 await fetchPlanAndPhaseData();
             }
         };
@@ -434,10 +435,32 @@ export default function Plan() {
 
     // Component hiển thị thống kê progress phases từ API
     function ProgressPhasesSection() {
+        // Nếu không có dữ liệu, hiển thị lỗi rõ ràng
         if (!planData && !phaseData) {
             return (
-                <div style={{ textAlign: "center", padding: "2rem", color: "#6B7280" }}>
-                    📊 Đang tải dữ liệu kế hoạch...
+                <div style={{ textAlign: "center", padding: "2rem", color: "#EF4444", background: "#FEE2E2", borderRadius: 12 }}>
+                    ❌ Không thể tải dữ liệu kế hoạch!<br />
+                    <span style={{ color: "#6B7280", fontSize: "0.95rem" }}>
+                        planData: {JSON.stringify(planData)}<br />
+                        phaseData: {JSON.stringify(phaseData)}
+                    </span>
+                    <br />
+                    <button
+                        onClick={() => window.location.reload()}
+                        style={{
+                            marginTop: 16,
+                            background: "#6B7280",
+                            color: "white",
+                            fontWeight: 700,
+                            padding: "0.6rem 2rem",
+                            borderRadius: 20,
+                            fontSize: "1rem",
+                            border: "none",
+                            cursor: "pointer"
+                        }}
+                    >
+                        🔄 Thử tải lại
+                    </button>
                 </div>
             );
         }
