@@ -13,8 +13,8 @@ export default function Plan() {
     // Lấy user info từ Redux hoặc AuthContext với debug
     const reduxState = useSelector((state) => state.account || {});
     const { user: reduxUser, token: reduxToken } = reduxState;
-    const token = reduxToken || auth?.token;
-    const user = reduxUser || auth?.user;
+    const token = reduxToken;
+    const user = reduxUser;
 
 
 
@@ -163,79 +163,6 @@ export default function Plan() {
     // Hàm chuyển đổi sang giờ Việt Nam (Asia/Ho_Chi_Minh)
     function toVietnamTime(date) {
         return new Date(new Date(date).toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
-    }
-
-    // Hàm tính số ngày, giờ, phút, giây đã cai thuốc (theo giờ Việt Nam)
-    function useQuitTimer(startDate) {
-        const [timer, setTimer] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-        useEffect(() => {
-            function update() {
-                const now = toVietnamTime(new Date());
-                const start = toVietnamTime(new Date(startDate));
-                const diff = now - start;
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                const minutes = Math.floor((diff / (1000 * 60)) % 60);
-                const seconds = Math.floor((diff / 1000) % 60);
-                setTimer({ days, hours, minutes, seconds });
-            }
-            update();
-            const interval = setInterval(update, 1000);
-            return () => clearInterval(interval);
-        }, [startDate]);
-
-        return timer;
-    }
-
-    // Component Timer riêng
-    function TimerSection({ startDate }) {
-        const timer = useQuitTimer(startDate);
-
-        return (
-            <section style={{
-                background: "#E6F4F4",
-                borderRadius: 12,
-                padding: "1.5rem",
-                boxShadow: "0 1px 6px rgba(154,203,208,0.10)",
-                marginBottom: 36,
-                textAlign: "center"
-            }}>
-                <div style={{ fontWeight: 600, color: "#48A6A7", marginBottom: 18, fontSize: "1.15rem" }}>
-                    Thời gian bạn cai thuốc (giờ Việt Nam)
-                </div>
-                <div style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: 24,
-                    fontSize: "2.2rem",
-                    fontWeight: 700,
-                    letterSpacing: 1,
-                    color: "#006A71"
-                }}>
-                    <div>
-                        <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.days}</span>
-                        <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>ngày</div>
-                    </div>
-                    <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
-                    <div>
-                        <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.hours.toString().padStart(2, "0")}</span>
-                        <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>giờ</div>
-                    </div>
-                    <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
-                    <div>
-                        <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.minutes.toString().padStart(2, "0")}</span>
-                        <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>phút</div>
-                    </div>
-                    <span style={{ fontSize: "2rem", color: "#48A6A7" }}>:</span>
-                    <div>
-                        <span style={{ fontSize: "2.6rem", color: "#006A71" }}>{timer.seconds.toString().padStart(2, "0")}</span>
-                        <div style={{ fontSize: "1rem", color: "#48A6A7", marginTop: 2 }}>giây</div>
-                    </div>
-                </div>
-            </section>
-        );
     }
 
     // Component nhập điếu thuốc riêng
@@ -1244,11 +1171,6 @@ export default function Plan() {
                                             fetchPlanAndPhaseData={fetchPlanAndPhaseData}
                                             fetchStatusProcess={fetchStatusProcess}
                                         />
-
-                                        {/* Timer section */}
-                                        {planData?.startDatePhase1 && (
-                                            <TimerSection startDate={planData.startDatePhase1} />
-                                        )}
 
                                         {/* Progress Phases section - CHỨA THỐNG KÊ TỪ API */}
                                         <ProgressPhasesSection />
