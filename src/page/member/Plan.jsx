@@ -1,20 +1,16 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import AuthContext from "../../AuthContext/AuthContext";
 import Footer from "../../components/Footer";
 
 export default function Plan() {
     const navigate = useNavigate();
-    const auth = useContext(AuthContext);
     const dispatch = useDispatch();
     const [showGuide, setShowGuide] = useState(false);
 
     // Lấy user info từ Redux hoặc AuthContext với debug
-    const reduxState = useSelector((state) => state.account || {});
-    const { user: reduxUser, token: reduxToken } = reduxState;
-    const token = reduxToken;
-    const user = reduxUser;
+    // SỬA: Chỉ lấy từ Redux
+    const { user, token } = useSelector((state) => state.account || {});
 
 
 
@@ -36,9 +32,24 @@ export default function Plan() {
     const [phaseData, setPhaseData] = useState(null);
     const [goalTime, setGoalTime] = useState(null);
 
+    // State cho popup chi tiết giai đoạn
+    const [showPhaseDetail, setShowPhaseDetail] = useState(false);
+    const [selectedPhaseId, setSelectedPhaseId] = useState(null);
+    const [phaseDetailData, setPhaseDetailData] = useState(null);
+    const [phaseDetailLoading, setPhaseDetailLoading] = useState(false);
+
     // Lấy packageMembershipId từ user (Redux)
     const packageMembershipId = user?.packageMembershipId ?? 0;
-    const hasValidMembership = packageMembershipId !== 0 && packageMembershipId !== null && packageMembershipId !== undefined;
+    const [hasValidMembership, setHasValidMembership] = useState(
+        packageMembershipId !== 0 && packageMembershipId !== null && packageMembershipId !== undefined
+    );
+
+    // Luôn cập nhật quyền truy cập khi packageMembershipId thay đổi
+    useEffect(() => {
+        setHasValidMembership(
+            packageMembershipId !== 0 && packageMembershipId !== null && packageMembershipId !== undefined
+        );
+    }, [packageMembershipId]);
 
     // Định nghĩa các hàm fetch ở ngoài
     const fetchStatusProcess = async () => {
@@ -110,10 +121,52 @@ export default function Plan() {
         }
     };
 
+    // Hàm fetch chi tiết giai đoạn
+    const fetchPhaseDetail = async (phaseNumber) => {
+        if (!token || !phaseNumber) return;
+        try {
+            setPhaseDetailLoading(true);
+            console.log('🔍 Fetching phase detail for phaseNumber:', phaseNumber);
+            const response = await fetch(
+                `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/PhaseDetail/${phaseNumber}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Phase detail data:', data);
+                setPhaseDetailData(data);
+            } else {
+                console.error('❌ Failed to fetch phase detail:', response.status, response.statusText);
+                setPhaseDetailData(null);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching phase detail:', error);
+            setPhaseDetailData(null);
+        } finally {
+            setPhaseDetailLoading(false);
+        }
+    };
+
+    // Hàm xử lý khi nhấn vào giai đoạn
+    const handlePhaseClick = (phaseNumber) => {
+        console.log('🔍 Phase clicked:', phaseNumber);
+        console.log('🔍 Token available:', !!token);
+        console.log('🔍 AccountId:', accountId);
+        setSelectedPhaseId(phaseNumber);
+        setShowPhaseDetail(true);
+        fetchPhaseDetail(phaseNumber);
+    };
+
     // BƯỚC 1: FETCH STATUS PROCESS TỪ API
     useEffect(() => {
         fetchStatusProcess();
-    }, [accountId, token]);
+    }, [accountId, token, packageMembershipId]); // Đảm bảo phụ thuộc packageMembershipId
 
     // BƯỚC 2: FETCH PLAN & PHASE DATA CHỈ KHI STATUS = "processing"
     useEffect(() => {
@@ -604,7 +657,18 @@ export default function Plan() {
                                     borderRadius: 12,
                                     padding: "1.5rem",
                                     marginBottom: "1rem",
-                                    position: "relative"
+                                    position: "relative",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s ease"
+                                }}
+                                onClick={() => handlePhaseClick(phaseNum)}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                    e.currentTarget.style.boxShadow = "none";
                                 }}
                             >
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
@@ -717,8 +781,8 @@ export default function Plan() {
                     onClick={() => setShowGuide(v => !v)}
                     style={{
                         background: showGuide
-                            ? "linear-gradient(90deg, #0284C7 0%, #38BDF8 100%)"
-                            : "linear-gradient(90deg, #38BDF8 0%, #0EA5E9 100%)",
+                            ? "linear-gradient(90deg, #0284C7 0%, #48A6A7 100%)"
+                            : "linear-gradient(90deg, #48A6A7 0%, #0EA5E9 100%)",
                         color: "#fff",
                         border: "none",
                         borderRadius: 12,
@@ -889,21 +953,13 @@ export default function Plan() {
                     }}>
                         ❌ Bạn chưa có gói thành viên hoặc đã hết hạn
                     </div>
-                    <button
-                        onClick={() => navigate("/payment")}
-                        style={{
-                            background: "#EF4444",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 8,
-                            padding: "0.5rem 1rem",
-                            marginTop: "0.5rem",
-                            cursor: "pointer",
-                            fontWeight: 600
-                        }}
-                    >
-                        💳 Mua gói ngay
-                    </button>
+                    <div style={{
+                        marginTop: "0.5rem",
+                        color: "#EF4444",
+                        fontWeight: 600
+                    }}>
+                        Vui lòng mua gói thành viên để sử dụng chức năng này!
+                    </div>
                 </div>
             ) : statusLoading ? (
                 <div style={{
@@ -1242,6 +1298,216 @@ export default function Plan() {
                     )}
                     <Footer />
                 </>
+            )}
+
+            {/* Popup chi tiết giai đoạn */}
+            {showPhaseDetail && (
+                <div style={{
+                    position: "fixed",
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: "rgba(0,0,0,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 9999,
+                    padding: "20px"
+                }}>
+                    <div style={{
+                        background: "#fff",
+                        borderRadius: 20,
+                        padding: "2rem",
+                        maxWidth: "90vw",
+                        maxHeight: "90vh",
+                        width: "600px",
+                        overflow: "auto",
+                        boxShadow: "0 20px 40px rgba(0,0,0,0.3)"
+                    }}>
+                        <div style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "1.5rem"
+                        }}>
+                            <h2 style={{
+                                margin: 0,
+                                color: "#006A71",
+                                fontSize: "1.5rem",
+                                fontWeight: 800
+                            }}>
+                                📊 Chi tiết giai đoạn {selectedPhaseId || ''}
+                            </h2>
+                            <button
+                                onClick={() => setShowPhaseDetail(false)}
+                                style={{
+                                    background: "#EF4444",
+                                    color: "#fff",
+                                    border: "none",
+                                    borderRadius: "50%",
+                                    width: 40,
+                                    height: 40,
+                                    cursor: "pointer",
+                                    fontSize: "1.2rem",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {phaseDetailLoading ? (
+                            <div style={{
+                                textAlign: "center",
+                                padding: "3rem",
+                                color: "#48A6A7"
+                            }}>
+                                🔄 Đang tải chi tiết...
+                            </div>
+                        ) : phaseDetailData && Array.isArray(phaseDetailData) ? (
+                            <div style={{ maxHeight: "60vh", overflow: "auto" }}>
+                                <div style={{
+                                    background: "#F0F9FF",
+                                    padding: "1rem",
+                                    borderRadius: 12,
+                                    marginBottom: "1rem",
+                                    textAlign: "center"
+                                }}>
+                                    <strong style={{ color: "#0369A1" }}>
+                                        Tổng số ngày: {phaseDetailData.length}
+                                    </strong>
+                                </div>
+
+                                {phaseDetailData.map((detail, index) => {
+                                    // Kiểm tra ngày hiện tại để xác định trạng thái
+                                    const currentDate = new Date();
+                                    const detailDate = new Date(detail.date);
+                                    const isUpcoming = detailDate > currentDate;
+
+                                    // Xác định trạng thái hiển thị
+                                    let status, statusText, bgColor, borderColor, textColor;
+
+                                    if (isUpcoming) {
+                                        // Ngày chưa tới -> Sắp tới
+                                        status = "upcoming";
+                                        statusText = "⏳ Sắp tới";
+                                        bgColor = "#F8FAFC";
+                                        borderColor = "#94A3B8";
+                                        textColor = "#475569";
+                                    } else if (detail.isSuccess) {
+                                        // Ngày đã qua + thành công
+                                        status = "success";
+                                        statusText = "✅ Thành công";
+                                        bgColor = "#F0FDF4";
+                                        borderColor = "#10B981";
+                                        textColor = "#059669";
+                                    } else {
+                                        // Ngày đã qua + thất bại
+                                        status = "failed";
+                                        statusText = "❌ Thất bại";
+                                        bgColor = "#FEF2F2";
+                                        borderColor = "#EF4444";
+                                        textColor = "#DC2626";
+                                    }
+
+                                    return (
+                                        <div
+                                            key={detail.phaseDetailId}
+                                            style={{
+                                                background: bgColor,
+                                                border: `2px solid ${borderColor}`,
+                                                borderRadius: 12,
+                                                padding: "1rem",
+                                                marginBottom: "0.8rem"
+                                            }}
+                                        >
+                                            <div style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                marginBottom: "0.5rem"
+                                            }}>
+                                                <div style={{
+                                                    fontWeight: 700,
+                                                    color: textColor
+                                                }}>
+                                                    📅 Ngày {detail.clock}: {new Date(detail.date).toLocaleDateString("vi-VN")}
+                                                </div>
+                                                <div style={{
+                                                    background: status === "upcoming" ? "#94A3B8" : (detail.isSuccess ? "#10B981" : "#EF4444"),
+                                                    color: "#fff",
+                                                    padding: "0.2rem 0.8rem",
+                                                    borderRadius: 20,
+                                                    fontSize: "0.8rem",
+                                                    fontWeight: 600
+                                                }}>
+                                                    {statusText}
+                                                </div>
+                                            </div>
+
+                                            <div style={{
+                                                display: "grid",
+                                                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                                                gap: "0.8rem",
+                                                fontSize: "0.9rem"
+                                            }}>
+                                                <div>
+                                                    <strong>🚬 Điếu đã hút:</strong><br />
+                                                    <span style={{ color: detail.todayCigarettes === -1 ? "#6B7280" : "#DC2626" }}>
+                                                        {detail.todayCigarettes === -1 ? "Chưa nhập" : detail.todayCigarettes}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <strong>📊 Giới hạn:</strong><br />
+                                                    <span style={{ color: "#059669" }}>{detail.maxCigarettes}</span>
+                                                </div>
+                                                <div>
+                                                    <strong>💰 Tiền tiết kiệm:</strong><br />
+                                                    <span style={{ color: "#059669" }}>
+                                                        {detail.saveMoney.toLocaleString('vi-VN')}₫
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <strong>🚭 Điếu đã bỏ:</strong><br />
+                                                    <span style={{ color: "#3B82F6" }}>{detail.cigarettesQuit}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div style={{
+                                textAlign: "center",
+                                padding: "3rem",
+                                color: "#EF4444"
+                            }}>
+                                ❌ Không thể tải chi tiết giai đoạn
+                            </div>
+                        )}
+
+                        <div style={{
+                            textAlign: "center",
+                            marginTop: "1.5rem"
+                        }}>
+                            <button
+                                onClick={() => setShowPhaseDetail(false)}
+                                style={{
+                                    background: "#48A6A7",
+                                    color: "#fff",
+                                    border: "none",
+                                    borderRadius: 12,
+                                    padding: "0.8rem 2rem",
+                                    fontSize: "1rem",
+                                    fontWeight: 600,
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

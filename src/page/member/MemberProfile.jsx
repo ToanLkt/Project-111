@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSelector } from "react-redux"
-import HistoryPayment from "./HistoryPayment"
+import { useSelector, useDispatch } from "react-redux"
 import "bootstrap/dist/css/bootstrap.min.css"
 import Footer from "../../components/Footer"
+import { fetchSuccess } from "../../redux/login/loginSlice"
 
 const COLORS = {
   background: "#FAFAF9",
@@ -22,9 +22,10 @@ const COLORS = {
 }
 
 export default function MemberProfile() {
-  // Sử dụng Redux thay vì AuthContext
+
   const { user: reduxUser, token, loading: authLoading } = useSelector((state) => state.account || {})
 
+  const dispatch = useDispatch();
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
@@ -203,6 +204,7 @@ export default function MemberProfile() {
 
       setUser({ ...user, ...formData, sex: formData.sex })
       setIsEditing(false)
+      dispatch(fetchSuccess({ user: { ...reduxUser, fullName: formData.fullName }, token }))
       alert("Cập nhật thành công!")
     } catch (e) {
       alert(e.message)
@@ -951,7 +953,7 @@ export default function MemberProfile() {
                     </button>
                   ) : (
                     <>
-                      <button onClick={handleSave} className="btn-success" disabled={saving}>
+                      <button onClick={handleSave} className="btn-success" disabled={saving} >
                         {saving ? (
                           <>
                             <div className="loading-btn-spinner"></div>
@@ -959,7 +961,7 @@ export default function MemberProfile() {
                           </>
                         ) : (
                           <>
-                            <i className="fas fa-save"></i>
+                            <i className="fas fa-save" ></i>
                             Lưu thay đổi
                           </>
                         )}

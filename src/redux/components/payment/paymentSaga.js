@@ -37,15 +37,10 @@ function* getUserInfo() {
 // Fetch packages saga
 function* fetchPackagesSaga() {
     try {
-        const response = yield call(fetch,
-            `${BASE_URL}/api/PackageMembership`
-        )
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`)
-        }
-
+        const response = yield call(fetch, `${BASE_URL}/api/PackageMembership`)
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
         const data = yield response.json()
+        console.log("📦 Saga data from API:", data) // Thêm dòng này
         yield put(fetchPackagesSuccess(data))
     } catch (error) {
         yield put(fetchPackagesFailure(error.message || "Failed to fetch packages"))

@@ -5,6 +5,9 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
 import Footer from "./Footer"
 import "bootstrap/dist/css/bootstrap.min.css"
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
+
 
 // Import actions từ paymentSlice
 import {
@@ -21,8 +24,8 @@ import {
   clearCurrentPackage,
   createPaymentSuccess,
 } from "../redux/components/payment/paymentSlice"
-import { updateUserPackageMembershipId } from "../redux/login/loginSlice"; // Thêm import này
-import { fetchSuccess } from "../redux/login/loginSlice"; // Đã có action này
+import { updateUserPackageMembershipId } from "../redux/login/loginSlice";
+import { fetchSuccess } from "../redux/login/loginSlice";
 
 // Thông tin ngân hàng
 const BANK_ID = "970422" // MB Bank
@@ -47,6 +50,8 @@ const COLORS = {
 // API kiểm tra giao dịch
 const TRANSACTION_API =
   "https://docs.google.com/spreadsheets/d/1Er2mUA9EE7PdsIc9YPzOFlxo_ErhmjRPGaYNYBXS00A/gviz/tq?tqx=out:json"
+
+const API_BASE_URL = "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net";
 
 function showToast(message, type = "Success") {
   const old = document.getElementById("toast-paid")
@@ -328,7 +333,7 @@ export default function Payment() {
       // Chỉ duy nhất 1 nơi reload lại web để cập nhật user/package mới
       const navTimer = setTimeout(() => {
         window.location.reload();
-      }, 2000); // reload sau 2 giây (hoặc 3000ms tuỳ ý)
+      }, 2000);
 
       // Clear payment state sau 5 giây (nhưng giữ current package)
       const clearTimer = setTimeout(() => {
@@ -760,25 +765,9 @@ export default function Payment() {
       })
 
       if (found) {
-        // Nếu tìm thấy, lưu giao dịch và cập nhật gói như thanh toán thành công
-        await savePaymentTransaction(buyingPkg, { transactionCode })
-        const now = new Date()
-        const endDate = new Date(now.getTime() + (buyingPkg.duration * 24 * 60 * 60 * 1000))
-        const newCurrentPackage = {
-          name: buyingPkg.category,
-          category: buyingPkg.category,
-          package_membership_ID: buyingPkg.package_membership_ID,
-          duration: buyingPkg.duration,
-          price: buyingPkg.price,
-          startDate: now.toISOString(),
-          endDate: endDate.toISOString(),
-          daysLeft: buyingPkg.duration,
-          isActive: true,
-          isExpired: false,
-          paymentDate: now.toISOString(),
-          transactionCode: transactionCode
-        }
-        dispatch(updateCurrentPackage(newCurrentPackage))
+        await savePaymentTransaction(buyingPkg, { transactionCode });
+        dispatch(updateCurrentPackage(newCurrentPackage));
+        await handleCheckout(); // <-- Gọi hàm này để cập nhật user từ Redux
         showToast("✅ Đã xác nhận thanh toán thành công!", "success")
         setShowQR(false)
         setBuyingPkg(null)
@@ -786,6 +775,7 @@ export default function Payment() {
         // Thay vì navigate("/"), hãy reload lại trang
         setTimeout(() => {
           window.location.href = "/"
+          window.location.reload();
         }, 1500)
       } else {
         // Nếu chưa có giao dịch

@@ -199,7 +199,7 @@ export default function List() {
         setAddCoachError("");
 
         try {
-            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach", {
+            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Coach/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

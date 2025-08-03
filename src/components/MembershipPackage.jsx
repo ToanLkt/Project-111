@@ -232,6 +232,11 @@ export default function MembershipPackage() {
     return `Còn ${daysLeft} ngày`
   }
 
+  // Log packages data khi có sự thay đổi
+  useEffect(() => {
+    console.log("📦 Packages data:", packages)
+  }, [packages])
+
   return (
     <div>
       <style jsx>{`
@@ -337,14 +342,27 @@ export default function MembershipPackage() {
         }
 
         .package-card {
-          background: ${COLORS.background};
-          border-radius: 20px;
-          padding: 2.5rem;
-          border: 1px solid ${COLORS.color1};
-          box-shadow: 0 8px 24px rgba(51, 107, 115, 0.06);
-          position: relative;
-          overflow: hidden;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 1.5rem;
+          border-radius: 12px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          height: 100%;
+        }
+
+        .package-footer {
+          margin-top: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .package-info {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
         }
 
         .package-card.active {
@@ -723,37 +741,65 @@ export default function MembershipPackage() {
                             </div>
                           </div>
                           <h3 className="package-category">{pkg.category}</h3>
-                          <p className="package-description">{pkg.description}</p>
-                          <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
-                            {formatPrice(pkg.price)}
+                          <p className="package-description" style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "1.5rem" }}>
+                            {pkg.description
+                              .split('.')
+                              .map((line, idx) =>
+                                line.trim() ? (
+                                  <span
+                                    key={idx}
+                                    style={{
+                                      background: "#f8fafc",
+                                      borderRadius: "10px",
+                                      padding: "10px 14px",
+                                      color: "#23235a",
+                                      fontSize: "1rem",
+                                      boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                      borderLeft: "4px solid #48A6A7",
+                                      display: "block",
+                                      fontWeight: 500,
+                                      lineHeight: 1.6
+                                    }}
+                                  >
+                                    {line.trim()}.
+                                  </span>
+                                ) : null
+                              )}
+                          </p>
+                          <div className="package-footer">
+                            <div className="package-info">
+                              <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
+                                {formatPrice(pkg.price)}
+                              </div>
+                              <div className="package-duration">
+                                <i className="fas fa-clock"></i>
+                                Thời hạn: {pkg.duration} ngày
+                              </div>
+                            </div>
+                            {isCurrent ? (
+                              <button className="package-button btn-current">
+                                <i className={getButtonIcon(pkg)}></i>
+                                {getButtonLabel(pkg)}
+                              </button>
+                            ) : token && canRegister ? (
+                              <button
+                                className={`package-button ${isUpgrade ? 'btn-upgrade' : 'btn-register'}`}
+                                onClick={() => handleRegister(pkg)}
+                              >
+                                <i className={getButtonIcon(pkg)}></i>
+                                {getButtonLabel(pkg)}
+                              </button>
+                            ) : (
+                              <button
+                                className="package-button btn-disabled"
+                                onClick={!token ? () => navigate("/login") : undefined}
+                                style={!token ? { cursor: "pointer" } : {}}
+                              >
+                                <i className={getButtonIcon(pkg)}></i>
+                                {getButtonLabel(pkg)}
+                              </button>
+                            )}
                           </div>
-                          <div className="package-duration">
-                            <i className="fas fa-clock"></i>
-                            Thời hạn: {pkg.duration} ngày
-                          </div>
-                          {isCurrent ? (
-                            <button className="package-button btn-current">
-                              <i className={getButtonIcon(pkg)}></i>
-                              {getButtonLabel(pkg)}
-                            </button>
-                          ) : token && canRegister ? (
-                            <button
-                              className={`package-button ${isUpgrade ? 'btn-upgrade' : 'btn-register'}`}
-                              onClick={() => handleRegister(pkg)}
-                            >
-                              <i className={getButtonIcon(pkg)}></i>
-                              {getButtonLabel(pkg)}
-                            </button>
-                          ) : (
-                            <button
-                              className="package-button btn-disabled"
-                              onClick={!token ? () => navigate("/login") : undefined}
-                              style={!token ? { cursor: "pointer" } : {}}
-                            >
-                              <i className={getButtonIcon(pkg)}></i>
-                              {getButtonLabel(pkg)}
-                            </button>
-                          )}
                         </div>
                       )
                     })}

@@ -4,7 +4,6 @@ import React from "react";
 import { Link, useLocation, Outlet, Navigate, useNavigate } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
 import { logout as logoutAction } from "../../redux/login/loginSlice"
-import { safeNavigate, clearUserData, handleLogoutError } from '../../utils/navigationUtils'
 import "bootstrap/dist/css/bootstrap.min.css"
 
 const COLORS = {

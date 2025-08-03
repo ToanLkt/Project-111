@@ -7,7 +7,6 @@ import { useSelector, useDispatch } from "react-redux"
 import { logout as logoutAction } from "../redux/login/loginSlice"
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { safeNavigate, clearUserData, handleLogoutError } from '../utils/navigationUtils'
 
 const COLORS = {
   background: "#FAFAF9",
@@ -810,7 +809,17 @@ export default function NavBar() {
                           <div className="dropdown-item-text">
                             <small className="text-muted">{getUserEmail()}</small>
                             <br />
-                            <small className="badge bg-success">{getUserRole()}</small>
+                            <div className="d-flex align-items-center gap-2 flex-row">
+                              <small className="badge bg-success">{getUserRole()}</small>
+                              {user?.packageMembershipId > 0 && (
+                                <span className="badge bg-success ">
+                                  {user.packageMembershipId === 1 ? "Gói Free"
+                                    : user.packageMembershipId === 2 ? "Gói Basic"
+                                      : user.packageMembershipId === 3 ? "Gói Plus"
+                                        : user.packageMembershipId}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </li>
                         <li><hr className="dropdown-divider" /></li>

@@ -50,6 +50,7 @@ export default function StartInformation() {
     const [loading, setLoading] = useState(false);
     const [apiError, setApiError] = useState(null);
     const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
+    const [apiResult, setApiResult] = useState(null);
 
     // State cho custom input khi chọn "Khác"
     const [customReason, setCustomReason] = useState("");
@@ -217,7 +218,9 @@ export default function StartInformation() {
                 return;
             }
 
-            console.log('✅ Form submitted successfully');
+            const result = await res.json();
+            setApiResult(result); // Hiện popup
+
             setSubmitted(true);
             setHasSubmittedBefore(true);
 
@@ -248,11 +251,7 @@ export default function StartInformation() {
                 }));
             }
 
-            // Navigate sau 1.2 giây
-            setTimeout(() => {
-                console.log('🏠 Navigating to /plan...');
-                navigate("/plan");
-            }, 1200);
+
 
         } catch (err) {
             console.error('❌ Form submission error:', err);
@@ -295,432 +294,563 @@ export default function StartInformation() {
         }
     }, [token, navigate]);
 
+    useEffect(() => {
+        const num = Number(form.cigarettesPerDay);
+        if (!num) return;
+
+        if (num >= 1 && num <= 19) {
+            setForm(prev => ({ ...prev, goalTime: "180" })); // 3-6 tháng
+        } else if (num >= 20 && num <= 29) {
+            setForm(prev => ({ ...prev, goalTime: "270" })); // 6-9 tháng
+        } else if (num > 29) {
+            setForm(prev => ({ ...prev, goalTime: "360" })); // 9-12 tháng
+        }
+    }, [form.cigarettesPerDay]);
+
+    const [isCigarettesInputFocused, setIsCigarettesInputFocused] = useState(false);
+
     return (
-        <section
-            style={{
-                minHeight: "100vh",
-                background: COLORS.background,
-                padding: "3rem 0",
-                fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
-                color: COLORS.text,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-            }}
-        >
-            <div
-                style={{
-                    maxWidth: 700,
-                    width: "100%",
-                    background: COLORS.white,
-                    borderRadius: 28,
-                    boxShadow: "0 8px 32px rgba(72,166,167,0.18)",
-                    padding: "2.8rem 2.2rem",
-                    border: `2.5px solid ${COLORS.primary}`,
-                    textAlign: "center",
-                    position: "relative",
-                    overflow: "hidden"
-                }}
-            >
-                {/* Decorative elements */}
+        <>
+            {/* Popup kết quả submit */}
+            {apiResult && (
                 <div style={{
-                    position: "absolute",
-                    top: -60,
-                    left: -60,
-                    width: 120,
-                    height: 120,
-                    background: COLORS.primary,
-                    borderRadius: "50%",
-                    opacity: 0.18,
-                    zIndex: 0
-                }} />
-                <div style={{
-                    position: "absolute",
-                    bottom: -70,
-                    right: -70,
-                    width: 140,
-                    height: 140,
-                    background: COLORS.secondary,
-                    borderRadius: "50%",
-                    opacity: 0.13,
-                    zIndex: 0
-                }} />
-
-                <h2
-                    style={{
-                        color: COLORS.accent,
-                        fontWeight: 900,
-                        fontSize: "2.3rem",
-                        marginBottom: 18,
-                        letterSpacing: 1,
-                        textShadow: "0 2px 8px #9ACBD033",
-                        userSelect: "none",
-                        zIndex: 1,
-                        position: "relative"
-                    }}
-                >
-                    🚀 Bắt đầu hành trình cai thuốc lá
-                </h2>
-                <p
-                    style={{
-                        color: COLORS.secondary,
-                        fontSize: "1.18rem",
-                        marginBottom: 24,
-                        fontWeight: 500,
-                        lineHeight: 1.6,
-                        zIndex: 1,
-                        position: "relative"
-                    }}
-                >
-                    Hãy cung cấp các thông tin quan trọng dưới đây để cá nhân hóa lộ trình hỗ trợ bạn cai thuốc lá hiệu quả!
-                </p>
-
-                {/* Hiển thị trạng thái đã submit trước đó */}
-                {hasSubmittedBefore && !submitted && (
+                    position: "fixed",
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: "rgba(0,0,0,0.32)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 9999,
+                    backdropFilter: "blur(2px)"
+                }}>
                     <div style={{
-                        background: "linear-gradient(90deg, #e8f5e8 0%, #f0f8f0 100%)",
-                        border: "2px solid #27ae60",
-                        borderRadius: 12,
-                        padding: "1rem",
-                        marginBottom: "1.5rem",
+                        background: "#fff",
+                        borderRadius: 24,
+                        boxShadow: "0 12px 40px rgba(72,166,167,0.22)",
+                        padding: "2.5rem 2.2rem 2rem 2.2rem",
+                        maxWidth: 480,
+                        width: "95%",
                         textAlign: "center",
-                        color: "#27ae60",
-                        fontWeight: 600
+                        border: "2.5px solid #48A6A7",
+                        position: "relative",
+                        transition: "box-shadow 0.2s"
                     }}>
-                        ✅ Bạn đã gửi thông tin trước đó. Có thể cập nhật lại thông tin bên dưới.
-                    </div>
-                )}
-
-                <form
-                    onSubmit={handleSubmit}
-                    style={{
-                        marginTop: "2rem",
-                        width: "100%",
-                        borderTop: `2px solid ${COLORS.primary}`,
-                        paddingTop: "1.5rem",
-                        zIndex: 1,
-                        position: "relative"
-                    }}
-                >
-                    {submitted && (
-                        <div
-                            style={{
-                                textAlign: "center",
-                                marginTop: 18,
-                                color: "#27ae60",
-                                fontWeight: 700,
-                                fontSize: "1.13rem",
-                                letterSpacing: 0.5,
-                                background: "#eafaf1",
-                                borderRadius: 8,
-                                padding: "12px 0",
-                                marginBottom: 20
-                            }}
-                        >
-                            🎉 {hasSubmittedBefore ? "Thông tin đã được cập nhật!" : "Cảm ơn bạn đã cung cấp thông tin!"}
-                        </div>
-                    )}
-
-                    {apiError && (
-                        <div style={{
-                            color: "#e74c3c",
-                            background: "#fff6f6",
-                            border: "1.5px solid #e74c3c",
-                            borderRadius: 8,
-                            padding: "10px 18px",
-                            marginBottom: 18,
-                            textAlign: "left",
-                            whiteSpace: "pre-line"
+                        <h3 style={{
+                            color: "#006A71",
+                            fontWeight: 900,
+                            marginBottom: 22,
+                            fontSize: "2rem",
+                            letterSpacing: 1,
+                            textShadow: "0 2px 8px #9ACBD033",
+                            lineHeight: 1.3
                         }}>
-                            {apiError}
+                            Cảm ơn bạn đã cung cấp<br />thông tin!
+                        </h3>
+                        <div style={{
+                            background: "#f8fafc",
+                            padding: "1.2rem",
+                            borderRadius: 16,
+                            marginBottom: "1.2rem",
+                            boxShadow: "0 2px 8px rgba(44,130,201,0.07)",
+                            textAlign: "left"
+                        }}>
+                            {apiResult.addictionEvaluation
+                                .split("\n")
+                                .filter(line => line.trim().startsWith("-"))
+                                .map((line, idx) => (
+                                    <div
+                                        key={idx}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            gap: 10,
+                                            marginBottom: 12,
+                                            padding: "10px 12px",
+                                            background: "#e6f4f4",
+                                            borderRadius: 10,
+                                            borderLeft: "4px solid #48A6A7",
+                                            fontSize: "1.08rem",
+                                            color: "#23235a",
+                                            boxShadow: "0 1px 4px rgba(44,130,201,0.05)"
+                                        }}
+                                    >
+                                        <span style={{
+                                            fontSize: "1.2rem",
+                                            color: "#48A6A7",
+                                            marginTop: 2
+                                        }}>•</span>
+                                        <span style={{ whiteSpace: "pre-wrap" }}>
+                                            {line.replace(/^-/, "").trim()}
+                                        </span>
+                                    </div>
+                                ))
+                            }
                         </div>
-                    )}
-
-                    {/* Số điếu hút/ngày và thời gian hút */}
-                    <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
-                                📊 Số điếu hút/ngày
-                            </label>
-                            <input
-                                type="number"
-                                name="cigarettesPerDay"
-                                value={form.cigarettesPerDay}
-                                onChange={handleChange}
-                                placeholder="Nhập số điếu"
-                                min={1}
-                                max={100}
-                                required
-                                style={{
-                                    width: "100%",
-                                    padding: "0.7rem",
-                                    borderRadius: 10,
-                                    border: "1.5px solid #2d98da",
-                                    fontSize: "1rem",
-                                    backgroundColor: "#f8fafc",
-                                    color: COLORS.text,
-                                    outline: "none",
-                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                                }}
-                            />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
-                                ⏰ Thời gian hút thuốc
-                            </label>
-                            <select
-                                name="smokingTime"
-                                value={form.smokingTime}
-                                onChange={handleChange}
-                                required
-                                style={{
-                                    width: "100%",
-                                    padding: "0.7rem",
-                                    borderRadius: 10,
-                                    border: "1.5px solid #2d98da",
-                                    fontSize: "1rem",
-                                    backgroundColor: "#f8fafc",
-                                    color: COLORS.text,
-                                    outline: "none",
-                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                                }}
-                            >
-                                <option value="">Chọn thời gian hút thuốc</option>
-                                <option value="Khoảng 1 năm">Khoảng 1 năm</option>
-                                <option value="Khoảng 2 năm">Khoảng 2 năm</option>
-                                <option value="Khoảng 3 năm">Khoảng 3 năm</option>
-                                <option value="Khoảng 4 năm">Khoảng 4 năm</option>
-                                <option value="Khoảng 5 năm">Khoảng 5 năm</option>
-                                <option value="Từ 6-10 năm">Từ 6-10 năm</option>
-                                <option value="Trên 10 năm">Trên 10 năm</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Thời gian muốn cai và chi phí */}
-                    <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
-                                🎯 Thời gian muốn cai (ngày)
-                            </label>
-                            <select
-                                name="goalTime"
-                                value={form.goalTime}
-                                onChange={handleChange}
-                                required
-                                style={{
-                                    width: "100%",
-                                    padding: "0.7rem",
-                                    borderRadius: 10,
-                                    border: "1.5px solid #2d98da",
-                                    fontSize: "1rem",
-                                    backgroundColor: "#f8fafc",
-                                    color: COLORS.text,
-                                    outline: "none",
-                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                                }}
-                            >
-                                <option value="">Chọn thời gian</option>
-                                <option value={180}>3-6 tháng (~180 ngày)</option>
-                                <option value={270}>6-9 tháng (~270 ngày)</option>
-                                <option value={360}>9-12 tháng (~360 ngày)</option>
-                            </select>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
-                                💰 Chi phí (VND/điếu)
-                            </label>
-                            <select
-                                name="costPerCigarette"
-                                value={form.costPerCigarette}
-                                onChange={handleChange}
-                                required
-                                style={{
-                                    width: "100%",
-                                    padding: "0.7rem",
-                                    borderRadius: 10,
-                                    border: "1.5px solid #2d98da",
-                                    fontSize: "1rem",
-                                    backgroundColor: "#f8fafc",
-                                    color: COLORS.text,
-                                    outline: "none",
-                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                                }}
-                            >
-                                <option value="">Chọn chi phí</option>
-                                <option value={5000}>Khoảng 5.000 VND</option>
-                                <option value={10000}>Khoảng 10.000 VND</option>
-                                <option value={20000}>Khoảng 20.000 VND</option>
-                                <option value={30000}>Khoảng 30.000 VND</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Lý do muốn cai thuốc */}
-                    <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
-                            💪 Lý do bạn muốn cai thuốc lá
-                        </label>
-                        <select
-                            name="reason"
-                            value={form.reason}
-                            onChange={handleChange}
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.7rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#f8fafc",
-                                color: COLORS.text,
-                                outline: "none",
-                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                            }}
-                        >
-                            <option value="">Chọn lý do chính</option>
-                            {reasonOptions.map((reason, index) => (
-                                <option key={index} value={reason}>
-                                    {reason}
-                                </option>
-                            ))}
-                        </select>
-
-                        {/* Custom reason input */}
-                        {showCustomReason && (
-                            <textarea
-                                value={customReason}
-                                onChange={(e) => setCustomReason(e.target.value)}
-                                placeholder="Nhập lý do của bạn..."
-                                rows={3}
-                                required
-                                style={{
-                                    width: "100%",
-                                    padding: "0.7rem",
-                                    borderRadius: 10,
-                                    border: "1.5px solid #27ae60",
-                                    fontSize: "1rem",
-                                    backgroundColor: "#f8fff8",
-                                    color: COLORS.text,
-                                    resize: "vertical",
-                                    outline: "none",
-                                    marginTop: "0.5rem"
-                                }}
-                            />
-                        )}
-                    </div>
-
-                    {/* Tiền sử bệnh án */}
-                    <div style={{ marginBottom: 20 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
-                            🏥 Tiền sử bệnh án
-                        </label>
-                        <select
-                            name="medicalHistory"
-                            value={form.medicalHistory}
-                            onChange={handleChange}
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.7rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#f8fafc",
-                                color: COLORS.text,
-                                outline: "none",
-                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                            }}
-                        >
-                            <option value="">Chọn tình trạng sức khỏe</option>
-                            {medicalOptions.map((medical, index) => (
-                                <option key={index} value={medical}>
-                                    {medical}
-                                </option>
-                            ))}
-                        </select>
-
-                        {/* Custom medical history input */}
-                        {showCustomMedical && (
-                            <textarea
-                                value={customMedicalHistory}
-                                onChange={(e) => setCustomMedicalHistory(e.target.value)}
-                                placeholder="Mô tả tình trạng sức khỏe của bạn..."
-                                rows={3}
-                                required
-                                style={{
-                                    width: "100%",
-                                    padding: "0.7rem",
-                                    borderRadius: 10,
-                                    border: "1.5px solid #27ae60",
-                                    fontSize: "1rem",
-                                    backgroundColor: "#f8fff8",
-                                    color: COLORS.text,
-                                    resize: "vertical",
-                                    outline: "none",
-                                    marginTop: "0.5rem"
-                                }}
-                            />
-                        )}
-                    </div>
-
-                    {/* Thời điểm thèm thuốc nhất */}
-                    <div style={{ marginBottom: 28 }}>
-                        <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
-                            🕐 Thời điểm bạn thèm thuốc nhất trong ngày
-                        </label>
-                        <select
-                            name="mostSmokingTime"
-                            value={form.mostSmokingTime}
-                            onChange={handleChange}
-                            required
-                            style={{
-                                width: "100%",
-                                padding: "0.7rem",
-                                borderRadius: 10,
-                                border: "1.5px solid #2d98da",
-                                fontSize: "1rem",
-                                backgroundColor: "#f8fafc",
-                                color: COLORS.text,
-                                outline: "none",
-                                boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
-                            }}
-                        >
-                            <option value="">Chọn thời điểm thèm thuốc nhất</option>
-                            {smokingTimeOptions.map((timeOption, index) => (
-                                <option key={index} value={timeOption}>
-                                    {timeOption}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "1rem" }}>
                         <button
-                            type="submit"
-                            disabled={loading || !token}
+                            onClick={() => {
+                                setApiResult(null);
+                                navigate("/plan");
+                            }}
                             style={{
-                                flex: 1,
-                                padding: "1rem",
-                                background: (loading || !token)
-                                    ? "#b2bec3"
-                                    : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
-                                border: "none",
-                                borderRadius: 12,
+                                padding: "0.8rem 2.2rem",
+                                background: "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
                                 color: "#fff",
+                                border: "none",
+                                borderRadius: 14,
                                 fontWeight: 800,
                                 fontSize: "1.15rem",
                                 letterSpacing: 1,
-                                cursor: (loading || !token) ? "not-allowed" : "pointer",
+                                cursor: "pointer",
                                 boxShadow: "0 2px 8px rgba(44,130,201,0.10)",
-                                transition: "all 0.2s ease",
+                                transition: "all 0.2s"
                             }}
                         >
-                            {loading ? "Đang gửi..." : !token ? "Cần đăng nhập" : hasSubmittedBefore ? "Cập nhật thông tin" : "Gửi thông tin"}
+                            Đóng
                         </button>
                     </div>
-                </form>
-            </div>
-        </section>
+                </div>
+            )}
+            <section
+                style={{
+                    minHeight: "100vh",
+                    background: COLORS.background,
+                    padding: "3rem 0",
+                    fontFamily: "'Segoe UI', Arial, 'Helvetica Neue', Roboto, Tahoma, sans-serif",
+                    color: COLORS.text,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <div
+                    style={{
+                        maxWidth: 700,
+                        width: "100%",
+                        background: COLORS.white,
+                        borderRadius: 28,
+                        boxShadow: "0 8px 32px rgba(72,166,167,0.18)",
+                        padding: "2.8rem 2.2rem",
+                        border: `2.5px solid ${COLORS.primary}`,
+                        textAlign: "center",
+                        position: "relative",
+                        overflow: "hidden"
+                    }}
+                >
+                    {/* Decorative elements */}
+                    <div style={{
+                        position: "absolute",
+                        top: -60,
+                        left: -60,
+                        width: 120,
+                        height: 120,
+                        background: COLORS.primary,
+                        borderRadius: "50%",
+                        opacity: 0.18,
+                        zIndex: 0
+                    }} />
+                    <div style={{
+                        position: "absolute",
+                        bottom: -70,
+                        right: -70,
+                        width: 140,
+                        height: 140,
+                        background: COLORS.secondary,
+                        borderRadius: "50%",
+                        opacity: 0.13,
+                        zIndex: 0
+                    }} />
+
+                    <h2
+                        style={{
+                            color: COLORS.accent,
+                            fontWeight: 900,
+                            fontSize: "2.3rem",
+                            marginBottom: 18,
+                            letterSpacing: 1,
+                            textShadow: "0 2px 8px #9ACBD033",
+                            userSelect: "none",
+                            zIndex: 1,
+                            position: "relative"
+                        }}
+                    >
+                        🚀 Bắt đầu hành trình cai thuốc lá
+                    </h2>
+                    <p
+                        style={{
+                            color: COLORS.secondary,
+                            fontSize: "1.18rem",
+                            marginBottom: 24,
+                            fontWeight: 500,
+                            lineHeight: 1.6,
+                            zIndex: 1,
+                            position: "relative"
+                        }}
+                    >
+                        Hãy cung cấp các thông tin quan trọng dưới đây để cá nhân hóa lộ trình hỗ trợ bạn cai thuốc lá hiệu quả!
+                    </p>
+
+                    {/* Hiển thị trạng thái đã submit trước đó */}
+                    {hasSubmittedBefore && !submitted && (
+                        <div style={{
+                            background: "linear-gradient(90deg, #e8f5e8 0%, #f0f8f0 100%)",
+                            border: "2px solid #27ae60",
+                            borderRadius: 12,
+                            padding: "1rem",
+                            marginBottom: "1.5rem",
+                            textAlign: "center",
+                            color: "#27ae60",
+                            fontWeight: 600
+                        }}>
+                            ✅ Bạn đã gửi thông tin trước đó. Có thể cập nhật lại thông tin bên dưới.
+                        </div>
+                    )}
+
+                    <form
+                        onSubmit={handleSubmit}
+                        style={{
+                            marginTop: "2rem",
+                            width: "100%",
+                            borderTop: `2px solid ${COLORS.primary}`,
+                            paddingTop: "1.5rem",
+                            zIndex: 1,
+                            position: "relative"
+                        }}
+                    >
+                        {submitted && (
+                            <div
+                                style={{
+                                    textAlign: "center",
+                                    marginTop: 18,
+                                    color: "#27ae60",
+                                    fontWeight: 700,
+                                    fontSize: "1.13rem",
+                                    letterSpacing: 0.5,
+                                    background: "#eafaf1",
+                                    borderRadius: 8,
+                                    padding: "12px 0",
+                                    marginBottom: 20
+                                }}
+                            >
+                                🎉 {hasSubmittedBefore ? "Thông tin đã được cập nhật!" : "Cảm ơn bạn đã cung cấp thông tin!"}
+                            </div>
+                        )}
+
+                        {apiError && (
+                            <div style={{
+                                color: "#e74c3c",
+                                background: "#fff6f6",
+                                border: "1.5px solid #e74c3c",
+                                borderRadius: 8,
+                                padding: "10px 18px",
+                                marginBottom: 18,
+                                textAlign: "left",
+                                whiteSpace: "pre-line"
+                            }}>
+                                {apiError}
+                            </div>
+                        )}
+
+                        {/* Số điếu hút/ngày và thời gian hút */}
+                        <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
+                                    📊 Số điếu hút/ngày
+                                </label>
+                                <input
+                                    type="number"
+                                    name="cigarettesPerDay"
+                                    value={form.cigarettesPerDay}
+                                    onChange={handleChange}
+                                    placeholder="Nhập số điếu"
+                                    min={1}
+                                    max={100}
+                                    required
+                                    onFocus={() => setIsCigarettesInputFocused(true)}
+                                    onBlur={() => setIsCigarettesInputFocused(false)}
+                                    style={{
+                                        width: "100%",
+                                        padding: "0.7rem",
+                                        borderRadius: 10,
+                                        border: "1.5px solid #2d98da",
+                                        fontSize: "1rem",
+                                        backgroundColor: "#f8fafc",
+                                        color: COLORS.text,
+                                        outline: "none",
+                                        boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                    }}
+                                />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
+                                    ⏰ Thời gian hút thuốc
+                                </label>
+                                <select
+                                    name="smokingTime"
+                                    value={form.smokingTime}
+                                    onChange={handleChange}
+                                    required
+                                    style={{
+                                        width: "100%",
+                                        padding: "0.7rem",
+                                        borderRadius: 10,
+                                        border: "1.5px solid #2d98da",
+                                        fontSize: "1rem",
+                                        backgroundColor: "#f8fafc",
+                                        color: COLORS.text,
+                                        outline: "none",
+                                        boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                    }}
+                                >
+                                    <option value="">Chọn thời gian hút thuốc</option>
+                                    <option value="Khoảng 1 năm">Khoảng 1 năm</option>
+                                    <option value="Khoảng 2 năm">Khoảng 2 năm</option>
+                                    <option value="Khoảng 3 năm">Khoảng 3 năm</option>
+                                    <option value="Khoảng 4 năm">Khoảng 4 năm</option>
+                                    <option value="Khoảng 5 năm">Khoảng 5 năm</option>
+                                    <option value="Từ 6-10 năm">Từ 6-10 năm</option>
+                                    <option value="Trên 10 năm">Trên 10 năm</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Thời gian muốn cai và chi phí */}
+                        <div style={{ marginBottom: 20, display: "flex", gap: 16 }}>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
+                                    🎯 Thời gian muốn cai (ngày)
+                                </label>
+                                <select
+                                    name="goalTime"
+                                    value={form.goalTime}
+                                    onChange={handleChange}
+                                    required
+                                    style={{
+                                        width: "100%",
+                                        padding: "0.7rem",
+                                        borderRadius: 10,
+                                        border: "1.5px solid #2d98da",
+                                        fontSize: "1rem",
+                                        backgroundColor: "#f8fafc",
+                                        color: COLORS.text,
+                                        outline: "none",
+                                        boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                    }}
+                                >
+                                    <option value="">Chọn thời gian</option>
+                                    <option value={180}>3-6 tháng (~180 ngày)</option>
+                                    <option value={270}>6-9 tháng (~270 ngày)</option>
+                                    <option value={360}>9-12 tháng (~360 ngày)</option>
+                                </select>
+                                {form.cigarettesPerDay && isCigarettesInputFocused && (
+                                    <div style={{ color: "#27ae60", fontWeight: 600, marginTop: 6, fontSize: "0.98rem" }}>
+                                        {
+                                            Number(form.cigarettesPerDay) >= 6 && Number(form.cigarettesPerDay) <= 19
+                                                ? "Gợi ý từ 3-6 tháng"
+                                                : Number(form.cigarettesPerDay) >= 20 && Number(form.cigarettesPerDay) <= 29
+                                                    ? "Gợi ý từ 6-9 tháng"
+                                                    : Number(form.cigarettesPerDay) > 29
+                                                        ? "Gợi ý từ 9-12 tháng"
+                                                        : ""
+                                        }
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
+                                    💰 Chi phí (VND/điếu)
+                                </label>
+                                <select
+                                    name="costPerCigarette"
+                                    value={form.costPerCigarette}
+                                    onChange={handleChange}
+                                    required
+                                    style={{
+                                        width: "100%",
+                                        padding: "0.7rem",
+                                        borderRadius: 10,
+                                        border: "1.5px solid #2d98da",
+                                        fontSize: "1rem",
+                                        backgroundColor: "#f8fafc",
+                                        color: COLORS.text,
+                                        outline: "none",
+                                        boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                    }}
+                                >
+                                    <option value="">Chọn chi phí</option>
+                                    <option value={5000}>Khoảng 5.000 VND</option>
+                                    <option value={10000}>Khoảng 10.000 VND</option>
+                                    <option value={20000}>Khoảng 20.000 VND</option>
+                                    <option value={30000}>Khoảng 30.000 VND</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Lý do muốn cai thuốc */}
+                        <div style={{ marginBottom: 20 }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
+                                💪 Lý do bạn muốn cai thuốc lá
+                            </label>
+                            <select
+                                name="reason"
+                                value={form.reason}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #2d98da",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    color: COLORS.text,
+                                    outline: "none",
+                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                }}
+                            >
+                                <option value="">Chọn lý do chính</option>
+                                {reasonOptions.map((reason, index) => (
+                                    <option key={index} value={reason}>
+                                        {reason}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Custom reason input */}
+                            {showCustomReason && (
+                                <textarea
+                                    value={customReason}
+                                    onChange={(e) => setCustomReason(e.target.value)}
+                                    placeholder="Nhập lý do của bạn..."
+                                    rows={3}
+                                    required
+                                    style={{
+                                        width: "100%",
+                                        padding: "0.7rem",
+                                        borderRadius: 10,
+                                        border: "1.5px solid #27ae60",
+                                        fontSize: "1rem",
+                                        backgroundColor: "#f8fff8",
+                                        color: COLORS.text,
+                                        resize: "vertical",
+                                        outline: "none",
+                                        marginTop: "0.5rem"
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        {/* Tiền sử bệnh án */}
+                        <div style={{ marginBottom: 20 }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
+                                🏥 Tiền sử bệnh án
+                            </label>
+                            <select
+                                name="medicalHistory"
+                                value={form.medicalHistory}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #2d98da",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    color: COLORS.text,
+                                    outline: "none",
+                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                }}
+                            >
+                                <option value="">Chọn tình trạng sức khỏe</option>
+                                {medicalOptions.map((medical, index) => (
+                                    <option key={index} value={medical}>
+                                        {medical}
+                                    </option>
+                                ))}
+                            </select>
+
+                            {/* Custom medical history input */}
+                            {showCustomMedical && (
+                                <textarea
+                                    value={customMedicalHistory}
+                                    onChange={(e) => setCustomMedicalHistory(e.target.value)}
+                                    placeholder="Mô tả tình trạng sức khỏe của bạn..."
+                                    rows={3}
+                                    required
+                                    style={{
+                                        width: "100%",
+                                        padding: "0.7rem",
+                                        borderRadius: 10,
+                                        border: "1.5px solid #27ae60",
+                                        fontSize: "1rem",
+                                        backgroundColor: "#f8fff8",
+                                        color: COLORS.text,
+                                        resize: "vertical",
+                                        outline: "none",
+                                        marginTop: "0.5rem"
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        {/* Thời điểm thèm thuốc nhất */}
+                        <div style={{ marginBottom: 28 }}>
+                            <label style={{ fontWeight: 700, display: "block", marginBottom: 6, color: COLORS.text }}>
+                                🕐 Thời điểm bạn thèm thuốc nhất trong ngày
+                            </label>
+                            <select
+                                name="mostSmokingTime"
+                                value={form.mostSmokingTime}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                    width: "100%",
+                                    padding: "0.7rem",
+                                    borderRadius: 10,
+                                    border: "1.5px solid #2d98da",
+                                    fontSize: "1rem",
+                                    backgroundColor: "#f8fafc",
+                                    color: COLORS.text,
+                                    outline: "none",
+                                    boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                }}
+                            >
+                                <option value="">Chọn thời điểm thèm thuốc nhất</option>
+                                {smokingTimeOptions.map((timeOption, index) => (
+                                    <option key={index} value={timeOption}>
+                                        {timeOption}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "1rem" }}>
+                            <button
+                                type="submit"
+                                disabled={loading || !token}
+                                style={{
+                                    flex: 1,
+                                    padding: "1rem",
+                                    background: (loading || !token)
+                                        ? "#b2bec3"
+                                        : "linear-gradient(90deg, #48A6A7 60%, #006A71 100%)",
+                                    border: "none",
+                                    borderRadius: 12,
+                                    color: "#fff",
+                                    fontWeight: 800,
+                                    fontSize: "1.15rem",
+                                    letterSpacing: 1,
+                                    cursor: (loading || !token) ? "not-allowed" : "pointer",
+                                    boxShadow: "0 2px 8px rgba(44,130,201,0.10)",
+                                    transition: "all 0.2s ease",
+                                }}
+                            >
+                                {loading ? "Đang gửi..." : !token ? "Cần đăng nhập" : hasSubmittedBefore ? "Cập nhật thông tin" : "Gửi thông tin"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </>
     );
 }

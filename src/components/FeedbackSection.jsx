@@ -56,6 +56,11 @@ export default function FeedbackSection() {
     return colors[index % colors.length]
   }
 
+  const top5StarFeedbacks = feedbacks
+    .filter((fb) => fb.feedback_rating === 5)
+    .sort((a, b) => new Date(b.feedback_date) - new Date(a.feedback_date))
+    .slice(0, 3)
+
   return (
     <>
       <style jsx>{`
@@ -127,106 +132,103 @@ export default function FeedbackSection() {
 
         .feedback-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 2rem;
           margin-top: 2rem;
         }
 
         .feedback-card {
-          background: ${COLORS.background};
-          border-radius: 20px;
-          padding: 2.5rem;
-          border: 1px solid ${COLORS.color1};
-          box-shadow: 0 8px 24px rgba(51, 107, 115, 0.06);
+          background: ${COLORS.white};
+          border-radius: 18px;
+          padding: 2rem 1.5rem;
+          border: 1.5px solid ${COLORS.color1};
+          box-shadow: 0 4px 24px rgba(51, 107, 115, 0.07);
           position: relative;
-          overflow: hidden;
-          transition: all 0.3s ease;
+          transition: box-shadow 0.2s, transform 0.2s;
+          display: flex;
+          flex-direction: column;
+          min-height: 220px;
         }
 
         .feedback-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 16px 40px rgba(51, 107, 115, 0.12);
-        }
-
-        .feedback-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: ${COLORS.gradientLight};
+          box-shadow: 0 12px 32px rgba(51, 107, 115, 0.13);
+          transform: translateY(-2px) scale(1.01);
+          border-color: ${COLORS.color2};
         }
 
         .feedback-header {
           display: flex;
           align-items: center;
           gap: 1rem;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1rem;
         }
 
         .feedback-avatar {
-          width: 50px;
-          height: 50px;
+          width: 48px;
+          height: 48px;
           border-radius: 50%;
+          background: ${COLORS.color1};
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          font-size: 1.2rem;
+          font-size: 1.3rem;
           color: ${COLORS.color3};
           flex-shrink: 0;
-        }
-
-        .feedback-user-info {
-          flex: 1;
+          box-shadow: 0 2px 8px rgba(51,107,115,0.08);
         }
 
         .feedback-name {
-          font-size: 1.1rem;
+          font-size: 1.08rem;
           font-weight: 700;
           color: ${COLORS.color3};
-          margin-bottom: 0.3rem;
+          margin-bottom: 0.2rem;
         }
 
         .feedback-date {
-          font-size: 0.9rem;
+          font-size: 0.92rem;
           color: ${COLORS.textLight};
+          margin-bottom: 0.2rem;
         }
 
         .feedback-rating {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 1rem;
+          gap: 0.4rem;
+          font-size: 0.95rem;
+          margin-bottom: 0.5rem;
+          color: #F59E0B;
         }
 
         .feedback-content {
           color: ${COLORS.text};
-          font-size: 1.05rem;
+          font-size: 1.02rem;
           line-height: 1.6;
           font-style: italic;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
           position: relative;
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+          min-height: 40px;
+          word-break: break-word;
         }
 
+        .feedback-content::before, .feedback-content::after {
+          content: '"';
+          font-size: 2.2rem;
+          color: ${COLORS.color1};
+          opacity: 0.18;
+          font-family: serif;
+          position: absolute;
+        }
         .feedback-content::before {
-          content: '"';
-          font-size: 3rem;
-          color: ${COLORS.color1};
-          position: absolute;
-          top: -10px;
           left: -10px;
-          font-family: serif;
+          top: -10px;
         }
-
         .feedback-content::after {
-          content: '"';
-          font-size: 3rem;
-          color: ${COLORS.color1};
-          position: absolute;
-          bottom: -30px;
-          right: -5px;
-          font-family: serif;
+          right: -10px;
+          bottom: -10px;
         }
 
         .empty-state {
@@ -352,7 +354,8 @@ export default function FeedbackSection() {
           }
 
           .feedback-card {
-            padding: 2rem;
+            padding: 1.2rem 0.8rem;
+            min-height: 180px;
           }
 
           .feedback-icon-wrapper {
@@ -362,6 +365,12 @@ export default function FeedbackSection() {
 
           .feedback-icon {
             font-size: 2rem;
+          }
+
+          .feedback-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 1.1rem;
           }
         }
 
@@ -390,7 +399,7 @@ export default function FeedbackSection() {
                 </div>
 
                 <h2 className="feedback-title">Phản hồi từ người dùng</h2>
-                <p className="feedback-subtitle">Những chia sẻ chân thật từ những người đã thành công</p>
+                <p className="feedback-subtitle">Những chia sẻ nổi bật nhất từ người đã trải nghiệm</p>
 
                 {loading ? (
                   <div className="feedback-grid">
@@ -409,16 +418,16 @@ export default function FeedbackSection() {
                       </div>
                     ))}
                   </div>
-                ) : feedbacks.length === 0 ? (
+                ) : top5StarFeedbacks.length === 0 ? (
                   <div className="empty-state">
                     <div className="empty-state-icon">💭</div>
-                    <div className="empty-state-text">Chưa có phản hồi nào</div>
+                    <div className="empty-state-text">Chưa có phản hồi 5 sao nào</div>
                     <p style={{ color: COLORS.textLight }}>Hãy là người đầu tiên chia sẻ trải nghiệm của bạn</p>
                   </div>
                 ) : (
                   <>
                     <div className="feedback-grid">
-                      {feedbacks.map((fb, idx) => (
+                      {top5StarFeedbacks.map((fb, idx) => (
                         <div key={idx} className="feedback-card">
                           <div className="feedback-header">
                             <div className="feedback-avatar" style={{ background: getAvatarColor(idx) }}>

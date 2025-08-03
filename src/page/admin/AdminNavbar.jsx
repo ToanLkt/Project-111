@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout as logoutAction } from "../../redux/login/loginSlice";
-import { safeNavigate, clearUserData, handleLogoutError } from '../../utils/navigationUtils';
+
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const COLORS = {
@@ -56,13 +56,16 @@ export default function AdminNavbar() {
   // Xử lý đăng xuất
   const handleLogout = async () => {
     try {
-      clearUserData();
+      // Xóa dữ liệu user khỏi localStorage/sessionStorage nếu có
+      localStorage.removeItem("persist:root");
+      localStorage.removeItem("token");
+      sessionStorage.clear();
+      // Dispatch logout để xóa user ở Redux
       dispatch(logoutAction());
-      setTimeout(() => {
-        safeNavigate(navigate, "/");
-      }, 100);
+      // Chuyển hướng về trang chủ
+      navigate("/");
     } catch (error) {
-      handleLogoutError(error, navigate);
+      console.error("Error during logout:", error);
     }
   };
 

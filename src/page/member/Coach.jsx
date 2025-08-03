@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useContext } from "react"
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import AuthContext from '../../AuthContext/AuthContext'
 import "bootstrap/dist/css/bootstrap.min.css"
 import Footer from "../../components/Footer"
 
@@ -25,16 +24,15 @@ const COLORS = {
 export default function Coach() {
   const navigate = useNavigate()
 
+
   // Auth và user data
-  const auth = useContext(AuthContext);
-  const { user: reduxUser, token: reduxToken } = useSelector((state) => state.account || {});
+  // XÓA: const auth = useContext(AuthContext);
+  // SỬA: Chỉ lấy từ Redux
+  const { user, token } = useSelector((state) => state.account || {});
 
 
   // Payment data từ Redux
   const { currentPackage } = useSelector((state) => state.payment || {});
-
-  const token = reduxToken || auth?.token;
-  const user = reduxUser || auth?.user;
 
   // Extract accountId từ user object
   const getAccountId = (userObj) => {
@@ -48,7 +46,7 @@ export default function Coach() {
   };
 
   const accountId = getAccountId(user);
-
+  const packageMembershipId = user?.packageMembershipId;
   // Kiểm tra quyền truy cập
   const checkAccess = () => {
     if (!token || !user) {
@@ -79,7 +77,7 @@ export default function Coach() {
   useEffect(() => {
     const access = checkAccess();
     setAccessCheck(access);
-  }, [token, user, currentPackage]);
+  }, [token, user, packageMembershipId]); // XÓA currentPackage
 
   // Fetch coaches và conversation khi có quyền truy cập
   useEffect(() => {
