@@ -24,8 +24,7 @@ import {
   clearCurrentPackage,
   createPaymentSuccess,
 } from "../redux/components/payment/paymentSlice"
-import { updateUserPackageMembershipId } from "../redux/login/loginSlice";
-import { fetchSuccess } from "../redux/login/loginSlice";
+import { updateUserPackageMembershipId, updateUserProfile } from "../redux/login/loginSlice";
 
 // Thông tin ngân hàng
 const BANK_ID = "970422" // MB Bank
@@ -301,9 +300,9 @@ export default function Payment() {
         ...paymentSuccess,
         packageInfo: newCurrentPackage
       }))
-      dispatch(updateUserPackageMembershipId(buyingPkg.package_membership_ID)); // Cập nhật packageMembershipId trong Redux user
+      // Package membership ID sẽ được cập nhật từ API profile fetch ở dưới
 
-      showToast(` Thanh toán thành công! Gói ${buyingPkg.category} đã được kích hoạt.`, "success")
+      showToast(`✅ Thanh toán thành công! Gói ${buyingPkg.category} đã được kích hoạt.`, "success")
 
       // Fetch lại profile từ backend để cập nhật user mới nhất vào Redux và localStorage
       const fetchProfile = async () => {
@@ -313,11 +312,24 @@ export default function Payment() {
           });
           if (res.ok) {
             const userData = await res.json();
-            dispatch(fetchSuccess({ user: userData, token }));
-            localStorage.setItem('user', JSON.stringify(userData)); // Cập nhật user mới vào localStorage
+            console.log("✅ Updated profile from API:", userData);
+
+            // Sử dụng action updateUserProfile để cập nhật an toàn hơn
+            dispatch(updateUserProfile({
+              packageMembershipId: userData.packageMembershipId
+            }));
+            console.log("✅ Updated packageMembershipId in Redux:", userData.packageMembershipId);
+
+            // Cập nhật user mới vào localStorage, giữ nguyên token
+            const updatedUser = {
+              ...user,
+              packageMembershipId: userData.packageMembershipId
+            };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            console.log("✅ Updated user in localStorage:", updatedUser);
           }
         } catch (e) {
-          // ignore
+          console.log("⚠️ Failed to fetch updated profile, but payment was successful");
         }
       };
       fetchProfile();
@@ -330,10 +342,8 @@ export default function Payment() {
       // Refresh user transactions để đồng bộ với server
       dispatch(fetchUserTransactionsRequest())
 
-      // Chỉ duy nhất 1 nơi reload lại web để cập nhật user/package mới
-      const navTimer = setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // ✅ LOẠI BỎ RELOAD - chỉ dùng Redux state update
+      // Không cần reload trang nữa, Redux sẽ tự động cập nhật UI
 
       // Clear payment state sau 5 giây (nhưng giữ current package)
       const clearTimer = setTimeout(() => {
@@ -342,7 +352,6 @@ export default function Payment() {
       }, 5000)
 
       return () => {
-        clearTimeout(navTimer)
         clearTimeout(clearTimer)
       }
     }
@@ -401,7 +410,7 @@ export default function Payment() {
   // Thêm useEffect xử lý timeout thanh toán
   useEffect(() => {
     if (showQR && buyingPkg && transactionCode) {
-      // Timeout sau 15 phút thay vì 10 phút để user có nhiều thời gian hơn
+      // Timeout sau 15 phút thay vì 10 phút để user có nhiều thời gian hơn 
       const paymentTimeoutId = setTimeout(() => {
         console.log("⏰ Payment timeout - allowing retry")
 
@@ -720,13 +729,44 @@ export default function Payment() {
       if (response.ok) {
         dispatch(updateCurrentPackage(newCurrentPackage))
         dispatch(createPaymentSuccess(await response.json()))
+        // Package membership ID sẽ được cập nhật từ API profile fetch ở dưới
+
+        // Fetch lại profile từ backend để cập nhật user mới nhất vào Redux và localStorage
+        const fetchProfile = async () => {
+          try {
+            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const userData = await res.json();
+              console.log("✅ Updated profile from API after free package:", userData);
+
+              // Sử dụng action updateUserProfile để cập nhật an toàn hơn
+              dispatch(updateUserProfile({
+                packageMembershipId: userData.packageMembershipId
+              }));
+              console.log("✅ Updated packageMembershipId in Redux:", userData.packageMembershipId);
+
+              // Cập nhật user mới vào localStorage, giữ nguyên token
+              const updatedUser = {
+                ...user,
+                packageMembershipId: userData.packageMembershipId
+              };
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              console.log("✅ Updated user in localStorage:", updatedUser);
+            }
+          } catch (e) {
+            console.log("⚠️ Failed to fetch updated profile, but free package registration was successful");
+          }
+        };
+        fetchProfile();
+
         showToast("✅ Đã đăng ký gói Free thành công!", "success")
         setShowFreeConfirm(false)
         setFreePkg(null)
-        // Optionally chuyển về trang chủ hoặc reload
-        setTimeout(() => {
-          navigate("/")
-        }, 1500)
+
+        // ✅ LOẠI BỎ NAVIGATE - để user ở lại trang Payment để thấy được gói đã kích hoạt
+        // Redux sẽ tự động cập nhật UI
       } else {
         showToast("❌ Đăng ký gói Free thất bại!", "error")
       }
@@ -766,17 +806,64 @@ export default function Payment() {
 
       if (found) {
         await savePaymentTransaction(buyingPkg, { transactionCode });
+
+        // Tính toán current package mới giống như trong useEffect paymentSuccess
+        const now = new Date()
+        const endDate = new Date(now.getTime() + (buyingPkg.duration * 24 * 60 * 60 * 1000))
+        const newCurrentPackage = {
+          name: buyingPkg.category,
+          category: buyingPkg.category,
+          package_membership_ID: buyingPkg.package_membership_ID,
+          duration: buyingPkg.duration,
+          price: buyingPkg.price,
+          startDate: now.toISOString(),
+          endDate: endDate.toISOString(),
+          daysLeft: buyingPkg.duration,
+          isActive: true,
+          isExpired: false,
+          paymentDate: now.toISOString(),
+          transactionCode: transactionCode
+        }
+
         dispatch(updateCurrentPackage(newCurrentPackage));
-        await handleCheckout(); // <-- Gọi hàm này để cập nhật user từ Redux
+        // Package membership ID sẽ được cập nhật từ API profile fetch ở dưới
+
+        // Fetch lại profile từ backend để cập nhật user mới nhất vào Redux và localStorage
+        const fetchProfile = async () => {
+          try {
+            const res = await fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile", {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const userData = await res.json();
+              console.log("✅ Updated profile from API after manual confirmation:", userData);
+
+              // Sử dụng action updateUserProfile để cập nhật an toàn hơn
+              dispatch(updateUserProfile({
+                packageMembershipId: userData.packageMembershipId
+              }));
+              console.log("✅ Updated packageMembershipId in Redux:", userData.packageMembershipId);
+
+              // Cập nhật user mới vào localStorage, giữ nguyên token
+              const updatedUser = {
+                ...user,
+                packageMembershipId: userData.packageMembershipId
+              };
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              console.log("✅ Updated user in localStorage:", updatedUser);
+            }
+          } catch (e) {
+            console.log("⚠️ Failed to fetch updated profile, but payment was successful");
+          }
+        };
+        fetchProfile();
+
         showToast("✅ Đã xác nhận thanh toán thành công!", "success")
         setShowQR(false)
         setBuyingPkg(null)
-        dispatch(updateUserPackageMembershipId("Plus"));
-        // Thay vì navigate("/"), hãy reload lại trang
-        setTimeout(() => {
-          window.location.href = "/"
-          window.location.reload();
-        }, 1500)
+
+        // ✅ LOẠI BỎ RELOAD - chỉ dùng Redux state update, không cần navigate
+        // Redux sẽ tự động cập nhật UI trên tất cả các trang
       } else {
         // Nếu chưa có giao dịch
         showToast("❌ Chưa có giao dịch phù hợp!", "warning")

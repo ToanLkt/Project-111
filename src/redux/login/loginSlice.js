@@ -30,6 +30,11 @@ export const updateUserPackageMembershipId = (packageMembershipId) => ({
     payload: packageMembershipId,
 });
 
+export const updateUserProfile = (userProfile) => ({
+    type: "UPDATE_USER_PROFILE",
+    payload: userProfile,
+});
+
 const initialState = {
     user: null,
     token: null,
@@ -62,6 +67,17 @@ const accountReducers = (state = initialState, action) => {
                     user: {
                         ...state.user,
                         packageMembershipId: action.payload,
+                    },
+                };
+            }
+            return state;
+        case "UPDATE_USER_PROFILE":
+            if (state.user) {
+                return {
+                    ...state,
+                    user: {
+                        ...state.user,
+                        ...action.payload, // Merge với user hiện tại, không ghi đè token
                     },
                 };
             }

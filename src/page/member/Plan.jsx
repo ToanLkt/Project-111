@@ -1334,7 +1334,7 @@ export default function Plan() {
                                 fontSize: "1.5rem",
                                 fontWeight: 800
                             }}>
-                                📊 Chi tiết giai đoạn {selectedPhaseId || ''}
+                                📊 Chi tiết giai đoạn
                             </h2>
                             <button
                                 onClick={() => setShowPhaseDetail(false)}

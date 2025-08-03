@@ -91,16 +91,26 @@ function* createPaymentSaga(action) {
         }
         const profile = yield call([profileRes, 'json'])
 
-        // 3. Cập nhật packageMembershipId vào Redux (và user profile nếu cần)
-        yield put(updateUserPackageMembershipId(profile.packageMembershipId))
-        // Nếu có action cập nhật toàn bộ user, dispatch ở đây, ví dụ:
-        // yield put(setUser(profile))
+        console.log("🔄 Profile sau thanh toán:", profile)
+        console.log("🆔 PackageMembershipId mới:", profile.packageMembershipId)
 
-        // 4. Cập nhật currentPackage vào Redux (nếu cần)
+        // 3. Cập nhật packageMembershipId vào Redux
+        yield put(updateUserPackageMembershipId(profile.packageMembershipId))
+
+        // 4. Cập nhật toàn bộ user profile vào localStorage để đồng bộ
+        const updatedUser = {
+            ...user,
+            packageMembershipId: profile.packageMembershipId
+        }
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+
+        console.log("✅ Đã cập nhật packageMembershipId vào Redux và localStorage:", profile.packageMembershipId)
+
+        // 5. Cập nhật currentPackage vào Redux với packageMembershipId mới
         const newCurrentPackage = {
             name: paymentData.packageCategory,
             category: paymentData.packageCategory,
-            package_membership_ID: paymentData.packageMembershipId,
+            package_membership_ID: profile.packageMembershipId, // Sử dụng ID từ profile API
             duration: paymentData.duration,
             price: paymentData.totalPrice,
             startDate: paymentData.startDate,
@@ -114,11 +124,14 @@ function* createPaymentSaga(action) {
         }
         yield put(setCurrentPackage(newCurrentPackage))
 
-        // 5. Thông báo thành công
+        console.log("📦 Đã cập nhật currentPackage:", newCurrentPackage)
+
+        // 6. Thông báo thành công
         yield put(createPaymentSuccess({
             ...paymentResult,
             currentPackage: newCurrentPackage,
-            verified: true
+            verified: true,
+            updatedPackageMembershipId: profile.packageMembershipId
         }))
     } catch (error) {
         yield put(createPaymentFailure(error.message || "Payment failed"))
