@@ -158,9 +158,47 @@ export default function Plan() {
         console.log('🔍 Phase clicked:', phaseNumber);
         console.log('🔍 Token available:', !!token);
         console.log('🔍 AccountId:', accountId);
+
+        // Kiểm tra trạng thái giai đoạn từ planData
+        const statusApi = planData?.[`statusPhase${phaseNumber}`] || "Chưa bắt đầu";
+        const startDate = planData?.[`startDatePhase${phaseNumber}`];
+
+        console.log('🔍 Phase status:', statusApi);
+        console.log('🔍 Phase start date:', startDate);
+
         setSelectedPhaseId(phaseNumber);
         setShowPhaseDetail(true);
-        fetchPhaseDetail(phaseNumber);
+
+        // Kiểm tra xem giai đoạn đã bắt đầu chưa
+        const isPhaseStarted = () => {
+            // Kiểm tra theo trạng thái API
+            if (statusApi.toLowerCase().includes("chưa bắt đầu") || statusApi.toLowerCase().includes("sắp tới")) {
+                return false;
+            }
+
+            // Kiểm tra theo ngày bắt đầu (nếu có)
+            if (startDate) {
+                const currentDate = new Date();
+                const phaseStartDate = new Date(startDate);
+                currentDate.setHours(0, 0, 0, 0); // Reset time để so sánh chỉ ngày
+                phaseStartDate.setHours(0, 0, 0, 0);
+
+                if (phaseStartDate > currentDate) {
+                    return false; // Chưa tới ngày bắt đầu
+                }
+            }
+
+            return true; // Giai đoạn đã bắt đầu
+        };
+
+        if (!isPhaseStarted()) {
+            console.log('⏰ Phase has not started yet, showing "Chưa tới" message');
+            setPhaseDetailData("NOT_STARTED"); // Đặt giá trị đặc biệt để hiển thị "Chưa tới"
+            setPhaseDetailLoading(false);
+        } else {
+            // Giai đoạn đã bắt đầu, fetch chi tiết từ API
+            fetchPhaseDetail(phaseNumber);
+        }
     };
 
     // BƯỚC 1: FETCH STATUS PROCESS TỪ API
@@ -1363,6 +1401,68 @@ export default function Plan() {
                                 color: "#48A6A7"
                             }}>
                                 🔄 Đang tải chi tiết...
+                            </div>
+                        ) : phaseDetailData === "NOT_STARTED" ? (
+                            <div style={{
+                                textAlign: "center",
+                                padding: "3rem",
+                                background: "linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)",
+                                borderRadius: 16,
+                                border: "2px solid #94A3B8"
+                            }}>
+                                <div style={{
+                                    fontSize: "3rem",
+                                    marginBottom: "1rem"
+                                }}>
+                                    ⏰
+                                </div>
+                                <h3 style={{
+                                    color: "#475569",
+                                    fontSize: "1.5rem",
+                                    fontWeight: 700,
+                                    marginBottom: "0.5rem"
+                                }}>
+                                    Chưa tới
+                                </h3>
+                                <p style={{
+                                    color: "#64748B",
+                                    fontSize: "1rem",
+                                    marginBottom: "1rem"
+                                }}>
+                                    Giai đoạn {selectedPhaseId} chưa bắt đầu.
+                                </p>
+                                {(() => {
+                                    const startDate = planData?.[`startDatePhase${selectedPhaseId}`];
+                                    if (startDate) {
+                                        return (
+                                            <div style={{
+                                                background: "rgba(148, 163, 184, 0.1)",
+                                                padding: "1rem",
+                                                borderRadius: 12,
+                                                color: "#475569"
+                                            }}>
+                                                <strong>📅 Ngày bắt đầu dự kiến:</strong>
+                                                <br />
+                                                {new Date(startDate).toLocaleDateString("vi-VN", {
+                                                    weekday: 'long',
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <p style={{
+                                            color: "#64748B",
+                                            fontSize: "0.9rem",
+                                            margin: 0,
+                                            fontStyle: "italic"
+                                        }}>
+                                            Vui lòng chờ đến ngày bắt đầu để xem chi tiết.
+                                        </p>
+                                    );
+                                })()}
                             </div>
                         ) : phaseDetailData && Array.isArray(phaseDetailData) ? (
                             <div style={{ maxHeight: "60vh", overflow: "auto" }}>
