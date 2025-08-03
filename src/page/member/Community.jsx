@@ -46,35 +46,44 @@ export default function Community() {
         return role === 'Admin' || (Array.isArray(role) && role.includes('Admin'))
     }
     const userIsAdmin = isAdmin()
+    const isCoach = role === "Coach"
 
-    // State kiểm tra quyền truy cập cho member
-    const [accessAllowed, setAccessAllowed] = useState(!isMember) // true nếu không phải member
+    // Extract packageMembershipId từ Redux user object
+    const getPackageMembershipId = () => {
+        if (!user) return 0
+        return user.packageMembershipId || 0
+    }
+    const packageMembershipId = getPackageMembershipId()
+
+    // State kiểm tra quyền truy cập
+    const [accessAllowed, setAccessAllowed] = useState(null) // null = loading, true = allowed, false = denied
 
     useEffect(() => {
-        if (!isMember) {
+        // Admin và Coach xem bình thường
+        if (userIsAdmin || isCoach) {
             setAccessAllowed(true)
             return
         }
+
+        // Nếu không phải Member thì deny
+        if (!isMember) {
+            setAccessAllowed(false)
+            return
+        }
+
+        // Nếu không có token thì deny
         if (!token) {
             setAccessAllowed(false)
             return
         }
-        // Nếu là member thì check gói
-        setAccessAllowed(null) // loading
-        fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Member/my-transactions", {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-            .then(res => res.ok ? res.json() : [])
-            .then(data => {
-                const now = new Date()
-                const hasActive = Array.isArray(data) && data.some(pkg => {
-                    if (!pkg.endDate) return false
-                    return new Date(pkg.endDate) > now
-                })
-                setAccessAllowed(hasActive)
-            })
-            .catch(() => setAccessAllowed(false))
-    }, [isMember, token])
+
+        // Member cần có packageMembershipId khác 0
+        if (packageMembershipId > 0) {
+            setAccessAllowed(true)
+        } else {
+            setAccessAllowed(false)
+        }
+    }, [isMember, isCoach, userIsAdmin, token, packageMembershipId])
 
     // Các hook khác
     const [allPosts, setAllPosts] = useState([])
@@ -88,7 +97,9 @@ export default function Community() {
     const [deleteLoading, setDeleteLoading] = useState({})
 
     useEffect(() => {
-        if (isMember && accessAllowed !== true) return
+        // Chỉ load posts khi có quyền truy cập
+        if (accessAllowed !== true) return
+
         fetch("https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/CommunityPost/get")
             .then((res) => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -107,7 +118,7 @@ export default function Community() {
                 setAllPosts([])
                 setPosts([])
             })
-    }, [token, user, isMember, accessAllowed])
+    }, [token, user, accessAllowed])
 
     useEffect(() => {
         if (!search.trim()) {
@@ -331,26 +342,40 @@ export default function Community() {
         }
     }
 
-    // Xóa comment
+    // Xóa comment - Backend sẽ xử lý logic phân quyền
     const handleDeleteComment = async (commentId, commentAuthorId, postId) => {
-        // Kiểm tra quyền xóa
-        const canDelete = userIsAdmin || (accountId && accountId.toString() === commentAuthorId?.toString())
+        console.log('🗑️ Delete comment request:', {
+            commentId,
+            commentAuthorId,
+            postId,
+            accountId,
+            userIsAdmin,
+            apiEndpoint: `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Comment/${commentId}`
+        })
 
-        if (!canDelete) {
-            alert("❌ Bạn không có quyền xóa bình luận này!")
+        // Kiểm tra commentId hợp lệ trước
+        if (!commentId || commentId.toString().startsWith('temp_') || commentId.toString().startsWith('comment_') || commentId.toString().startsWith('fallback_')) {
+            alert("❌ Không thể xóa bình luận: ID không hợp lệ!")
+            console.error('❌ Invalid commentId:', commentId)
+            return
+        }
+
+        // Kiểm tra có token không
+        if (!token) {
+            alert("❌ Vui lòng đăng nhập để thực hiện thao tác này!")
             return
         }
 
         const confirmMessage = userIsAdmin
             ? "🛡️ Admin: Bạn có chắc chắn muốn xóa bình luận này không?"
-            : "🗑️ Bạn có chắc chắn muốn xóa bình luận của mình không?"
+            : "🗑️ Bạn có chắc chắn muốn xóa bình luận này không?"
 
         if (!confirm(confirmMessage)) return
 
         setDeleteLoading((prev) => ({ ...prev, [`comment_${commentId}`]: true }))
 
         try {
-            console.log(`🗑️ Deleting comment ${commentId}...`)
+            console.log(`🗑️ Calling API: DELETE /api/Comment/${commentId}`)
             const res = await fetch(
                 `https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/Comment/${commentId}`,
                 {
@@ -362,24 +387,58 @@ export default function Community() {
                 }
             )
 
+            console.log(`📡 API Response:`, {
+                status: res.status,
+                statusText: res.statusText,
+                ok: res.ok
+            })
+
             if (!res.ok) {
                 const errorText = await res.text()
-                console.error('❌ Comment deletion failed:', errorText)
-                throw new Error(`HTTP ${res.status}: ${errorText}`)
+                console.error('❌ API Error:', {
+                    status: res.status,
+                    statusText: res.statusText,
+                    errorText,
+                    commentId
+                })
+
+                // Thông báo lỗi chi tiết dựa trên status code
+                let errorMessage = "Xóa bình luận thất bại"
+                if (res.status === 404) {
+                    errorMessage = "Bình luận không tồn tại hoặc đã bị xóa"
+                } else if (res.status === 401) {
+                    errorMessage = "Không có quyền truy cập. Vui lòng đăng nhập lại"
+                } else if (res.status === 403) {
+                    errorMessage = "Không có quyền xóa bình luận này"
+                } else if (res.status === 400) {
+                    errorMessage = "Dữ liệu không hợp lệ"
+                }
+
+                throw new Error(`${errorMessage} (${res.status})`)
             }
 
-            console.log('✅ Comment deleted successfully')
+            console.log('✅ Comment deleted successfully from API')
 
             // Cập nhật comments state
             setComments((prev) => ({
                 ...prev,
                 [postId]: (prev[postId] || []).filter((comment) => {
-                    const currentCommentId = comment.commentId || comment.id
-                    return currentCommentId.toString() !== commentId.toString()
+                    const currentCommentId = comment.cmtId || comment.commentId || comment.id || comment.CommentId || comment.ID
+                    // Kiểm tra để tránh lỗi undefined
+                    if (!currentCommentId || !commentId) return true
+                    const isMatch = currentCommentId.toString() === commentId.toString()
+                    if (isMatch) {
+                        console.log(`🗑️ Removing comment from UI:`, { currentCommentId, commentId })
+                    }
+                    return !isMatch
                 })
             }))
 
-            alert("✅ Xóa bình luận thành công!")
+            console.log('✅ Comment removed from UI state')
+            const successMessage = userIsAdmin
+                ? "🛡️ Admin: Đã xóa bình luận thành công!"
+                : "✅ Đã xóa bình luận của bạn thành công!"
+            alert(successMessage)
 
         } catch (error) {
             console.error("❌ Error deleting comment:", error)
@@ -396,27 +455,40 @@ export default function Community() {
         return userIsAdmin || (accountId && accountId.toString() === postAuthorId?.toString())
     }
 
-    // Kiểm tra quyền xóa comment
+    // Kiểm tra quyền xóa comment - hiển thị nút delete
     const canDeleteComment = (comment) => {
+        // Phải có token và accountId
         if (!token || !accountId) return false
-        const commentAuthorId = comment.accountId || comment.userId || comment.authorId
-        return userIsAdmin || (accountId && accountId.toString() === commentAuthorId?.toString())
-    }
 
-    // --- JSX trả về ---
+        // Admin có thể xóa tất cả comments
+        if (userIsAdmin) return true
+
+        // Member chỉ có thể xóa comment của chính mình - sử dụng đúng field từ API
+        const commentAuthorId = comment.accountId || comment.userId || comment.authorId || comment.AccountId || comment.account_id || comment.user_id
+        return accountId && commentAuthorId && accountId.toString() === commentAuthorId.toString()
+    }    // --- JSX trả về ---
     return (
         <>
-            {isMember && accessAllowed === null ? (
+            {accessAllowed === null ? (
                 <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div>
                         <div className="loading-spinner" style={{ margin: "0 auto 1rem auto" }} />
                         <div>Đang kiểm tra quyền truy cập...</div>
                     </div>
                 </div>
-            ) : isMember && accessAllowed === false ? (
+            ) : accessAllowed === false ? (
                 <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-                    <h2 style={{ color: "#DC2626", marginBottom: 16 }}>🚫 Bạn cần đăng ký gói thành viên để truy cập cộng đồng</h2>
-                    <p style={{ color: "#64748B" }}>Vui lòng mua hoặc gia hạn gói thành viên để sử dụng tính năng này.</p>
+                    {isMember ? (
+                        <>
+                            <h2 style={{ color: "#DC2626", marginBottom: 16 }}>🚫 Bạn cần đăng ký gói thành viên để truy cập cộng đồng</h2>
+                            <p style={{ color: "#64748B" }}>Vui lòng mua hoặc gia hạn gói thành viên để sử dụng tính năng này.</p>
+                        </>
+                    ) : (
+                        <>
+                            <h2 style={{ color: "#DC2626", marginBottom: 16 }}>🚫 Bạn không có quyền truy cập trang này</h2>
+                            <p style={{ color: "#64748B" }}>Chỉ thành viên có gói đăng ký mới được truy cập cộng đồng.</p>
+                        </>
+                    )}
                 </div>
             ) : (
                 <>
@@ -1088,10 +1160,33 @@ export default function Community() {
                                                                         </div>
                                                                     ) : (
                                                                         comments[postId].map((cmt, cidx) => {
-                                                                            const commentId = cmt.commentId || cmt.id || cidx
-                                                                            const commentAuthorId = cmt.accountId || cmt.userId || cmt.authorId
+                                                                            // Lấy commentId với nhiều fallback options  
+                                                                            const commentId = cmt.cmtId || cmt.commentId || cmt.id || cmt.CommentId || cmt.ID || cmt.comment_id || cmt.Comment_Id
+                                                                            const commentAuthorId = cmt.accountId || cmt.userId || cmt.authorId || cmt.AccountId || cmt.account_id || cmt.user_id || null
+
+                                                                            // Debug log để track structure
+                                                                            console.log('💬 Comment data:', {
+                                                                                commentId,
+                                                                                commentAuthorId,
+                                                                                currentUserId: accountId,
+                                                                                allFields: Object.keys(cmt),
+                                                                                rawComment: cmt
+                                                                            })
+
+                                                                            // Debug nút delete
+                                                                            const canDelete = canDeleteComment(cmt)
+                                                                            console.log('🔍 Delete button visibility:', {
+                                                                                commentId: !!commentId,
+                                                                                canDelete,
+                                                                                shouldShow: commentId && canDelete,
+                                                                                userIsAdmin,
+                                                                                token: !!token,
+                                                                                accountId,
+                                                                                commentAuthorId
+                                                                            })
+
                                                                             return (
-                                                                                <div key={commentId} className="comment-item">
+                                                                                <div key={commentId || `fallback_${postId}_${cidx}`} className="comment-item">
                                                                                     <div className="comment-header">
                                                                                         <div className="comment-avatar">
                                                                                             {(cmt.fullName || "A").charAt(0).toUpperCase()
@@ -1107,8 +1202,8 @@ export default function Community() {
                                                                                     </div>
                                                                                     <div className="comment-content">{cmt.content}</div>
 
-                                                                                    {/* Comment Actions */}
-                                                                                    {canDeleteComment(cmt) && (
+                                                                                    {/* Comment Actions - chỉ hiển thị khi có commentId hợp lệ */}
+                                                                                    {commentId && canDeleteComment(cmt) && (
                                                                                         <div className="comment-actions">
                                                                                             <button
                                                                                                 className="btn-danger"

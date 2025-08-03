@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation, Outlet, Navigate, useNavigate } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
 import { logout as logoutAction } from "../../redux/login/loginSlice"
@@ -34,6 +34,11 @@ export default function CoachNavbar() {
   const navigate = useNavigate()
   const { user, token, loading } = useSelector((state) => state.account || {});
 
+  // State for toast notifications
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastColor, setToastColor] = useState("#27ae60");
+
   // Extract thông tin từ user object
   const getUserEmail = () => {
     if (!user) return null
@@ -65,28 +70,21 @@ export default function CoachNavbar() {
   // Xử lý đăng xuất
   const handleLogout = async () => {
     try {
-      console.log("🚪 Coach logout process starting...")
-
-      // Clear data first
-      clearUserData()
-
-      // Logout từ Redux
+      // Chỉ cần dispatch logout của Redux
       dispatch(logoutAction())
 
-      console.log("✅ Coach logout completed, redirecting...")
+      setToastMessage("Đã đăng xuất");
+      setToastColor("#CC0000");
+      setShowToast(true);
 
-      // Safe navigation
       setTimeout(() => {
-        safeNavigate(navigate, "/")
-      }, 100)
+        setShowToast(false);
+      }, 1000);
 
     } catch (error) {
       console.error("❌ Coach logout error:", error)
-      handleLogoutError(error, navigate)
     }
-  }
-
-  // Authentication checks
+  }  // Authentication checks
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -112,6 +110,29 @@ export default function CoachNavbar() {
 
   return (
     <>
+      {/* Toast notification */}
+      {showToast && (
+        <div
+          style={{
+            position: "fixed",
+            top: 32,
+            right: 32,
+            zIndex: 9999,
+            background: toastColor,
+            color: "#fff",
+            padding: "16px 32px",
+            borderRadius: 10,
+            fontWeight: 600,
+            fontSize: 17,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+            transition: "all 0.3s",
+            animation: "fadeIn 0.5s",
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
       <style jsx>{`
         .coach-navbar-container {
           position: relative;

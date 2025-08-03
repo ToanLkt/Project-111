@@ -84,7 +84,11 @@ export default function MembershipPackage() {
   // Fetch current package từ profile API
   useEffect(() => {
     const fetchCurrentPackageFromProfile = async () => {
-      if (!token) return;
+      if (!token) {
+        // Reset packageMembershipId khi không có token (đã logout)
+        setCurrentPackageMembershipId(null);
+        return;
+      }
       try {
         const response = await fetch(
           "https://api20250614101404-egb7asc2hkewcvbh.southeastasia-01.azurewebsites.net/api/User/profile",
@@ -109,6 +113,13 @@ export default function MembershipPackage() {
     };
     fetchCurrentPackageFromProfile();
   }, [token]);
+
+  // Reset currentPackageMembershipId khi user thay đổi hoặc logout
+  useEffect(() => {
+    if (!user) {
+      setCurrentPackageMembershipId(null);
+    }
+  }, [user]);
 
   // Kiểm tra gói hiện tại dựa vào packageMembershipId
   const isCurrentPackage = (pkg) => {
@@ -664,7 +675,7 @@ export default function MembershipPackage() {
                 <p className="membership-subtitle">
                   Chọn gói phù hợp để bắt đầu hành trình cai thuốc lá của bạn
                 </p>
-                {currentPackageMembershipId && (
+                {token && user && currentPackageMembershipId && (
                   <div className="current-package-info">
                     <div className="current-package-title">
                       🎉 Bạn đang sử dụng gói {

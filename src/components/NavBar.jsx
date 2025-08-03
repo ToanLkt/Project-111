@@ -86,7 +86,7 @@ export default function NavBar() {
     // Chỉ chặn navigation cho các route thực sự cần authentication hoàn toàn
     if (item.protected && !isAuthenticated) {
       e.preventDefault()
-      alert("Bạn cần đăng nhập để truy cập trang này!")
+      showNotification("Bạn cần đăng nhập để truy cập trang này!", "#F59E0B")
       navigate(`/login?returnUrl=${encodeURIComponent(item.to)}`)
       return
     }
@@ -106,9 +106,9 @@ export default function NavBar() {
         }
       }
 
-      // Show alert và redirect
+      // Show notification và redirect
       setTimeout(() => {
-        alert("Bạn cần đăng nhập để truy cập trang này!")
+        showNotification("Bạn cần đăng nhập để truy cập trang này!", "#F59E0B")
         navigate(`/login?returnUrl=${encodeURIComponent(item.to)}`)
       }, 300) // Delay để offcanvas đóng hoàn toàn
       return
@@ -165,19 +165,23 @@ export default function NavBar() {
   const [toastMessage, setToastMessage] = useState("");
   const [toastColor, setToastColor] = useState("#27ae60");
 
+  // Hàm hiển thị thông báo
+  const showNotification = (message, color = "#F59E0B") => {
+    setToastMessage(message);
+    setToastColor(color);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
   // Sửa hàm handleLogout để hiện thông báo màu đỏ
   const handleLogout = async () => {
     try {
       // Chỉ cần dispatch logout của Redux
       dispatch(logoutAction());
 
-      setToastMessage("Đã đăng xuất");
-      setToastColor("#CC0000");
-      setShowToast(true);
-
-      setTimeout(() => {
-        setShowToast(false);
-      }, 1000);
+      showNotification("Đã đăng xuất", "#10B981");
 
     } catch (error) {
       console.error("❌ Logout error:", error);

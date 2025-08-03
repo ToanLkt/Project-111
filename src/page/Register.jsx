@@ -47,11 +47,23 @@ export default function Register() {
             try {
                 const apiJson = await res.json();
                 if (apiJson.errors) {
-                    apiMsg = Object.entries(apiJson.errors)
-                        .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
-                        .join("\n");
+                    // Xử lý lỗi validation từ ASP.NET Core
+                    const errorMessages = Object.entries(apiJson.errors)
+                        .map(([field, msgs]) => {
+                            // Kiểm tra lỗi email đặc biệt
+                            if (field.toLowerCase().includes("email") &&
+                                msgs.some(msg => msg.toLowerCase().includes("already") ||
+                                    msg.toLowerCase().includes("exists") ||
+                                    msg.toLowerCase().includes("tồn tại"))) {
+                                return "Email đã tồn tại";
+                            }
+                            return `${field}: ${msgs.join(", ")}`;
+                        });
+                    apiMsg = errorMessages.join("\n");
                 } else if (apiJson.message) {
                     apiMsg = apiJson.message;
+                } else if (apiJson.title) {
+                    apiMsg = apiJson.title;
                 } else {
                     apiMsg = JSON.stringify(apiJson);
                 }
@@ -59,7 +71,28 @@ export default function Register() {
                 apiMsg = "Không đọc được phản hồi từ máy chủ.";
             }
             if (!res.ok) {
-                setError("Đăng ký thất bại:\n" + apiMsg);
+                // Kiểm tra các lỗi đặc biệt về email trùng
+                const emailExistsPatterns = [
+                    "email đã tồn tại",
+                    "email already exists",
+                    "duplicate email",
+                    "email is already",
+                    "user already exists",
+                    "tài khoản đã tồn tại",
+                    "không đọc được phản hồi từ máy chủ"
+                ];
+
+                const isEmailExists = emailExistsPatterns.some(pattern =>
+                    apiMsg.toLowerCase().includes(pattern.toLowerCase())
+                ) || res.status === 409 || res.status === 400;
+
+                if (isEmailExists) {
+                    setError("Email đã tồn tại");
+                } else if (res.status === 422) {
+                    setError("Dữ liệu không hợp lệ:\n" + apiMsg);
+                } else {
+                    setError("Đăng ký thất bại:\n" + apiMsg);
+                }
                 setLoading(false);
                 return;
             }

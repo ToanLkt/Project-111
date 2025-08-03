@@ -513,9 +513,7 @@ export default function Ranking() {
                                                     }}>
                                                         {user.fullName || "Ẩn danh"}
                                                     </div>
-                                                    <div style={{ fontSize: 14, color: "#48A6A7" }}>
-                                                        Huy hiệu: <span style={{ color: COLORS.medal1, fontWeight: 700 }}>{user.badge || "Chưa có"}</span>
-                                                    </div>
+
                                                     <div style={{ fontSize: 14, color: "#48A6A7" }}>
                                                         Điểm cá nhân: <span style={{ color: COLORS.medal1, fontWeight: 700 }}>{user.totalScore ?? 0}</span>
                                                     </div>

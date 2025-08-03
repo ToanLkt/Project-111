@@ -16,6 +16,10 @@ export default function Feedback() {
     const [submitting, setSubmitting] = useState(false);
     const [starFilter, setStarFilter] = useState(0);
 
+    // Thông báo từ API
+    const [notification, setNotification] = useState({ show: false, message: "", type: "" });
+    const [hasSubmittedFeedback, setHasSubmittedFeedback] = useState(false);
+
     // Extract user info từ Redux user object
     const getUserInfo = () => {
         if (!user) return { fullName: "Ẩn danh" };
@@ -29,6 +33,14 @@ export default function Feedback() {
     };
 
     const userInfo = getUserInfo();
+
+    // Hàm hiển thị thông báo
+    const showNotification = (message, type = "info") => {
+        setNotification({ show: true, message, type });
+        setTimeout(() => {
+            setNotification({ show: false, message: "", type: "" });
+        }, 4000);
+    };
 
     // Lấy danh sách feedback từ API
     useEffect(() => {
@@ -48,7 +60,12 @@ export default function Feedback() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!comment.trim()) {
-            alert("Vui lòng nhập nội dung góp ý!");
+            showNotification("Vui lòng nhập nội dung góp ý!", "error");
+            return;
+        }
+
+        if (hasSubmittedFeedback) {
+            showNotification("Mỗi tài khoản được gửi feedback 1 lần", "warning");
             return;
         }
 
@@ -70,7 +87,13 @@ export default function Feedback() {
 
             if (!res.ok) {
                 const errorText = await res.text();
-                alert("Gửi feedback thất bại!\n" + errorText);
+                // Kiểm tra nếu là lỗi đã gửi feedback
+                if (errorText.includes("đã gửi feedback") || errorText.includes("already submitted") || res.status === 409) {
+                    setHasSubmittedFeedback(true);
+                    showNotification("Mỗi tài khoản được gửi feedback 1 lần", "warning");
+                } else {
+                    showNotification(`Gửi feedback thất bại: ${errorText}`, "error");
+                }
                 return;
             }
 
@@ -78,8 +101,10 @@ export default function Feedback() {
 
             if (resultText && !resultText.startsWith("{")) {
                 setSuccess(true);
+                setHasSubmittedFeedback(true);
                 setComment("");
                 setRating(5);
+                showNotification("Cảm ơn bạn đã gửi feedback!", "success");
                 setTimeout(() => setSuccess(false), 2500);
 
                 setTimeout(() => {
@@ -96,10 +121,12 @@ export default function Feedback() {
             setComment("");
             setRating(5);
             setSuccess(true);
+            setHasSubmittedFeedback(true);
+            showNotification("Cảm ơn bạn đã gửi feedback!", "success");
             setTimeout(() => setSuccess(false), 2500);
 
         } catch (err) {
-            alert("Gửi feedback thất bại!\n" + (err?.message || err));
+            showNotification(`Gửi feedback thất bại: ${err?.message || err}`, "error");
         } finally {
             setSubmitting(false);
         }
@@ -347,6 +374,55 @@ export default function Feedback() {
                     font-style: italic;
                 }
 
+                .notification {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 1rem 1.5rem;
+                    border-radius: 12px;
+                    color: #fff;
+                    font-weight: 600;
+                    font-size: 1rem;
+                    z-index: 9999;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+                    border: 2px solid transparent;
+                    animation: slideIn 0.3s ease-out;
+                    max-width: 400px;
+                    word-wrap: break-word;
+                }
+
+                .notification.success {
+                    background: linear-gradient(90deg, #27ae60, #2ecc71);
+                    border-color: #27ae60;
+                }
+
+                .notification.error {
+                    background: linear-gradient(90deg, #e74c3c, #c0392b);
+                    border-color: #e74c3c;
+                }
+
+                .notification.warning {
+                    background: linear-gradient(90deg, #f39c12, #e67e22);
+                    border-color: #f39c12;
+                    color: #fff;
+                }
+
+                .notification.info {
+                    background: linear-gradient(90deg, #3498db, #2980b9);
+                    border-color: #3498db;
+                }
+
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+
                 @media (max-width: 768px) {
                     .feedback-container {
                         padding: 2rem 0.5rem;
@@ -371,6 +447,13 @@ export default function Feedback() {
                     }
                 }
             `}</style>
+
+            {/* Thông báo từ API */}
+            {notification.show && (
+                <div className={`notification ${notification.type}`}>
+                    {notification.message}
+                </div>
+            )}
 
             <div className="feedback-container">
                 <div className="feedback-card">
@@ -400,13 +483,15 @@ export default function Feedback() {
                         <button
                             type="submit"
                             className="submit-button"
-                            disabled={submitting || !comment.trim()}
+                            disabled={submitting || !comment.trim() || hasSubmittedFeedback}
                         >
                             {submitting ? (
                                 <>
                                     <div className="loading-spinner"></div>
                                     Đang gửi...
                                 </>
+                            ) : hasSubmittedFeedback ? (
+                                "Đã gửi feedback"
                             ) : (
                                 "Gửi feedback"
                             )}
@@ -415,6 +500,22 @@ export default function Feedback() {
                         {success && (
                             <div className="success-message">
                                 🎉 Cảm ơn bạn đã gửi feedback!
+                            </div>
+                        )}
+
+                        {hasSubmittedFeedback && (
+                            <div style={{
+                                color: "#f39c12",
+                                textAlign: "center",
+                                marginTop: 12,
+                                fontWeight: 600,
+                                padding: "10px",
+                                background: "#fff8e1",
+                                borderRadius: 8,
+                                border: "1px solid #f39c12",
+                                fontSize: "0.95rem"
+                            }}>
+                                ⚠️ Mỗi tài khoản được gửi feedback 1 lần
                             </div>
                         )}
                     </form>

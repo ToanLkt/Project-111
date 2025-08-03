@@ -1027,27 +1027,22 @@ export default function Payment() {
         /* ...existing styles... */
 
         .payment-section {
-          min-height: 80vh;
           background: ${COLORS.background};
-          padding: 3rem 0;
+          padding: 5rem 0;
           position: relative;
-          justify-content: center;
-          align-items: center;
         }
 
         .payment-container {
           background: ${COLORS.white};
-          border-radius: 10px;
+          border-radius: 24px;
+          padding: 4rem 3rem;
           box-shadow: 
             0 20px 40px rgba(51, 107, 115, 0.08),
             0 8px 16px rgba(51, 107, 115, 0.04);
           border: 1px solid ${COLORS.color1};
-          padding: 3rem;
-          max-width: 1000px;
-          align-items: center;
-          justify-content: center;
           position: relative;
           overflow: hidden;
+          max-width: 1200px;
           margin: 0 auto;
         }
 
@@ -1085,7 +1080,7 @@ export default function Payment() {
         }
 
         .payment-title {
-          font-size: 2.5rem;
+          font-size: 2.8rem;
           font-weight: 800;
           text-align: center;
           margin-bottom: 1rem;
@@ -1106,22 +1101,19 @@ export default function Payment() {
 
         .packages-grid {
           display: grid;
-          grid-template-columns:  repeat(3, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
           gap: 2rem;
-          margin-bottom: 3rem;
+          margin-top: 2rem;
         }
 
         .package-card {
-          background: ${COLORS.background};
-          border-radius: 20px;
-          padding: 2rem;
-          border: 1px solid ${COLORS.color1};
-          box-shadow: 0 8px 24px rgba(51, 107, 115, 0.06);
-          position: relative;
-          overflow: hidden;
-          transition: all 0.3s ease;
           display: flex;
           flex-direction: column;
+          justify-content: space-between;
+          padding: 1.5rem;
+          border-radius: 12px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          height: 100%;
         }
 
         .package-card.active {
@@ -1150,8 +1142,8 @@ export default function Payment() {
         }
 
         .package-card:hover:not(.inactive):not(.current) {
-          transform: translateY(-4px);
-          box-shadow: 0 16px 40px rgba(51, 107, 115, 0.12);
+          transform: translateY(-8px) scale(1.02);
+          box-shadow: 0 20px 40px rgba(51, 107, 115, 0.15);
         }
 
         .package-card::before {
@@ -1184,6 +1176,11 @@ export default function Payment() {
           align-items: center;
           justify-content: center;
           font-size: 1.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .package-card:hover .package-icon-badge {
+          transform: scale(1.1) rotate(5deg);
         }
 
         .package-status {
@@ -1217,7 +1214,7 @@ export default function Payment() {
         }
 
         .package-category {
-          font-size: 1.3rem;
+          font-size: 1.4rem;
           font-weight: 700;
           color: ${COLORS.color3};
           margin-bottom: 0.5rem;
@@ -1228,13 +1225,13 @@ export default function Payment() {
         .package-description {
           color: ${COLORS.text};
           font-size: 1rem;
-          line-height: 1.5;
+          line-height: 1.6;
           margin-bottom: 1.5rem;
-          flex-grow: 1;
+          min-height: 3rem;
         }
 
         .package-price {
-          font-size: 1.8rem;
+          font-size: 2rem;
           font-weight: 800;
           color: ${COLORS.color2};
           margin-bottom: 0.5rem;
@@ -1247,10 +1244,24 @@ export default function Payment() {
         .package-duration {
           color: ${COLORS.textLight};
           font-size: 0.9rem;
-          margin-bottom: 1.5rem;
+          margin-bottom: 2rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
+        }
+
+        .package-footer {
+          margin-top: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .package-info {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
         }
 
         .package-button {
@@ -1551,24 +1562,11 @@ export default function Payment() {
         }
 
         @media (max-width: 768px) {
-          .payment-section {
-            padding: 2rem 0;
-          }
-
-          .payment-container {
-            margin: 0 1rem;
-            padding: 2rem;
-            border-radius: 20px;
-          }
-
-          .payment-title {
-            font-size: 2rem;
-          }
-
-          .packages-grid {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-          }
+          .payment-section { padding: 3rem 0; }
+          .payment-container { margin: 0 1rem; padding: 2.5rem 2rem; border-radius: 20px; }
+          .payment-title { font-size: 2.2rem; }
+          .packages-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+          .package-card { padding: 2rem; }
 
           .qr-modal {
             min-width: 350px;
@@ -1582,13 +1580,9 @@ export default function Payment() {
         }
 
         @media (max-width: 576px) {
-          .payment-title {
-            font-size: 1.8rem;
-          }
-
-          .package-card {
-            padding: 1.5rem;
-          }
+          .payment-title { font-size: 1.8rem; }
+          .package-card { padding: 1.5rem; }
+          .package-price { font-size: 1.6rem; }
 
           .qr-modal {
             min-width: 300px;
@@ -1659,7 +1653,7 @@ export default function Payment() {
       <section className="payment-section">
         <div className="container">
           <div className="row justify-content-center">
-            <div className="col-12 col-md-10 col-lg-8">
+            <div className="col-12 col-xl-10">
               <div className="payment-container">
                 <h2 className="payment-title"> Thanh toán & Đăng ký</h2>
                 <p className="payment-subtitle">
@@ -1778,56 +1772,79 @@ export default function Payment() {
                             </div>
                           </div>
 
-                          <h3 className="package-category">
-                            {pkg.category}
-                          </h3>
-                          <p className="package-description">{pkg.description}</p>
-
-                          <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
-                            {formatPrice(pkg.price)}
-                          </div>
-
-                          <div className="package-duration">
-                            <i className="fas fa-clock"></i>
-                            Thời hạn: {pkg.duration} ngày
-                          </div>
-
-                          {isCurrent ? (
-                            <button className="package-button btn-current">
-                              <i className={getButtonIcon(pkg)}></i>
-                              {getButtonLabel(pkg)}
-                            </button>
-                          ) : canRegister ? (
-                            <button
-                              className={`package-button ${isSelectedFromMembership ? 'btn-upgrade' :
-                                isUpgrade ? 'btn-upgrade' : 'btn-buy'
-                                } ${paymentError ? 'btn-retry' : ''}`}
-                              disabled={paymentLoading}
-                              onClick={() => handleRegister(pkg)}
-                            >
-                              {paymentLoading ? (
-                                <>
-                                  <div className="loading-spinner"></div>
-                                  Đang xử lý...
-                                </>
-                              ) : paymentError ? (
-                                <>
-                                  <i className="fas fa-redo"></i>
-                                  Thử lại thanh toán
-                                </>
-                              ) : (
-                                <>
-                                  <i className={getButtonIcon(pkg)}></i>
-                                  {getButtonLabel(pkg)}
-                                </>
+                          <h3 className="package-category">{pkg.category}</h3>
+                          <p className="package-description" style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "1.5rem" }}>
+                            {pkg.description
+                              .split('.')
+                              .map((line, idx) =>
+                                line.trim() ? (
+                                  <span
+                                    key={idx}
+                                    style={{
+                                      background: "#f8fafc",
+                                      borderRadius: "10px",
+                                      padding: "10px 14px",
+                                      color: "#23235a",
+                                      fontSize: "1rem",
+                                      boxShadow: "0 1px 6px rgba(44,130,201,0.07)",
+                                      borderLeft: "4px solid #48A6A7",
+                                      display: "block",
+                                      fontWeight: 500,
+                                      lineHeight: 1.6
+                                    }}
+                                  >
+                                    {line.trim()}.
+                                  </span>
+                                ) : null
                               )}
-                            </button>
-                          ) : (
-                            <button className="package-button btn-disabled" disabled>
-                              <i className={getButtonIcon(pkg)}></i>
-                              {getButtonLabel(pkg)}
-                            </button>
-                          )}
+                          </p>
+                          <div className="package-footer">
+                            <div className="package-info">
+                              <div className={`package-price ${pkg.price === 0 ? "free" : ""}`}>
+                                {formatPrice(pkg.price)}
+                              </div>
+                              <div className="package-duration">
+                                <i className="fas fa-clock"></i>
+                                Thời hạn: {pkg.duration} ngày
+                              </div>
+                            </div>
+                            {isCurrent ? (
+                              <button className="package-button btn-current">
+                                <i className={getButtonIcon(pkg)}></i>
+                                {getButtonLabel(pkg)}
+                              </button>
+                            ) : canRegister ? (
+                              <button
+                                className={`package-button ${isSelectedFromMembership ? 'btn-upgrade' :
+                                  isUpgrade ? 'btn-upgrade' : 'btn-buy'
+                                  } ${paymentError ? 'btn-retry' : ''}`}
+                                disabled={paymentLoading}
+                                onClick={() => handleRegister(pkg)}
+                              >
+                                {paymentLoading ? (
+                                  <>
+                                    <div className="loading-spinner"></div>
+                                    Đang xử lý...
+                                  </>
+                                ) : paymentError ? (
+                                  <>
+                                    <i className="fas fa-redo"></i>
+                                    Thử lại thanh toán
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className={getButtonIcon(pkg)}></i>
+                                    {getButtonLabel(pkg)}
+                                  </>
+                                )}
+                              </button>
+                            ) : (
+                              <button className="package-button btn-disabled" disabled>
+                                <i className={getButtonIcon(pkg)}></i>
+                                {getButtonLabel(pkg)}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
@@ -1996,55 +2013,58 @@ export default function Payment() {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* Popup xác nhận gói Free */}
-      {showFreeConfirm && freePkg && (
-        <div className="qr-overlay">
-          <div className="qr-modal">
-            <h3 className="qr-title">
-              <i className="fas fa-gift me-2"></i>
-              Xác nhận đăng ký gói Free
-            </h3>
-            <div style={{ margin: "1rem 0", fontSize: "1.1rem" }}>
-              Bạn có chắc chắn muốn sử dụng <b>gói {freePkg.category}</b> miễn phí không?
+      {
+        showFreeConfirm && freePkg && (
+          <div className="qr-overlay">
+            <div className="qr-modal">
+              <h3 className="qr-title">
+                <i className="fas fa-gift me-2"></i>
+                Xác nhận đăng ký gói Free
+              </h3>
+              <div style={{ margin: "1rem 0", fontSize: "1.1rem" }}>
+                Bạn có chắc chắn muốn sử dụng <b>gói {freePkg.category}</b> miễn phí không?
+              </div>
+              <button
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  marginBottom: '0.8rem'
+                }}
+                onClick={handleConfirmFree}
+              >
+                <i className="fas fa-check-circle me-2"></i>
+                Xác nhận sử dụng gói Free
+              </button>
+              <button
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  background: '#DC2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+                onClick={() => { setShowFreeConfirm(false); setFreePkg(null); }}
+              >
+                <i className="fas fa-times me-2"></i>
+                Hủy
+              </button>
             </div>
-            <button
-              style={{
-                width: '100%',
-                padding: '0.8rem',
-                background: '#10B981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                marginBottom: '0.8rem'
-              }}
-              onClick={handleConfirmFree}
-            >
-              <i className="fas fa-check-circle me-2"></i>
-              Xác nhận sử dụng gói Free
-            </button>
-            <button
-              style={{
-                width: '100%',
-                padding: '0.8rem',
-                background: '#DC2626',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-              onClick={() => { setShowFreeConfirm(false); setFreePkg(null); }}
-            >
-              <i className="fas fa-times me-2"></i>
-              Hủy
-            </button>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <Footer />
     </>

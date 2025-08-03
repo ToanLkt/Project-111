@@ -68,7 +68,7 @@ export default function StartInformation() {
         "Giảm nguy cơ ung thư và bệnh tim",
         "Tạo hình ảnh tốt trong công việc",
         "Vì con cái và thế hệ tương lai",
-        "Khác "
+        "Khác"
     ];
 
     // Danh sách tiền sử bệnh án phổ biến
@@ -121,13 +121,13 @@ export default function StartInformation() {
                     if (parsedInfo.reason && !reasonOptions.slice(0, -1).includes(parsedInfo.reason)) {
                         setCustomReason(parsedInfo.reason);
                         setShowCustomReason(true);
-                        setForm(prev => ({ ...prev, reason: "Khác (tự nhập)" }));
+                        setForm(prev => ({ ...prev, reason: "Khác" }));
                     }
 
                     if (parsedInfo.medicalHistory && !medicalOptions.slice(0, -1).includes(parsedInfo.medicalHistory)) {
                         setCustomMedicalHistory(parsedInfo.medicalHistory);
                         setShowCustomMedical(true);
-                        setForm(prev => ({ ...prev, medicalHistory: "Khác (tự nhập)" }));
+                        setForm(prev => ({ ...prev, medicalHistory: "Khác" }));
                     }
 
                     setHasSubmittedBefore(true);
@@ -146,7 +146,7 @@ export default function StartInformation() {
 
         // Xử lý hiển thị custom input
         if (name === "reason") {
-            if (value === "Khác (tự nhập)") {
+            if (value === "Khác") {
                 setShowCustomReason(true);
             } else {
                 setShowCustomReason(false);
@@ -155,7 +155,7 @@ export default function StartInformation() {
         }
 
         if (name === "medicalHistory") {
-            if (value === "Khác (tự nhập)") {
+            if (value === "Khác") {
                 setShowCustomMedical(true);
             } else {
                 setShowCustomMedical(false);
@@ -173,8 +173,8 @@ export default function StartInformation() {
             console.log('🚀 Submitting form with Redux token...');
 
             // Sử dụng custom input nếu người dùng chọn "Khác"
-            const finalReason = form.reason === "Khác (tự nhập)" ? customReason : form.reason;
-            const finalMedicalHistory = form.medicalHistory === "Khác (tự nhập)" ? customMedicalHistory : form.medicalHistory;
+            const finalReason = form.reason === "Khác" ? customReason : form.reason;
+            const finalMedicalHistory = form.medicalHistory === "Khác" ? customMedicalHistory : form.medicalHistory;
 
             const body = {
                 cigarettesPerDay: Number(form.cigarettesPerDay),
@@ -219,6 +219,7 @@ export default function StartInformation() {
             }
 
             const result = await res.json();
+            console.log('✅ API Response:', result); // Debug log
             setApiResult(result); // Hiện popup
 
             setSubmitted(true);
@@ -335,6 +336,9 @@ export default function StartInformation() {
                         position: "relative",
                         transition: "box-shadow 0.2s"
                     }}>
+                        {/* Debug info */}
+                        {console.log('🔍 Popup apiResult:', apiResult)}
+
                         <h3 style={{
                             color: "#006A71",
                             fontWeight: 900,
@@ -354,37 +358,137 @@ export default function StartInformation() {
                             boxShadow: "0 2px 8px rgba(44,130,201,0.07)",
                             textAlign: "left"
                         }}>
-                            {apiResult.addictionEvaluation
-                                .split("\n")
-                                .filter(line => line.trim().startsWith("-"))
-                                .map((line, idx) => (
-                                    <div
-                                        key={idx}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "flex-start",
-                                            gap: 10,
-                                            marginBottom: 12,
-                                            padding: "10px 12px",
-                                            background: "#e6f4f4",
-                                            borderRadius: 10,
-                                            borderLeft: "4px solid #48A6A7",
-                                            fontSize: "1.08rem",
-                                            color: "#23235a",
-                                            boxShadow: "0 1px 4px rgba(44,130,201,0.05)"
-                                        }}
-                                    >
-                                        <span style={{
-                                            fontSize: "1.2rem",
-                                            color: "#48A6A7",
-                                            marginTop: 2
-                                        }}>•</span>
-                                        <span style={{ whiteSpace: "pre-wrap" }}>
-                                            {line.replace(/^-/, "").trim()}
-                                        </span>
+                            {apiResult.addictionEvaluation ? (
+                                // Kiểm tra xem có dòng nào bắt đầu bằng "-" hay không
+                                (() => {
+                                    const lines = apiResult.addictionEvaluation.split("\n").filter(line => line.trim());
+                                    const bulletLines = lines.filter(line => line.trim().startsWith("-"));
+
+                                    // Nếu có dòng bullet points, hiển thị theo format đẹp
+                                    if (bulletLines.length > 0) {
+                                        return (
+                                            <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+                                                {bulletLines.map((line, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems: "flex-start",
+                                                            gap: 12,
+                                                            padding: "1rem 1.2rem",
+                                                            background: idx % 2 === 0 ? "#e6f4f4" : "#f0f9f9",
+                                                            borderRadius: 12,
+                                                            borderLeft: `4px solid ${idx % 2 === 0 ? "#48A6A7" : "#9ACBD0"}`,
+                                                            fontSize: "1.08rem",
+                                                            color: "#23235a",
+                                                            boxShadow: "0 2px 6px rgba(44,130,201,0.06)",
+                                                            transition: "transform 0.2s ease",
+                                                            position: "relative"
+                                                        }}
+                                                    >
+                                                        {/* Icon bullet */}
+                                                        <div style={{
+                                                            width: "28px",
+                                                            height: "28px",
+                                                            borderRadius: "50%",
+                                                            background: idx % 2 === 0 ? "#48A6A7" : "#9ACBD0",
+                                                            color: "#fff",
+                                                            fontSize: "1rem",
+                                                            fontWeight: "700",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            flexShrink: 0,
+                                                            marginTop: "2px"
+                                                        }}>
+                                                            •
+                                                        </div>
+
+                                                        {/* Nội dung bullet */}
+                                                        <div style={{
+                                                            flex: 1,
+                                                            lineHeight: 1.6,
+                                                            fontWeight: "500"
+                                                        }}>
+                                                            {line.replace(/^-/, "").trim().split('\n').map((subLine, subIdx) => (
+                                                                <div key={subIdx} style={{ marginBottom: subIdx < line.replace(/^-/, "").trim().split('\n').length - 1 ? '0.3rem' : 0 }}>
+                                                                    {subLine.trim() || '\u00A0'}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    } else {
+                                        // Nếu không có bullet points, hiển thị từng đoạn như các mục riêng
+                                        const paragraphs = apiResult.addictionEvaluation.split('\n').filter(line => line.trim());
+                                        return (
+                                            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                                                {paragraphs.map((paragraph, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        style={{
+                                                            padding: "1rem 1.2rem",
+                                                            background: idx % 2 === 0 ? "#e6f4f4" : "#f0f9f9",
+                                                            borderRadius: 12,
+                                                            borderLeft: `4px solid ${idx % 2 === 0 ? "#48A6A7" : "#9ACBD0"}`,
+                                                            fontSize: "1.08rem",
+                                                            color: "#23235a",
+                                                            lineHeight: 1.6,
+                                                            textAlign: "left",
+                                                            boxShadow: "0 2px 6px rgba(44,130,201,0.06)",
+                                                            transition: "transform 0.2s ease",
+                                                            position: "relative"
+                                                        }}
+                                                    >
+                                                        {/* Số thứ tự */}
+                                                        <div style={{
+                                                            position: "absolute",
+                                                            top: "0.8rem",
+                                                            right: "1rem",
+                                                            width: "24px",
+                                                            height: "24px",
+                                                            borderRadius: "50%",
+                                                            background: idx % 2 === 0 ? "#48A6A7" : "#9ACBD0",
+                                                            color: "#fff",
+                                                            fontSize: "0.85rem",
+                                                            fontWeight: "700",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center"
+                                                        }}>
+                                                            {idx + 1}
+                                                        </div>
+
+                                                        {/* Nội dung */}
+                                                        <div style={{
+                                                            paddingRight: "2.5rem",
+                                                            fontWeight: "500"
+                                                        }}>
+                                                            {paragraph.trim()}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    }
+                                })()
+                            ) : (
+                                <div style={{
+                                    textAlign: "center",
+                                    padding: "2rem",
+                                    color: "#48A6A7",
+                                    fontSize: "1.1rem"
+                                }}>
+                                    <div style={{ marginBottom: "1rem", fontSize: "2rem" }}>✅</div>
+                                    <div>
+                                        <strong>Form đã được gửi thành công!</strong>
+                                        <br />
+                                        {apiResult.message || "Cảm ơn bạn đã cung cấp thông tin."}
                                     </div>
-                                ))
-                            }
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={() => {
@@ -637,20 +741,23 @@ export default function StartInformation() {
                                     }}
                                 >
                                     <option value="">Chọn thời gian</option>
+                                    <option value={90}>1-3 tháng (~90 ngày)</option>
                                     <option value={180}>3-6 tháng (~180 ngày)</option>
                                     <option value={270}>6-9 tháng (~270 ngày)</option>
                                     <option value={360}>9-12 tháng (~360 ngày)</option>
                                 </select>
                                 {form.cigarettesPerDay && isCigarettesInputFocused && (
-                                    <div style={{ color: "#27ae60", fontWeight: 600, marginTop: 6, fontSize: "0.98rem" }}>
+                                    <div style={{ color: "#FF6666", fontWeight: 600, marginTop: 6, fontSize: "0.98rem" }}>
                                         {
-                                            Number(form.cigarettesPerDay) >= 6 && Number(form.cigarettesPerDay) <= 19
-                                                ? "Gợi ý từ 3-6 tháng"
-                                                : Number(form.cigarettesPerDay) >= 20 && Number(form.cigarettesPerDay) <= 29
-                                                    ? "Gợi ý từ 6-9 tháng"
-                                                    : Number(form.cigarettesPerDay) > 29
-                                                        ? "Gợi ý từ 9-12 tháng"
-                                                        : ""
+                                            Number(form.cigarettesPerDay) >= 5 && Number(form.cigarettesPerDay) <= 9
+                                                ? "Gợi ý từ 1-3 tháng"
+                                                : Number(form.cigarettesPerDay) >= 10 && Number(form.cigarettesPerDay) <= 15
+                                                    ? "Gợi ý từ 3-6 tháng"
+                                                    : Number(form.cigarettesPerDay) >= 16 && Number(form.cigarettesPerDay) <= 20
+                                                        ? "Gợi ý từ 6-9 tháng"
+                                                        : Number(form.cigarettesPerDay) > 20
+                                                            ? "Gợi ý từ 9-12 tháng"
+                                                            : ""
                                         }
                                     </div>
                                 )}
