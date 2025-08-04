@@ -550,7 +550,7 @@ export default function Home() {
                       </div>
                       <div className="feature-item">
                         <div className="feature-icon">🤝</div>
-                        <div className="feature-text">Hỗ trợ 24/7</div>
+                        <div className="feature-text">Hỗ trợ 8/5 </div>
                       </div>
                       <div className="feature-item">
                         <div className="feature-icon">💚</div>
@@ -607,7 +607,7 @@ export default function Home() {
                       <div className="stats-label-mini">Hiệu quả</div>
                     </div>
                     <div className="stats-card-mini">
-                      <span className="stats-number-mini">24/7</span>
+                      <span className="stats-number-mini">8/5</span>
                       <div className="stats-label-mini">Hỗ trợ</div>
                     </div>
                     <div className="stats-card-mini">

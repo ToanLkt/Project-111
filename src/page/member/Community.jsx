@@ -85,6 +85,21 @@ export default function Community() {
         }
     }, [isMember, isCoach, userIsAdmin, token, packageMembershipId])
 
+    // Helper function to format date (only show date, not time)
+    const formatDateOnly = (dateTimeString) => {
+        if (!dateTimeString || dateTimeString === "Vừa xong") return "Vừa xong"
+        try {
+            const date = new Date(dateTimeString)
+            return date.toLocaleDateString('vi-VN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            })
+        } catch (error) {
+            return dateTimeString
+        }
+    }
+
     // Các hook khác
     const [allPosts, setAllPosts] = useState([])
     const [posts, setPosts] = useState([])
@@ -860,7 +875,7 @@ export default function Community() {
 
                         .comment-actions {
                             position: absolute;
-                            top: 0.75rem;
+                            top: 2.5rem;
                             right: 0.75rem;
                         }
 
@@ -1198,7 +1213,7 @@ export default function Community() {
                                                                                                 <span className="admin-badge">🛡️</span>
                                                                                             )}
                                                                                         </span>
-                                                                                        <span className="comment-time">🕐 {cmt.createTime || "Vừa xong"}</span>
+                                                                                        <span className="comment-time">� {formatDateOnly(cmt.createTime)}</span>
                                                                                     </div>
                                                                                     <div className="comment-content">{cmt.content}</div>
 

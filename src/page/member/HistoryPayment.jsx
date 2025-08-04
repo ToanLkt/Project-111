@@ -379,7 +379,7 @@ export default function HistoryPayment() {
                                             </td>
                                             <td className="table-cell">
                                                 <span className="price-amount">
-                                                    {item.totalPrice ? item.totalPrice.toLocaleString('vi-VN') + " đ" : "N/A"}
+                                                    {item.totalPrice ? item.totalPrice.toLocaleString('vi-VN') + " đ" : "0 đ"}
                                                 </span>
                                             </td>
                                             <td className="table-cell">

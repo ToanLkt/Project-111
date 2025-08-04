@@ -69,7 +69,7 @@ export default function Footer() {
 
         .footer-grid {
           display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1.5fr;
+          grid-template-columns: 2.5fr 1.5fr 1fr;
           gap: 3rem;
           align-items: start;
         }
@@ -505,27 +505,7 @@ export default function Footer() {
                   </div>
                 </div>
 
-                <div className="footer-social-links">
-                  <a
-                    href="https://facebook.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="footer-social-link"
-                  >
-                    <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" />
-                  </a>
-                  <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" className="footer-social-link">
-                    <img src="https://cdn-icons-png.flaticon.com/512/5968/5968841.png" alt="Zalo" />
-                  </a>
-                  <a
-                    href="https://youtube.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="footer-social-link"
-                  >
-                    <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" alt="YouTube" />
-                  </a>
-                </div>
+
               </div>
 
               {/* Contact Section */}
@@ -579,43 +559,13 @@ export default function Footer() {
                       Giới thiệu
                     </a>
                   </li>
-                  <li className="footer-nav-item">
-                    <a href="#lienhe" className="footer-nav-link">
-                      <i className="footer-nav-icon">📞</i>
-                      Liên hệ
-                    </a>
-                  </li>
-                  <li className="footer-nav-item">
-                    <a href="#chuyen-gia" className="footer-nav-link">
-                      <i className="footer-nav-icon">🧠</i>
-                      Hỗ trợ chuyên gia
-                    </a>
-                  </li>
-                  <li className="footer-nav-item">
-                    <a href="#membership" className="footer-nav-link">
-                      <i className="footer-nav-icon">💎</i>
-                      Gói thành viên
-                    </a>
-                  </li>
+
+
+
                 </ul>
               </div>
 
-              {/* Newsletter */}
-              <div>
-                <h5 className="footer-section-title">Nhận tin mới</h5>
-                <div className="footer-newsletter">
-                  <form onSubmit={(e) => e.preventDefault()} className="footer-newsletter-form">
-                    <input type="email" placeholder="Nhập email của bạn" className="footer-newsletter-input" required />
-                    <button type="submit" className="footer-newsletter-btn">
-                      <i className="fas fa-paper-plane"></i>
-                      Đăng ký ngay
-                    </button>
-                  </form>
-                  <div className="footer-newsletter-desc">
-                    Nhận thông tin mới nhất về phương pháp cai thuốc lá, tài liệu hữu ích và ưu đãi đặc biệt.
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
 

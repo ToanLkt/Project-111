@@ -59,7 +59,7 @@ export default function FeedbackSection() {
   const top5StarFeedbacks = feedbacks
     .filter((fb) => fb.feedback_rating === 5)
     .sort((a, b) => new Date(b.feedback_date) - new Date(a.feedback_date))
-    .slice(0, 3)
+    .slice(0, 4)
 
   return (
     <>
@@ -403,7 +403,7 @@ export default function FeedbackSection() {
 
                 {loading ? (
                   <div className="feedback-grid">
-                    {[...Array(3)].map((_, index) => (
+                    {[...Array(4)].map((_, index) => (
                       <div key={index} className="loading-card">
                         <div className="skeleton-header">
                           <div className="loading-skeleton skeleton-avatar"></div>
@@ -412,6 +412,7 @@ export default function FeedbackSection() {
                             <div className="loading-skeleton skeleton-rating"></div>
                           </div>
                         </div>
+                        <div className="loading-skeleton skeleton-content"></div>
                         <div className="loading-skeleton skeleton-content"></div>
                         <div className="loading-skeleton skeleton-content"></div>
                         <div className="loading-skeleton skeleton-content"></div>

@@ -70,6 +70,7 @@ export default function Coach() {
   const [accessCheck, setAccessCheck] = useState({ allowed: false, reason: 'checking' })
   const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState(true)
   const [isAutoFetching, setIsAutoFetching] = useState(false)
+  const [showSupportPopup, setShowSupportPopup] = useState(false)
   const chatEndRef = useRef(null)
   const pollIntervalRef = useRef(null)
 
@@ -779,6 +780,17 @@ export default function Coach() {
           100% { transform: scale(1); opacity: 1; }
         }
 
+        @keyframes popupFadeIn {
+          0% { 
+            opacity: 0; 
+            transform: scale(0.8) translateY(20px); 
+          }
+          100% { 
+            opacity: 1; 
+            transform: scale(1) translateY(0); 
+          }
+        }
+
         .message-time {
           font-size: 0.75rem;
           opacity: 0.7;
@@ -1049,6 +1061,7 @@ export default function Coach() {
       `}</style>
 
       <div className="coach-container">
+
         {/* Danh sách coaches */}
         <div className="coaches-list">
           <div className="coaches-header">
@@ -1104,7 +1117,31 @@ export default function Coach() {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-
+                <button
+                  onClick={() => setShowSupportPopup(true)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '0.5rem',
+                    color: COLORS.color3,
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                    e.target.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.transform = 'scale(1)';
+                  }}
+                  title="Thông tin hỗ trợ"
+                >
+                  💡
+                </button>
               </div>
             </div>
 
@@ -1135,9 +1172,6 @@ export default function Coach() {
                 </>
               )}
               <div ref={chatEndRef} />
-
-
-
             </div>
 
             {/* Quick Actions */}
@@ -1206,6 +1240,128 @@ export default function Coach() {
           </div>
         )}
       </div>
+
+      {/* Support Popup */}
+      {showSupportPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(5px)'
+          }}
+          onClick={(e) => e.target === e.currentTarget && setShowSupportPopup(false)}
+        >
+          <div style={{
+            background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
+            border: '1px solid #81c784',
+            borderRadius: '24px',
+            padding: '2rem 2.5rem',
+            fontSize: '1rem',
+            color: '#2e7d32',
+            lineHeight: '1.6',
+            boxShadow: '0 20px 60px rgba(46, 125, 50, 0.3)',
+            position: 'relative',
+            maxWidth: '400px',
+            margin: '2rem',
+            animation: 'popupFadeIn 0.3s ease-out'
+          }}>
+            <button
+              onClick={() => setShowSupportPopup(false)}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1.5rem',
+                color: '#2e7d32',
+                cursor: 'pointer',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(46, 125, 50, 0.1)';
+                e.target.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              ×
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '2rem' }}>💡</span>
+              <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>Thông báo hỗ trợ</h3>
+            </div>
+
+            <p style={{ margin: '0 0 1.5rem 0', fontSize: '1rem' }}>
+              Nếu bạn không nhận được phản hồi từ coach, hãy liên hệ với chúng tôi qua:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                background: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '12px',
+                border: '1px solid rgba(46, 125, 50, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>📞</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Hotline</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1565c0' }}>0345511085</div>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                background: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '12px',
+                border: '1px solid rgba(46, 125, 50, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>📧</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Email</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1565c0', wordBreak: 'break-all' }}>
+                    smokingcessation0206@gmail.com
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p style={{
+              margin: '1.5rem 0 0 0',
+              fontSize: '0.9rem',
+              fontStyle: 'italic',
+              textAlign: 'center',
+              color: 'rgba(46, 125, 50, 0.8)'
+            }}>
+              Chúng tôi sẽ hỗ trợ bạn trong thời gian sớm nhất
+            </p>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   )
