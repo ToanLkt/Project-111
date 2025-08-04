@@ -499,7 +499,7 @@ export default function Coach() {
           min-height: 100vh;
           background: ${COLORS.background};
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
           font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           color: ${COLORS.text};
@@ -513,9 +513,9 @@ export default function Coach() {
           box-shadow: 
             0 20px 40px rgba(51, 107, 115, 0.08),
             0 8px 16px rgba(51, 107, 115, 0.04);
-          width: 420px;
-          max-width: 95vw;
-          min-height: 600px;
+          width: 650px;
+          max-width: 70vw;
+          min-height: 700px;
           display: flex;
           flex-direction: column;
           border: 1px solid ${COLORS.color1};
@@ -559,13 +559,13 @@ export default function Coach() {
 
         .chat-messages {
           flex: 1;
-          padding: 1.5rem;
+          padding: 2rem;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 1.5rem;
           background: ${COLORS.white};
-          max-height: 400px;
+          max-height: 500px;
         }
 
         .chat-messages::-webkit-scrollbar {
@@ -587,13 +587,14 @@ export default function Coach() {
         }
 
         .message {
-          max-width: 85%;
-          padding: 1rem 1.2rem;
+          max-width: 80%;
+          padding: 1.2rem 1.4rem;
           border-radius: 20px;
           font-size: 1rem;
-          line-height: 1.5;
+          line-height: 1.6;
           position: relative;
           word-wrap: break-word;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .message-user {
@@ -663,8 +664,8 @@ export default function Coach() {
         .chat-input-form {
           display: flex;
           border-top: 1px solid ${COLORS.color1};
-          padding: 1rem;
-          gap: 0.75rem;
+          padding: 1.5rem;
+          gap: 1rem;
           background: ${COLORS.background};
           border-radius: 0 0 24px 24px;
         }
@@ -672,13 +673,14 @@ export default function Coach() {
         .chat-input {
           flex: 1;
           border: 1px solid ${COLORS.color1};
-          border-radius: 12px;
-          padding: 0.8rem 1rem;
+          border-radius: 16px;
+          padding: 1rem 1.2rem;
           font-size: 1rem;
           background: ${COLORS.white};
           color: ${COLORS.text};
           outline: none;
           transition: all 0.3s ease;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
 
         .chat-input:focus {
@@ -696,12 +698,12 @@ export default function Coach() {
           background: ${COLORS.gradient};
           color: ${COLORS.white};
           border: none;
-          border-radius: 12px;
-          padding: 0.8rem 1.5rem;
+          border-radius: 16px;
+          padding: 1rem 2rem;
           font-weight: 600;
           font-size: 1rem;
           cursor: pointer;
-          box-shadow: 0 4px 12px rgba(106, 183, 197, 0.2);
+          box-shadow: 0 4px 16px rgba(106, 183, 197, 0.25);
           transition: all 0.3s ease;
           display: flex;
           align-items: center;
@@ -709,8 +711,8 @@ export default function Coach() {
         }
 
         .send-button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(106, 183, 197, 0.3);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.35);
         }
 
         .send-button:disabled {
@@ -795,9 +797,9 @@ export default function Coach() {
           box-shadow: 
             0 20px 40px rgba(51, 107, 115, 0.08),
             0 8px 16px rgba(51, 107, 115, 0.04);
-          width: 350px;
-          max-width: 45vw;
-          min-height: 600px;
+          width: 380px;
+          max-width: 25vw;
+          max-height: 700px;
           display: flex;
           flex-direction: column;
           border: 1px solid ${COLORS.color1};
@@ -829,40 +831,82 @@ export default function Coach() {
 
         .coaches-grid {
           flex: 1;
-          padding: 1.5rem;
+          padding: 1rem;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.8rem;
+          max-height: 580px;
+        }
+
+        .coaches-grid::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .coaches-grid::-webkit-scrollbar-track {
+          background: ${COLORS.background};
+          border-radius: 3px;
+        }
+
+        .coaches-grid::-webkit-scrollbar-thumb {
+          background: ${COLORS.color1};
+          border-radius: 3px;
+        }
+
+        .coaches-grid::-webkit-scrollbar-thumb:hover {
+          background: ${COLORS.color2};
         }
 
         .coach-card {
           display: flex;
           align-items: center;
           gap: 1rem;
-          padding: 1.2rem;
+          padding: 1rem;
           border: 1px solid ${COLORS.color1};
           border-radius: 16px;
           cursor: pointer;
           transition: all 0.3s ease;
           background: ${COLORS.white};
+          position: relative;
+          overflow: hidden;
+        }
+
+        .coach-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: ${COLORS.gradient};
+          transform: scaleY(0);
+          transition: transform 0.3s ease;
+        }
+
+        .coach-card:hover::before {
+          transform: scaleY(1);
         }
 
         .coach-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.15);
+          transform: translateY(-3px);
+          box-shadow: 0 12px 32px rgba(106, 183, 197, 0.2);
           border-color: ${COLORS.color2};
         }
 
         .coach-card.selected {
           border-color: ${COLORS.color2};
-          background: ${COLORS.color1};
-          box-shadow: 0 4px 16px rgba(106, 183, 197, 0.2);
+          background: linear-gradient(135deg, ${COLORS.color1} 0%, rgba(207, 232, 239, 0.5) 100%);
+          box-shadow: 0 8px 24px rgba(106, 183, 197, 0.25);
+          transform: translateY(-2px);
+        }
+
+        .coach-card.selected::before {
+          transform: scaleY(1);
         }
 
         .coach-avatar {
-          width: 50px;
-          height: 50px;
+          width: 45px;
+          height: 45px;
           border-radius: 50%;
           background: ${COLORS.gradient};
           color: ${COLORS.white};
@@ -870,7 +914,9 @@ export default function Coach() {
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          font-size: 1.2rem;
+          font-size: 1.1rem;
+          box-shadow: 0 4px 12px rgba(106, 183, 197, 0.3);
+          border: 2px solid ${COLORS.white};
         }
 
         .coach-info {
@@ -879,7 +925,7 @@ export default function Coach() {
 
         .coach-info h3 {
           margin: 0 0 0.25rem 0;
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 600;
           color: ${COLORS.color3};
         }
@@ -887,17 +933,19 @@ export default function Coach() {
         .coach-info p {
           margin: 0;
           color: ${COLORS.textLight};
-          font-size: 0.9rem;
+          font-size: 0.85rem;
         }
 
         .coach-speciality {
-          background: rgba(106, 183, 197, 0.1);
+          background: linear-gradient(135deg, rgba(106, 183, 197, 0.15) 0%, rgba(51, 107, 115, 0.1) 100%);
           color: ${COLORS.color3};
-          padding: 0.25rem 0.5rem;
-          border-radius: 8px;
-          font-size: 0.75rem;
-          margin-top: 0.5rem;
+          padding: 0.25rem 0.6rem;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          margin-top: 0.4rem;
           display: inline-block;
+          font-weight: 500;
+          border: 1px solid rgba(106, 183, 197, 0.2);
         }
 
         .loading-coaches {
@@ -914,19 +962,28 @@ export default function Coach() {
             padding: 1rem 0.5rem;
             flex-direction: column;
             gap: 1rem;
+            align-items: center;
           }
 
           .coaches-list {
             width: 100%;
             max-width: 100%;
-            min-height: 300px;
+            max-height: 250px;
             border-radius: 16px;
+            order: 2;
           }
 
           .chat-window {
             width: 100%;
+            max-width: 100%;
             min-height: 500px;
             border-radius: 16px;
+            order: 1;
+          }
+
+          .coaches-grid {
+            max-height: 150px;
+            padding: 0.8rem;
           }
 
           .chat-header {
@@ -937,6 +994,7 @@ export default function Coach() {
 
           .chat-messages {
             padding: 1rem;
+            max-height: 350px;
           }
 
           .message {
@@ -967,7 +1025,25 @@ export default function Coach() {
           }
 
           .send-button {
-            padding: 0.8rem 1.2rem;
+            padding: 1rem 1.5rem;
+          }
+
+          .coach-card {
+            padding: 0.8rem;
+          }
+
+          .coach-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+          }
+
+          .coach-info h3 {
+            font-size: 0.95rem;
+          }
+
+          .coach-info p {
+            font-size: 0.8rem;
           }
         }
       `}</style>

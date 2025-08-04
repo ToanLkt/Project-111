@@ -1,23 +1,23 @@
 "use client"
 
 const COLORS = {
-    background: "#FAFAF9",
-    color1: "#CFE8EF",
-    color2: "#6AB7C5",
-    color3: "#336B73",
-    white: "#FFFFFF",
-    text: "#2D3748",
-    textLight: "#718096",
-    gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
-    gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
-    accent: "#10B981",
-    warning: "#F59E0B",
+  background: "#FAFAF9",
+  color1: "#CFE8EF",
+  color2: "#6AB7C5",
+  color3: "#336B73",
+  white: "#FFFFFF",
+  text: "#2D3748",
+  textLight: "#718096",
+  gradient: "linear-gradient(135deg, #6AB7C5 0%, #336B73 100%)",
+  gradientLight: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%)",
+  accent: "#10B981",
+  warning: "#F59E0B",
 }
 
 export default function Footer() {
-    return (
-        <>
-            <style jsx>{`
+  return (
+    <>
+      <style jsx>{`
         .footer-section {
           background: ${COLORS.background};
           position: relative;
@@ -472,157 +472,160 @@ export default function Footer() {
         }
       `}</style>
 
-            <footer id="lienhe" className="footer-section">
-                <div className="footer-bg-pattern"></div>
-                <div className="footer-floating-decoration decoration-1"></div>
-                <div className="footer-floating-decoration decoration-2"></div>
+      <footer id="lienhe" className="footer-section">
+        <div className="footer-bg-pattern"></div>
+        <div className="footer-floating-decoration decoration-1"></div>
+        <div className="footer-floating-decoration decoration-2"></div>
 
-                <div className="container footer-content">
-                    <div className="footer-main-card">
-                        <div className="footer-grid">
-                            {/* Brand Section */}
-                            <div className="footer-brand-section">
-                                <div className="footer-logo-container">
-                                    <div className="footer-logo">
-                                        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" />
-                                    </div>
-                                    <div className="footer-brand-name">Cai Nghiện Thuốc Lá</div>
-                                </div>
-
-                                <p className="footer-description">
-                                    Nền tảng hỗ trợ cộng đồng bỏ thuốc lá hàng đầu Việt Nam. Cung cấp phương pháp khoa học, chuyên gia tận
-                                    tâm và công cụ theo dõi tiến trình hiệu quả.
-                                </p>
-
-                                <div className="footer-hours">
-                                    <div className="footer-hours-icon">🕒</div>
-                                    <div>
-                                        <div className="footer-hours-text">Giờ làm việc</div>
-                                        <div style={{ color: COLORS.textLight, fontSize: "0.9rem" }}>8:00 - 15:00 (Thứ 2 - Chủ nhật)</div>
-                                    </div>
-                                </div>
-
-                                <div className="footer-social-links">
-                                    <a
-                                        href="https://facebook.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="footer-social-link"
-                                    >
-                                        <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" />
-                                    </a>
-                                    <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" className="footer-social-link">
-                                        <img src="https://cdn-icons-png.flaticon.com/512/5968/5968841.png" alt="Zalo" />
-                                    </a>
-                                    <a
-                                        href="https://youtube.com"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="footer-social-link"
-                                    >
-                                        <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" alt="YouTube" />
-                                    </a>
-                                </div>
-                            </div>
-
-                            {/* Contact Section */}
-                            <div>
-                                <h5 className="footer-section-title">Liên hệ</h5>
-
-                                <div className="footer-contact-item">
-                                    <div className="footer-contact-icon">📧</div>
-                                    <div className="footer-contact-text">
-                                        <span className="footer-contact-label">Email</span>
-                                        <a href="mailto:smokingcessation0206@gmail.com" className="footer-contact-link">
-                                            smokingcessation0206@gmail.com
-                                        </a>
-                                    </div>
-                                </div>
-
-                                <div className="footer-contact-item">
-                                    <div className="footer-contact-icon">📞</div>
-                                    <div className="footer-contact-text">
-                                        <span className="footer-contact-label">Điện thoại</span>
-                                        <a href="tel:0123456789" className="footer-contact-link">
-                                            0123 456 789
-                                        </a>
-                                    </div>
-                                </div>
-
-                                <div className="footer-contact-item">
-                                    <div className="footer-contact-icon">📍</div>
-                                    <div className="footer-contact-text">
-                                        <span className="footer-contact-label">Địa chỉ</span>
-                                        123 Đường Sức Khỏe
-                                        <br />
-                                        Quận 1, TP.HCM
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Quick Links */}
-                            <div>
-                                <h5 className="footer-section-title">Liên kết nhanh</h5>
-                                <ul className="footer-nav-list">
-                                    <li className="footer-nav-item">
-                                        <a href="/" className="footer-nav-link">
-                                            <i className="footer-nav-icon">🏠</i>
-                                            Trang chủ
-                                        </a>
-                                    </li>
-                                    <li className="footer-nav-item">
-                                        <a href="#gioithieu" className="footer-nav-link">
-                                            <i className="footer-nav-icon">📖</i>
-                                            Giới thiệu
-                                        </a>
-                                    </li>
-                                    <li className="footer-nav-item">
-                                        <a href="#lienhe" className="footer-nav-link">
-                                            <i className="footer-nav-icon">📞</i>
-                                            Liên hệ
-                                        </a>
-                                    </li>
-                                    <li className="footer-nav-item">
-                                        <a href="#chuyen-gia" className="footer-nav-link">
-                                            <i className="footer-nav-icon">🧠</i>
-                                            Hỗ trợ chuyên gia
-                                        </a>
-                                    </li>
-                                    <li className="footer-nav-item">
-                                        <a href="#membership" className="footer-nav-link">
-                                            <i className="footer-nav-icon">💎</i>
-                                            Gói thành viên
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            {/* Newsletter */}
-                            <div>
-                                <h5 className="footer-section-title">Nhận tin mới</h5>
-                                <div className="footer-newsletter">
-                                    <form onSubmit={(e) => e.preventDefault()} className="footer-newsletter-form">
-                                        <input type="email" placeholder="Nhập email của bạn" className="footer-newsletter-input" required />
-                                        <button type="submit" className="footer-newsletter-btn">
-                                            <i className="fas fa-paper-plane"></i>
-                                            Đăng ký ngay
-                                        </button>
-                                    </form>
-                                    <div className="footer-newsletter-desc">
-                                        Nhận thông tin mới nhất về phương pháp cai thuốc lá, tài liệu hữu ích và ưu đãi đặc biệt.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer Bottom */}
-                    <div className="footer-bottom">
-                        &copy; {new Date().getFullYear()} Cai Nghiện Thuốc Lá. All rights reserved. Made with ❤️ for a healthier
-                        Vietnam.
-                    </div>
+        <div className="container footer-content">
+          <div className="footer-main-card">
+            <div className="footer-grid">
+              {/* Brand Section */}
+              <div className="footer-brand-section">
+                <div className="footer-logo-container">
+                  <div className="footer-logo">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" />
+                  </div>
+                  <div className="footer-brand-name">Cai Nghiện Thuốc Lá</div>
                 </div>
-            </footer>
-        </>
-    )
+
+                <p className="footer-description">
+                  Nền tảng hỗ trợ cộng đồng bỏ thuốc lá hàng đầu Việt Nam. Cung cấp phương pháp khoa học, chuyên gia tận
+                  tâm và công cụ theo dõi tiến trình hiệu quả.
+                </p>
+
+                <div className="footer-hours">
+                  <div className="footer-hours-icon">🕒</div>
+                  <div>
+                    <div className="footer-hours-text">Giờ làm việc</div>
+                    <div style={{ color: COLORS.textLight, fontSize: "0.9rem" }}>
+                      7:00 - 11:00 / 13:00 - 17:00
+                      <br />
+                      (Thứ 2 - Thứ 7)</div>
+                  </div>
+                </div>
+
+                <div className="footer-social-links">
+                  <a
+                    href="https://facebook.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-social-link"
+                  >
+                    <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" />
+                  </a>
+                  <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+                    <img src="https://cdn-icons-png.flaticon.com/512/5968/5968841.png" alt="Zalo" />
+                  </a>
+                  <a
+                    href="https://youtube.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-social-link"
+                  >
+                    <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" alt="YouTube" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Contact Section */}
+              <div>
+                <h5 className="footer-section-title">Liên hệ</h5>
+
+                <div className="footer-contact-item">
+                  <div className="footer-contact-icon">📧</div>
+                  <div className="footer-contact-text">
+                    <span className="footer-contact-label">Email</span>
+                    <a href="mailto:smokingcessation0206@gmail.com" className="footer-contact-link">
+                      smokingcessation0206@gmail.com
+                    </a>
+                  </div>
+                </div>
+
+                <div className="footer-contact-item">
+                  <div className="footer-contact-icon">📞</div>
+                  <div className="footer-contact-text">
+                    <span className="footer-contact-label">Điện thoại</span>
+                    <a href="tel:0345511085" className="footer-contact-link">
+                      0345511085
+                    </a>
+                  </div>
+                </div>
+
+                <div className="footer-contact-item">
+                  <div className="footer-contact-icon">📍</div>
+                  <div className="footer-contact-text">
+                    <span className="footer-contact-label">Địa chỉ</span>
+                    S803. Vinhome Grand Park
+                    <br />
+                    Quận 9, TP.HCM
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Links */}
+              <div>
+                <h5 className="footer-section-title">Liên kết nhanh</h5>
+                <ul className="footer-nav-list">
+                  <li className="footer-nav-item">
+                    <a href="/" className="footer-nav-link">
+                      <i className="footer-nav-icon">🏠</i>
+                      Trang chủ
+                    </a>
+                  </li>
+                  <li className="footer-nav-item">
+                    <a href="#gioithieu" className="footer-nav-link">
+                      <i className="footer-nav-icon">📖</i>
+                      Giới thiệu
+                    </a>
+                  </li>
+                  <li className="footer-nav-item">
+                    <a href="#lienhe" className="footer-nav-link">
+                      <i className="footer-nav-icon">📞</i>
+                      Liên hệ
+                    </a>
+                  </li>
+                  <li className="footer-nav-item">
+                    <a href="#chuyen-gia" className="footer-nav-link">
+                      <i className="footer-nav-icon">🧠</i>
+                      Hỗ trợ chuyên gia
+                    </a>
+                  </li>
+                  <li className="footer-nav-item">
+                    <a href="#membership" className="footer-nav-link">
+                      <i className="footer-nav-icon">💎</i>
+                      Gói thành viên
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Newsletter */}
+              <div>
+                <h5 className="footer-section-title">Nhận tin mới</h5>
+                <div className="footer-newsletter">
+                  <form onSubmit={(e) => e.preventDefault()} className="footer-newsletter-form">
+                    <input type="email" placeholder="Nhập email của bạn" className="footer-newsletter-input" required />
+                    <button type="submit" className="footer-newsletter-btn">
+                      <i className="fas fa-paper-plane"></i>
+                      Đăng ký ngay
+                    </button>
+                  </form>
+                  <div className="footer-newsletter-desc">
+                    Nhận thông tin mới nhất về phương pháp cai thuốc lá, tài liệu hữu ích và ưu đãi đặc biệt.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Bottom */}
+          <div className="footer-bottom">
+            &copy; {new Date().getFullYear()} Cai Nghiện Thuốc Lá. All rights reserved. Made with ❤️ for a healthier
+            Vietnam.
+          </div>
+        </div>
+      </footer>
+    </>
+  )
 }

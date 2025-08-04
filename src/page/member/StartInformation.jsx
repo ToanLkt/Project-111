@@ -299,11 +299,13 @@ export default function StartInformation() {
         const num = Number(form.cigarettesPerDay);
         if (!num) return;
 
-        if (num >= 1 && num <= 19) {
+        if (num >= 5 && num <= 9) {
+            setForm(prev => ({ ...prev, goalTime: "90" })); // 1-3 tháng
+        } else if (num >= 10 && num <= 15) {
             setForm(prev => ({ ...prev, goalTime: "180" })); // 3-6 tháng
-        } else if (num >= 20 && num <= 29) {
+        } else if (num >= 16 && num <= 20) {
             setForm(prev => ({ ...prev, goalTime: "270" })); // 6-9 tháng
-        } else if (num > 29) {
+        } else if (num > 20) {
             setForm(prev => ({ ...prev, goalTime: "360" })); // 9-12 tháng
         }
     }, [form.cigarettesPerDay]);
