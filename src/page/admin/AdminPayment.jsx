@@ -1117,34 +1117,7 @@ export default function AdminPayment() {
           </table>
         </div>
 
-        {/* Debug Panel - Development Only */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{
-            position: "fixed",
-            bottom: 20,
-            right: 20,
-            background: "rgba(0, 0, 0, 0.8)",
-            color: "white",
-            padding: 15,
-            borderRadius: 8,
-            fontSize: 12,
-            fontFamily: "monospace",
-            zIndex: 9998,
-            maxWidth: 300
-          }}>
-            <div><strong>🔍 AdminPayment Debug:</strong></div>
-            <div>Token: {token ? "✅" : "❌"}</div>
-            <div>User: {user ? "✅" : "❌"}</div>
-            <div>Role: {userRole || "null"}</div>
-            <div>Is Admin: {isAdmin ? "✅" : "❌"}</div>
-            <div>Packages: {packages.length}</div>
-            <div>History Total: {history.length}</div>
-            <div>History Filtered: {filteredHistory.length}</div>
-            <div>Loading: {loading ? "⏳" : "✅"}</div>
-            <div>History Loading: {historyLoading ? "⏳" : "✅"}</div>
-            <div>Filters Active: {filters.startDate || filters.endDate || filters.packageCategory ? "🔍" : "❌"}</div>
-          </div>
-        )}
+
       </div>
     </>
   );

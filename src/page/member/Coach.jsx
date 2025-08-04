@@ -1123,24 +1123,28 @@ export default function Coach() {
                     background: 'rgba(255, 255, 255, 0.2)',
                     border: '1px solid rgba(255, 255, 255, 0.3)',
                     borderRadius: '8px',
-                    padding: '0.5rem',
+                    padding: '0.5rem 0.8rem',
                     color: COLORS.color3,
                     cursor: 'pointer',
-                    fontSize: '1rem',
+                    fontSize: '0.85rem',
                     transition: 'all 0.3s ease',
-                    backdropFilter: 'blur(10px)'
+                    backdropFilter: 'blur(10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    fontWeight: '600'
                   }}
                   onMouseEnter={(e) => {
                     e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                    e.target.style.transform = 'scale(1.1)';
+                    e.target.style.transform = 'scale(1.05)';
                   }}
                   onMouseLeave={(e) => {
                     e.target.style.background = 'rgba(255, 255, 255, 0.2)';
                     e.target.style.transform = 'scale(1)';
                   }}
-                  title="Thông tin hỗ trợ"
+                  title="Nhấn để xem thông tin hỗ trợ"
                 >
-                  💡
+                  💡 Hỗ trợ
                 </button>
               </div>
             </div>
@@ -1310,26 +1314,10 @@ export default function Coach() {
             </div>
 
             <p style={{ margin: '0 0 1.5rem 0', fontSize: '1rem' }}>
-              Nếu bạn không nhận được phản hồi từ coach, hãy liên hệ với chúng tôi qua:
+              Nếu bạn không nhận được phản hồi từ Huấn Luyện Viên trong 1 giờ. Hãy cung cấp hình ảnh chứng minh qua Email:
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                background: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '12px',
-                border: '1px solid rgba(46, 125, 50, 0.2)'
-              }}>
-                <span style={{ fontSize: '1.5rem' }}>📞</span>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Hotline</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1565c0' }}>0345511085</div>
-                </div>
-              </div>
-
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1347,6 +1335,23 @@ export default function Coach() {
                   </div>
                 </div>
               </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                padding: '1rem',
+                background: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '12px',
+                border: '1px solid rgba(46, 125, 50, 0.2)'
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>📞</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Hotline</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1565c0' }}>0345511085</div>
+                </div>
+              </div>
+
+
             </div>
 
             <p style={{
@@ -1356,7 +1361,7 @@ export default function Coach() {
               textAlign: 'center',
               color: 'rgba(46, 125, 50, 0.8)'
             }}>
-              Chúng tôi sẽ hỗ trợ bạn trong thời gian sớm nhất
+              chúng tôi sẽ hoàn phí gói của bạn.
             </p>
           </div>
         </div>

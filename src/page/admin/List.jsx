@@ -1077,33 +1077,7 @@ export default function List() {
                     </div>
                 )}
 
-                {/* Debug Panel - cập nhật */}
-                {process.env.NODE_ENV === 'development' && (
-                    <div style={{
-                        position: "fixed",
-                        bottom: 20,
-                        left: 20,
-                        background: "rgba(0, 0, 0, 0.8)",
-                        color: "white",
-                        padding: 15,
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontFamily: "monospace",
-                        zIndex: 9998,
-                        maxWidth: 300
-                    }}>
-                        <div><strong>🔍 List Debug:</strong></div>
-                        <div>Token: {token ? "✅" : "❌"}</div>
-                        <div>User: {user ? "✅" : "❌"}</div>
-                        <div>Role: {userRole || "null"}</div>
-                        <div>Is Admin: {isAdmin ? "✅" : "❌"}</div>
-                        <div>Members: {members.length}</div>
-                        <div>Coaches: {coaches.length}</div>
-                        <div>Loading Member: {loadingMember ? "⏳" : "✅"}</div>
-                        <div>Loading Coach: {loadingCoach ? "⏳" : "✅"}</div>
-                        <div>Updating Status: {Object.keys(updatingMemberStatus).length}</div>
-                    </div>
-                )}
+
             </div>
         </>
     );

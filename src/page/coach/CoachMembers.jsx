@@ -577,7 +577,7 @@ export default function CoachMembers() {
                     fontSize: "2rem",
                     textAlign: "left"
                 }}>
-                    Danh sách học viên Package 3
+                    Danh sách học viên gói Plus
                 </h2>
 
                 {loading ? (

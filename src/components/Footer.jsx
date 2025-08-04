@@ -501,7 +501,7 @@ export default function Footer() {
                     <div style={{ color: COLORS.textLight, fontSize: "0.9rem" }}>
                       7:00 - 11:00 / 13:00 - 17:00
                       <br />
-                      (Thứ 2 - Thứ 7)</div>
+                      (Thứ 2 - Thứ 6)</div>
                   </div>
                 </div>
 

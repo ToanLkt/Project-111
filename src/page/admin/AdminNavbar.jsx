@@ -146,7 +146,7 @@ export default function AdminNavbar() {
           }}
         >
           {/* Logo */}
-          <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ textAlign: "center", marginBottom: 32, justifyContent: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <img src="/A.png" alt="Admin Logo" style={{ width: 60, height: 60, borderRadius: 16, marginBottom: 8 }} />
             <div style={{
               fontWeight: 900,
@@ -226,8 +226,7 @@ export default function AdminNavbar() {
             {/* Thông tin admin bên phải */}
             <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
               {/* Các icon giả lập */}
-              <span style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }}>🌙</span>
-              <span style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }}>🛒<span style={{ color: "#F87171", fontWeight: 700, fontSize: 13, marginLeft: 2 }}>1</span></span>
+
               <span style={{ fontSize: 22, color: "#64748B", cursor: "pointer" }} onClick={() => navigate("/admin/settings")}>⚙️</span>
 
               {/* Avatar + info */}

@@ -952,15 +952,12 @@ export default function CoachChat() {
           <div className="members-panel">
             <div className="panel-header">
               <h2>
-                👑 Package 3 Members
+                👑 Thành viên gói Plus
               </h2>
               <p>Quản lý cuộc trò chuyện với members gói VIP</p>
-              <div className="status-badge">
-                <div className="status-dot"></div>
-                Coach Support • Package 3 Only
-              </div>
+
               <div className="package-badge">
-                💎 {members.length} members với Package 3
+                💎 {members.length} thành viên đang dùng gói Plus
               </div>
               {/* Đã bỏ nút auto/manual refresh */}
             </div>
@@ -1087,8 +1084,8 @@ export default function CoachChat() {
               </>
             ) : (
               <div className="welcome-chat">
-                <h3>👑 Package 3 VIP Support</h3>
-                <p>Chọn một VIP member từ danh sách để bắt đầu chat hỗ trợ</p>
+                <h3>👑 Plus Members</h3>
+                <p>Chọn một thành viên từ danh sách để bắt đầu chat hỗ trợ</p>
               </div>
             )}
           </div>
