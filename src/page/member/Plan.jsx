@@ -245,6 +245,7 @@ export default function Plan() {
 
     // Hàm chuyển goalTime sang số ngày thất bại
     function getAllowedFailDays(goalTime) {
+        if (goalTime === 90) return 4;
         if (goalTime === 180) return 8;
         if (goalTime === 270) return 11;
         if (goalTime === 365) return 15;

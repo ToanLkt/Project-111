@@ -220,6 +220,9 @@ export default function List() {
                 throw new Error(err);
             }
 
+            // Hiển thị thông báo thành công
+            alert(`✅ Đăng ký coach thành công!\n📧 Mail xác nhận đã được gửi về email: ${coachForm.email}`);
+
             setShowAddCoach(false);
             setCoachForm({
                 email: "",
