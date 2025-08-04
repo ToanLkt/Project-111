@@ -500,12 +500,22 @@ export default function Coach() {
           min-height: 100vh;
           background: ${COLORS.background};
           display: flex;
-          align-items: flex-start;
-          justify-content: center;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
           font-family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
           color: ${COLORS.text};
           padding: 2rem 1rem;
           gap: 2rem;
+        }
+
+        .chat-panels {
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 2rem;
+          width: 100%;
+          max-width: 1100px;
         }
 
         .chat-window {
@@ -969,9 +979,92 @@ export default function Coach() {
           color: ${COLORS.textLight};
         }
 
+        .support-section {
+          background: "linear-gradient(135deg, #CFE8EF 0%, #6AB7C5 50%, #CFE8EF 100%)";
+          border: 1px solid rgba(46, 125, 50, 0.2);
+          border-radius: 24px;
+          padding: 2rem 2.5rem;
+          margin-top: 2rem;
+          width: 100%;
+          max-width: 1100px;
+          box-shadow: 0 20px 60px rgba(46, 125, 50, 0.15);
+          position: relative;
+        }
+
+        .support-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1.5rem;
+          color: #2e7d32;
+        }
+
+        .support-header h3 {
+          margin: 0;
+          fontSize: 1.4rem;
+          fontWeight: 700;
+          color: #2e7d32;
+        }
+
+        .support-content {
+          color: #2e7d32;
+          fontSize: 1rem;
+          lineHeight: 1.6;
+        }
+
+        .support-content p {
+          margin: 0 0 1.5rem 0;
+        }
+
+        .support-contacts {
+          display: flex;
+          gap: 1.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .support-contact-item {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          background: rgba(255, 255, 255, 0.6);
+          borderRadius: 12px;
+          border: 1px solid rgba(46, 125, 50, 0.2);
+          flex: 1;
+        }
+
+        .support-contact-info {
+          flex: 1;
+        }
+
+        .support-contact-label {
+          fontWeight: 600;
+          fontSize: 0.9rem;
+          marginBottom: 0.25rem;
+          color: #2e7d32;
+        }
+
+        .support-contact-value {
+          fontSize: 1rem;
+          fontWeight: 700;
+          color: #1565c0;
+          wordBreak: break-all;
+        }
+
+        .support-footer {
+          fontSize: 0.9rem;
+          fontStyle: italic;
+          textAlign: center;
+          color: rgba(46, 125, 50, 0.8);
+          margin: 0;
+        }
+
         @media (max-width: 768px) {
           .coach-container {
             padding: 1rem 0.5rem;
+          }
+
+          .chat-panels {
             flex-direction: column;
             gap: 1rem;
             align-items: center;
@@ -991,6 +1084,17 @@ export default function Coach() {
             min-height: 500px;
             border-radius: 16px;
             order: 1;
+          }
+
+          .support-section {
+            margin-top: 1rem;
+            padding: 1.5rem;
+            border-radius: 16px;
+          }
+
+          .support-contacts {
+            flex-direction: column;
+            gap: 1rem;
           }
 
           .coaches-grid {
@@ -1061,311 +1165,187 @@ export default function Coach() {
       `}</style>
 
       <div className="coach-container">
-
-        {/* Danh sách coaches */}
-        <div className="coaches-list">
-          <div className="coaches-header">
-            Chọn Coach
-          </div>
-
-          <div className="coaches-grid">
-            {loadingCoaches ? (
-              <div className="loading-coaches">
-                <div className="spinner"></div>
-                <span>Đang tải danh sách coaches...</span>
-              </div>
-            ) : coaches.length === 0 ? (
-              <div className="loading-coaches">
-                <span>Không có coach nào</span>
-              </div>
-            ) : (
-              coaches.map((coach) => (
-                <div
-                  key={coach.accountId}
-                  className={`coach-card ${selectedCoach?.accountId === coach.accountId ? 'selected' : ''}`}
-                  onClick={() => selectCoach(coach)}
-                >
-                  <div className="coach-avatar">
-                    {coach.fullName ? coach.fullName.charAt(0).toUpperCase() : 'C'}
-                  </div>
-                  <div className="coach-info">
-                    <h3>{coach.fullName || 'Coach'}</h3>
-                    <p>{coach.email || 'coach@example.com'}</p>
-                    {(coach.speciality || coach.expertise) && (
-                      <div className="coach-speciality">
-                        {coach.speciality || coach.expertise || 'Chuyên gia tâm lý'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Chat Window */}
-        {selectedCoach ? (
-          <div className="chat-window">
-            <div className="chat-header">
-              💬 Chat với {selectedCoach.fullName || 'Coach'}
-              <div style={{
-                position: 'absolute',
-                right: '1.5rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <button
-                  onClick={() => setShowSupportPopup(true)}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: '8px',
-                    padding: '0.5rem 0.8rem',
-                    color: COLORS.color3,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.3s ease',
-                    backdropFilter: 'blur(10px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                    fontWeight: '600'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                    e.target.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.2)';
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                  title="Nhấn để xem thông tin hỗ trợ"
-                >
-                  💡 Hỗ trợ
-                </button>
-              </div>
+        <div className="chat-panels">
+          {/* Danh sách coaches */}
+          <div className="coaches-list">
+            <div className="coaches-header">
+              Chọn Coach
             </div>
 
-            <div className="chat-messages">
-              {loadingMessages ? (
-                <div className="loading-messages">
+            <div className="coaches-grid">
+              {loadingCoaches ? (
+                <div className="loading-coaches">
                   <div className="spinner"></div>
-                  <span>Đang tải tin nhắn...</span>
+                  <span>Đang tải danh sách coaches...</span>
+                </div>
+              ) : coaches.length === 0 ? (
+                <div className="loading-coaches">
+                  <span>Không có coach nào</span>
                 </div>
               ) : (
-                <>
-                  {messages.map((msg, idx) => (
-                    <div key={idx} className={`message ${msg.from === "user" ? "message-user" : "message-coach"}`}>
-                      {msg.text}
+                coaches.map((coach) => (
+                  <div
+                    key={coach.accountId}
+                    className={`coach-card ${selectedCoach?.accountId === coach.accountId ? 'selected' : ''}`}
+                    onClick={() => selectCoach(coach)}
+                  >
+                    <div className="coach-avatar">
+                      {coach.fullName ? coach.fullName.charAt(0).toUpperCase() : 'C'}
                     </div>
-                  ))}
-
-                  {loading && (
-                    <div className="typing-indicator">
-                      <span>Coach đang trả lời</span>
-                      <div className="typing-dots">
-                        <div className="typing-dot"></div>
-                        <div className="typing-dot"></div>
-                        <div className="typing-dot"></div>
-                      </div>
+                    <div className="coach-info">
+                      <h3>{coach.fullName || 'Coach'}</h3>
+                      <p>{coach.email || 'coach@example.com'}</p>
+                      {(coach.speciality || coach.expertise) && (
+                        <div className="coach-speciality">
+                          {coach.speciality || coach.expertise || 'Chuyên gia tâm lý'}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </>
+                  </div>
+                ))
               )}
-              <div ref={chatEndRef} />
             </div>
+          </div>
 
-            {/* Quick Actions */}
-            <div className="quick-actions">
-              <button className="quick-action-btn" onClick={() => setInput("Tôi muốn bỏ thuốc lá")}>
-                💪 Bỏ thuốc lá
-              </button>
-              <button className="quick-action-btn" onClick={() => setInput("Làm sao để vượt qua cơn thèm?")}>
-                🧠 Vượt qua cơn thèm
-              </button>
-              <button className="quick-action-btn" onClick={() => setInput("Tôi cần động lực")}>
-                ⚡ Động lực
-              </button>
-            </div>
+          {/* Chat Window */}
+          {selectedCoach ? (
+            <div className="chat-window">
+              <div className="chat-header">
+                💬 Chat với {selectedCoach.fullName || 'Coach'}
+              </div>
 
-            <form onSubmit={handleSend} className="chat-input-form">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={`Nhập tin nhắn với ${selectedCoach.fullName || 'Coach'}...`}
-                className="chat-input"
-                disabled={loading}
-              />
-              <button type="submit" className="send-button" disabled={loading || !input.trim()}>
-                {loading ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin"></i>
-                    Đang gửi
-                  </>
+              <div className="chat-messages">
+                {loadingMessages ? (
+                  <div className="loading-messages">
+                    <div className="spinner"></div>
+                    <span>Đang tải tin nhắn...</span>
+                  </div>
                 ) : (
                   <>
-                    <i className="fas fa-paper-plane"></i>
-                    Gửi
+                    {messages.map((msg, idx) => (
+                      <div key={idx} className={`message ${msg.from === "user" ? "message-user" : "message-coach"}`}>
+                        {msg.text}
+                      </div>
+                    ))}
+
+                    {loading && (
+                      <div className="typing-indicator">
+                        <span>Coach đang trả lời</span>
+                        <div className="typing-dots">
+                          <div className="typing-dot"></div>
+                          <div className="typing-dot"></div>
+                          <div className="typing-dot"></div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="chat-window">
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              textAlign: 'center',
-              color: COLORS.textLight,
-              padding: '3rem'
-            }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👑</div>
-              <h3>Tính năng Premium Plus</h3>
-              <p>Chọn một coach để bắt đầu nhận tư vấn chuyên nghiệp</p>
-              <div style={{
-                background: COLORS.color1,
-                padding: '1rem',
-                borderRadius: '12px',
-                marginTop: '1rem'
-              }}>
-                <span style={{ color: COLORS.color3, fontWeight: 600 }}>
-                  🎯 Bạn đang sử dụng gói Plus
-                </span>
+                <div ref={chatEndRef} />
               </div>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Support Popup */}
-      {showSupportPopup && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(5px)'
-          }}
-          onClick={(e) => e.target === e.currentTarget && setShowSupportPopup(false)}
-        >
-          <div style={{
-            background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
-            border: '1px solid #81c784',
-            borderRadius: '24px',
-            padding: '2rem 2.5rem',
-            fontSize: '1rem',
-            color: '#2e7d32',
-            lineHeight: '1.6',
-            boxShadow: '0 20px 60px rgba(46, 125, 50, 0.3)',
-            position: 'relative',
-            maxWidth: '400px',
-            margin: '2rem',
-            animation: 'popupFadeIn 0.3s ease-out'
-          }}>
-            <button
-              onClick={() => setShowSupportPopup(false)}
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                background: 'transparent',
-                border: 'none',
-                fontSize: '1.5rem',
-                color: '#2e7d32',
-                cursor: 'pointer',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
+              {/* Quick Actions */}
+              <div className="quick-actions">
+                <button className="quick-action-btn" onClick={() => setInput("Tôi muốn bỏ thuốc lá")}>
+                  💪 Bỏ thuốc lá
+                </button>
+                <button className="quick-action-btn" onClick={() => setInput("Làm sao để vượt qua cơn thèm?")}>
+                  🧠 Vượt qua cơn thèm
+                </button>
+                <button className="quick-action-btn" onClick={() => setInput("Tôi cần động lực")}>
+                  ⚡ Động lực
+                </button>
+              </div>
+
+              <form onSubmit={handleSend} className="chat-input-form">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={`Nhập tin nhắn với ${selectedCoach.fullName || 'Coach'}...`}
+                  className="chat-input"
+                  disabled={loading}
+                />
+                <button type="submit" className="send-button" disabled={loading || !input.trim()}>
+                  {loading ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i>
+                      Đang gửi
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-paper-plane"></i>
+                      Gửi
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="chat-window">
+              <div style={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(46, 125, 50, 0.1)';
-                e.target.style.transform = 'scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'transparent';
-                e.target.style.transform = 'scale(1)';
-              }}
-            >
-              ×
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '2rem' }}>💡</span>
-              <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>Thông báo hỗ trợ</h3>
+                height: '100%',
+                textAlign: 'center',
+                color: COLORS.textLight,
+                padding: '3rem'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👑</div>
+                <h3>Tính năng Premium Plus</h3>
+                <p>Chọn một coach để bắt đầu nhận tư vấn chuyên nghiệp</p>
+                <div style={{
+                  background: COLORS.color1,
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  marginTop: '1rem'
+                }}>
+                  <span style={{ color: COLORS.color3, fontWeight: 600 }}>
+                    🎯 Bạn đang sử dụng gói Plus
+                  </span>
+                </div>
+              </div>
             </div>
+          )}
+        </div>
 
-            <p style={{ margin: '0 0 1.5rem 0', fontSize: '1rem' }}>
-              Nếu bạn không nhận được phản hồi từ Huấn Luyện Viên trong 1 giờ. Hãy cung cấp hình ảnh chứng minh qua Email:
+        {/* Support Section */}
+        <div className="support-section">
+          <div className="support-header">
+            <span style={{ fontSize: '2rem' }}>💡</span>
+            <h3>Thông báo hỗ trợ</h3>
+          </div>
+
+          <div className="support-content">
+            <p>
+              Nếu bạn không nhận được phản hồi từ <strong>Huấn Luyện Viên trong 1 giờ</strong>, hãy cung cấp hình ảnh chứng minh qua Email:
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                background: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '12px',
-                border: '1px solid rgba(46, 125, 50, 0.2)'
-              }}>
+            <div className="support-contacts">
+              <div className="support-contact-item">
                 <span style={{ fontSize: '1.5rem' }}>📧</span>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Email</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1565c0', wordBreak: 'break-all' }}>
-                    smokingcessation0206@gmail.com
-                  </div>
+                <div className="support-contact-info">
+                  <div className="support-contact-label">Email hỗ trợ</div>
+                  <div className="support-contact-value">smokingcessation0206@gmail.com</div>
                 </div>
               </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                padding: '1rem',
-                background: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '12px',
-                border: '1px solid rgba(46, 125, 50, 0.2)'
-              }}>
+
+              <div className="support-contact-item">
                 <span style={{ fontSize: '1.5rem' }}>📞</span>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Hotline</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1565c0' }}>0345511085</div>
+                <div className="support-contact-info">
+                  <div className="support-contact-label">Hotline</div>
+                  <div className="support-contact-value">0345511085</div>
                 </div>
               </div>
-
-
             </div>
 
-            <p style={{
-              margin: '1.5rem 0 0 0',
-              fontSize: '0.9rem',
-              fontStyle: 'italic',
-              textAlign: 'center',
-              color: 'rgba(46, 125, 50, 0.8)'
-            }}>
-              chúng tôi sẽ hoàn phí gói của bạn.
+            <p className="support-footer">
+              🎯 Chúng tôi sẽ hoàn phí gói của bạn. Đính kèm ảnh chụp màn hình cuộc trò chuyện để được xử lý nhanh chóng.
             </p>
           </div>
         </div>
-      )}
+      </div>
 
       <Footer />
     </>
