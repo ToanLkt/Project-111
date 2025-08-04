@@ -637,7 +637,7 @@ export default function StartInformation() {
                                     marginBottom: 20
                                 }}
                             >
-                                🎉 {hasSubmittedBefore ? "Thông tin đã được cập nhật!" : "Cảm ơn bạn đã cung cấp thông tin!"}
+                                🎉 {hasSubmittedBefore ? "Cập nhật thông tin!" : "Cảm ơn bạn đã cung cấp thông tin!"}
                             </div>
                         )}
 
