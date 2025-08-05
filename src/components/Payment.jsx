@@ -146,7 +146,7 @@ export default function Payment() {
     return state.payment || {}
   })
 
-  // Lấy current package từ user object (từ login saga) - giống MembershipPackage
+  // Lấy current package từ user object (từ login saga) 
   const currentPackageFromUser = user?.currentPackage || null
 
   // Extract user info từ Redux user object

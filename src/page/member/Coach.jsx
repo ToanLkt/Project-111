@@ -1319,7 +1319,7 @@ export default function Coach() {
 
           <div className="support-content">
             <p>
-              Nếu bạn không nhận được phản hồi từ <strong>Huấn Luyện Viên trong 1 giờ</strong>, hãy cung cấp hình ảnh chứng minh qua Email:
+              Nếu bạn không nhận được phản hồi từ <strong>Huấn Luyện Viên trong 1 giờ</strong>, hãy cung cấp hình ảnh chứng minh qua:
             </p>
 
             <div className="support-contacts">
